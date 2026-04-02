@@ -1,6 +1,10 @@
 import type { Visit } from '@/types/visit'
+import { getLocalDateString } from '@/utils/helpers'
 
-const TODAY = '2026-04-02'
+const TODAY = getLocalDateString()
+const d = new Date()
+d.setDate(d.getDate() + 1)
+const TOMORROW = getLocalDateString(d)
 
 export const visits: Visit[] = [
   // --- PENDING APPROVAL (walk-ins waiting for employee) ---
@@ -324,7 +328,7 @@ export const visits: Visit[] = [
     entryPath: 'employee-request',
     purpose: 'official',
     visitType: 'cat-officials',
-    scheduledDate: '2026-04-03',
+    scheduledDate: TOMORROW,
     scheduledTime: '10:00',
     createdAt: `${TODAY}T07:00:00`,
     createdBy: 'emp-1',

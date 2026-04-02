@@ -13,6 +13,7 @@ import {
   getBusinessSegmentLabel,
   getVisitorPriorityLabel,
   getDepartmentLabel,
+  getLocalDateString,
 } from '@/utils/helpers'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ const VISITOR_PRIORITIES: VisitorPriority[] = ['immediate', 'in-a-month', 'explo
 const DEPARTMENTS = ['admin', 'hr', 'it', 'accounts'] as const
 
 function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0]
+  return getLocalDateString()
 }
 
 function getCurrentTime(): string {

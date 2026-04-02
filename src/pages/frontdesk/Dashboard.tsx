@@ -11,7 +11,7 @@ import PageHeader from '@/components/PageHeader'
 import { visitors as seedVisitors } from '@/data/visitors'
 import { employees } from '@/data/employees'
 import type { Visit } from '@/types/visit'
-import { getVisitTypeLabel } from '@/utils/helpers'
+import { getVisitTypeLabel, getLocalDateString } from '@/utils/helpers'
 
 type StatusFilter = 'all' | 'confirmed' | 'scheduled' | 'pending'
 
@@ -35,7 +35,7 @@ export default function FrontDeskDashboard() {
   const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null)
 
   const now = new Date()
-  const today = now.toISOString().split('T')[0]
+  const today = getLocalDateString(now)
   const currentTime = now.toTimeString().slice(0, 5) // "HH:MM"
 
   const todaysVisits = visits.filter(

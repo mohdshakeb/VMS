@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import VisitCard from '@/components/VisitCard'
 import TabBar from '@/components/TabBar'
 import PageHeader from '@/components/PageHeader'
+import { getLocalDateString } from '@/utils/helpers'
 
 type VisitTab = 'upcoming' | 'pending' | 'past'
 
@@ -14,7 +15,7 @@ export default function MyVisits() {
   const employeeId = useAuthStore((s) => s.currentEmployeeId)
 
   const myVisits = visits.filter((v) => v.hostEmployeeId === employeeId)
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
 
   const pending = getPendingApprovals(visits, employeeId)
   const upcoming = myVisits.filter((v) =>

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Visit, VisitStatus, Purpose, VisitType, EntryPath, BusinessSegment, VisitorPriority, Delegate } from '@/types/visit'
 import { visits as seedVisits } from '@/data/visits'
 import { useNotificationStore } from './notificationStore'
-import { generateId } from '@/utils/helpers'
+import { generateId, getLocalDateString } from '@/utils/helpers'
 import { employees } from '@/data/employees'
 import { visitors as seedVisitors } from '@/data/visitors'
 import type { Visitor } from '@/types/user'
@@ -84,7 +84,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       entryPath: 'walk-in' as EntryPath,
       purpose: resolvedPurpose,
       visitType: data.visitType,
-      scheduledDate: data.scheduledDate ?? now.toISOString().split('T')[0],
+      scheduledDate: data.scheduledDate ?? getLocalDateString(now),
       scheduledTime: data.scheduledTime ?? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       duration: data.duration,
       createdAt: now.toISOString(),
@@ -221,12 +221,12 @@ export const useVisitStore = create<VisitState>((set, get) => ({
 
 // Standalone selectors
 export function getTodaysVisits(visits: Visit[], locationId: string): Visit[] {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   return visits.filter((v) => v.scheduledDate === today && v.locationId === locationId)
 }
 
 export function getVisitsByStatus(visits: Visit[], status: VisitStatus, locationId: string): Visit[] {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   return visits.filter((v) => v.status === status && v.scheduledDate === today && v.locationId === locationId)
 }
 
