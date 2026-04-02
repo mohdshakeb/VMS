@@ -48,7 +48,7 @@ export default function AppLayout() {
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
   const { toastMessage, clearToast } = useVisitStore()
-  const currentLocation = locations.find((l) => l.id === currentLocationId)
+
 
   // Navigate to role home only when the role actually changes (not on mount)
   const prevRole = useRef<Role>(currentRole)

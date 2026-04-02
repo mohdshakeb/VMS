@@ -250,11 +250,11 @@ export default function CreateWalkIn() {
       </header>
 
       {/* ── Scrollable Content ─────────────────────────────────────────────── */}
-      <div className="flex-1 px-4 md:px-6 py-5 max-w-lg mx-auto w-full">
+      <div className="flex-1 px-4 md:px-6 py-8 max-w-lg mx-auto w-full">
         {/* Step Indicator */}
         <StepIndicator step={step} />
 
-        <form id="visit-form" onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form id="visit-form" onSubmit={handleSubmit} className="mt-10 space-y-4">
         {/* ── Step 1: Visitor Identity ───────────────────────────────────── */}
         {step === 1 && (
           <>
