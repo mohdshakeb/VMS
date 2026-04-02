@@ -140,13 +140,6 @@ export default function CreateWalkIn() {
 
   const availablePurposes = location ? PURPOSE_BY_LOCATION[location.type] : []
 
-  // Reset pass type when purpose changes (EO only)
-  useEffect(() => {
-    if (isEO) {
-      setFormData((prev) => ({ ...prev, visitType: '' }))
-    }
-  }, [formData.purpose]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Close employee dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -159,7 +152,13 @@ export default function CreateWalkIn() {
   }, [])
 
   function handleChange<K extends keyof WizardFormData>(field: K, value: WizardFormData[K]) {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value }
+      if (field === 'purpose' && isEO) {
+        next.visitType = ''
+      }
+      return next
+    })
   }
 
   function handleNext() {

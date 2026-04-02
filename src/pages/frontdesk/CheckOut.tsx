@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useVisitStore } from '@/store/visitStore'
 import { employees } from '@/data/employees'
 import Card from '@/components/Card'
@@ -6,6 +7,11 @@ import Button from '@/components/Button'
 import { formatTime } from '@/utils/helpers'
 
 export default function CheckOut() {
+  const [now, setNow] = useState(0)
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setNow(Date.now()))
+    return () => cancelAnimationFrame(r)
+  }, [])
   const { visitId } = useParams<{ visitId: string }>()
   const navigate = useNavigate()
   const visits = useVisitStore((s) => s.visits)
@@ -26,11 +32,11 @@ export default function CheckOut() {
   const host = employees.find((e) => e.id === visit.hostEmployeeId)
 
   // Calculate duration
-  const checkInTime = visit.checkInTime ? new Date(visit.checkInTime) : null
-  const durationMin = checkInTime ? Math.floor((Date.now() - checkInTime.getTime()) / 60000) : 0
+  const checkInTime = visit?.checkInTime ? new Date(visit.checkInTime) : null
+  const durationMin = (now > 0 && checkInTime) ? Math.floor((now - checkInTime.getTime()) / 60000) : 0
   const hours = Math.floor(durationMin / 60)
   const mins = durationMin % 60
-  const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+  const durationStr = (now > 0 && checkInTime) ? (hours > 0 ? `${hours}h ${mins}m` : `${mins}m`) : '—'
 
   function handleCheckOut() {
     checkOut(visit!.id)

@@ -5,7 +5,6 @@ import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import { useVisitStore } from '@/store/visitStore'
 import type { Role } from '@/types/user'
-import { locations } from '@/data/locations'
 import logoUrl from '@/assets/Logo.svg'
 
 interface MobileNavItem {
@@ -41,7 +40,7 @@ const roleHomeRoutes: Record<Role, string> = {
 const FULL_SCREEN_ROUTES = ['/front-desk/walk-in']
 
 export default function AppLayout() {
-  const { currentRole, currentEmployeeId, currentLocationId } = useAuthStore()
+  const { currentRole, currentEmployeeId } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname)

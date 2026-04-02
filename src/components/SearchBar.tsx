@@ -10,10 +10,12 @@ interface SearchBarProps {
 
 export default function SearchBar({ placeholder = 'Search...', value: controlledValue, onChange, debounceMs = 200, inputClassName }: SearchBarProps) {
   const [localValue, setLocalValue] = useState(controlledValue ?? '')
+  const [prevControlledValue, setPrevControlledValue] = useState(controlledValue)
 
-  useEffect(() => {
-    if (controlledValue !== undefined) setLocalValue(controlledValue)
-  }, [controlledValue])
+  if (controlledValue !== prevControlledValue) {
+    setLocalValue(controlledValue ?? '')
+    setPrevControlledValue(controlledValue)
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => onChange(localValue), debounceMs)
