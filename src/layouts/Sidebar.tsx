@@ -1,8 +1,21 @@
-import { NavLink } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { employees } from '@/data/employees'
 import type { Role } from '@/types/user'
 import logoUrl from '@/assets/Logo.svg'
+
+// Maps child route prefixes to their parent nav path so the correct item stays highlighted
+const childToParentNav: Record<string, string> = {
+  '/front-desk/check-in': '/front-desk/dashboard',
+  '/front-desk/check-out': '/front-desk/dashboard',
+}
+
+function getActiveNavPath(pathname: string): string {
+  for (const [prefix, parent] of Object.entries(childToParentNav)) {
+    if (pathname.startsWith(prefix)) return parent
+  }
+  return pathname
+}
 
 interface NavItem {
   label: string
@@ -34,6 +47,8 @@ const roleLabels: Record<Role, string> = {
 
 export default function Sidebar() {
   const { currentRole, currentEmployeeId } = useAuthStore()
+  const location = useLocation()
+  const activePath = getActiveNavPath(location.pathname)
 
   const items = navByRole[currentRole]
   const currentEmployee = employees.find((e) => e.id === currentEmployeeId)
@@ -52,9 +67,10 @@ export default function Sidebar() {
 
       {/* Nav items */}
       <nav className="flex-1 px-3 space-y-0.5">
-        {items.map((item) => (
-          <NavLink key={item.path} to={item.path}>
-            {({ isActive }) => (
+        {items.map((item) => {
+          const isActive = activePath === item.path
+          return (
+            <Link key={item.path} to={item.path}>
               <div
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors duration-150 ${isActive
                   ? 'bg-brand-red-900'
@@ -69,9 +85,9 @@ export default function Sidebar() {
                   {item.label}
                 </span>
               </div>
-            )}
-          </NavLink>
-        ))}
+            </Link>
+          )
+        })}
       </nav>
 
       {/* User footer */}

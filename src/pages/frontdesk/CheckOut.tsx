@@ -4,6 +4,7 @@ import { useVisitStore } from '@/store/visitStore'
 import { employees } from '@/data/employees'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
+import PageHeader from '@/components/PageHeader'
 import { formatTime } from '@/utils/helpers'
 
 export default function CheckOut() {
@@ -31,7 +32,6 @@ export default function CheckOut() {
   const visitor = storeVisitors.find((v) => v.id === visit.visitorId)
   const host = employees.find((e) => e.id === visit.hostEmployeeId)
 
-  // Calculate duration
   const checkInTime = visit?.checkInTime ? new Date(visit.checkInTime) : null
   const durationMin = (now > 0 && checkInTime) ? Math.floor((now - checkInTime.getTime()) / 60000) : 0
   const hours = Math.floor(durationMin / 60)
@@ -44,45 +44,46 @@ export default function CheckOut() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-5 max-w-lg mx-auto space-y-5">
-      <div>
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary mb-3">
-          <i className="ri-arrow-left-s-line text-lg" />Back
-        </button>
-        <h2 className="text-lg font-semibold text-text-primary">Check Out Visitor</h2>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader
+        title="Check Out Visitor"
+        breadcrumb={[{ label: 'Dashboard', path: '/front-desk/dashboard' }]}
+        onBack={() => navigate(-1)}
+      />
 
-      <Card>
-        <div className="space-y-3">
-          <div>
+      <div className="flex-1 overflow-y-auto">
+      <div className="px-4 md:px-6 py-5 max-w-lg mx-auto space-y-4">
+        <Card>
+          <div className="mb-4">
             <p className="text-base font-semibold text-text-primary">{visitor?.name ?? 'Unknown'}</p>
             {visitor?.company && <p className="text-sm text-text-secondary">{visitor.company}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-xs text-text-tertiary">Badge</p>
-              <p className="font-medium text-text-primary">{visit.badgeNumber ?? '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-tertiary">Host</p>
-              <p className="font-medium text-text-primary">{host?.name ?? 'Unknown'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-tertiary">Checked In</p>
-              <p className="font-medium text-text-primary">{checkInTime ? formatTime(`${checkInTime.getHours()}:${String(checkInTime.getMinutes()).padStart(2, '0')}`) : '—'}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <Detail label="Badge" value={visit.badgeNumber ?? '—'} />
+            <Detail label="Host" value={host?.name ?? '—'} />
+            <Detail label="Checked In" value={checkInTime ? formatTime(`${checkInTime.getHours()}:${String(checkInTime.getMinutes()).padStart(2, '0')}`) : '—'} />
             <div>
               <p className="text-xs text-text-tertiary">Duration</p>
-              <p className="font-medium text-on-premises">{durationStr}</p>
+              <p className="text-sm font-medium text-on-premises">{durationStr}</p>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      <Button fullWidth variant="danger" icon="ri-logout-box-line" onClick={handleCheckOut}>
-        Check Out
-      </Button>
+        <Button fullWidth variant="danger" icon="ri-logout-box-line" onClick={handleCheckOut}>
+          Check Out
+        </Button>
+      </div>
+      </div>
+    </div>
+  )
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-text-tertiary">{label}</p>
+      <p className="text-sm text-text-primary font-medium">{value}</p>
     </div>
   )
 }

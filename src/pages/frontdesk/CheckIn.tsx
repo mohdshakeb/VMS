@@ -6,7 +6,17 @@ import { locations } from '@/data/locations'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
 import StatusBadge from '@/components/StatusBadge'
-import { formatTime, getVisitTypeLabel, getPurposeLabel, generateBadgeNumber } from '@/utils/helpers'
+import PageHeader from '@/components/PageHeader'
+import {
+  formatDate,
+  formatTime,
+  getVisitTypeLabel,
+  getPurposeLabel,
+  getDepartmentLabel,
+  getBusinessSegmentLabel,
+  getVisitorPriorityLabel,
+  generateBadgeNumber,
+} from '@/utils/helpers'
 
 export default function CheckIn() {
   const { visitId } = useParams<{ visitId: string }>()
@@ -30,99 +40,185 @@ export default function CheckIn() {
   const host = employees.find((e) => e.id === visit.hostEmployeeId)
   const location = locations.find((l) => l.id === visit.locationId)
 
+  const hasDevices = visit.laptopDetails || visit.otherDeviceDetails
+  const hasCustomerInfo = visit.businessSegment || visit.priority || visit.model || visit.businessSegmentRemarks
+  const hasDelegates = visit.delegates && visit.delegates.length > 0
+
   function handleCheckIn() {
     checkIn(visit!.id, badgeNumber)
     navigate('/front-desk/dashboard')
   }
 
   return (
-    <div className="px-4 md:px-6 py-5 max-w-lg mx-auto space-y-5">
-      <div>
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary mb-3">
-          <i className="ri-arrow-left-s-line text-lg" />Back
-        </button>
-        <h2 className="text-lg font-semibold text-text-primary">Check In Visitor</h2>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader
+        title="Check In Visitor"
+        breadcrumb={[{ label: 'Dashboard', path: '/front-desk/dashboard' }]}
+        onBack={() => navigate(-1)}
+      />
 
-      {/* Visit details */}
-      <Card>
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="text-base font-semibold text-text-primary">{visitor?.name ?? 'Unknown'}</p>
-            {visitor?.company && <p className="text-sm text-text-secondary">{visitor.company}</p>}
-          </div>
-          <StatusBadge status={visit.status} />
-        </div>
+      <div className="flex-1 overflow-y-auto">
+      <div className="px-4 md:px-6 py-5 max-w-lg mx-auto space-y-4">
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <Detail label="Host" value={host?.name ?? 'Unknown'} />
-          <Detail label="Time" value={formatTime(visit.scheduledTime)} />
-          <Detail label="Purpose" value={getPurposeLabel(visit.purpose)} />
-          <Detail label="Type" value={getVisitTypeLabel(visit.visitType)} />
-          <Detail label="Location" value={location?.name ?? ''} />
-          <Detail label="Mobile" value={visitor?.mobile ?? ''} />
-        </div>
-
-        {visit.notes && (
-          <div className="mt-3 pt-3 border-t border-border-light">
-            <p className="text-xs text-text-tertiary">Notes</p>
-            <p className="text-sm text-text-secondary mt-0.5">{visit.notes}</p>
-          </div>
-        )}
-      </Card>
-
-      {/* Badge assignment */}
-      <Card>
-        <h3 className="text-sm font-semibold text-text-primary mb-3">Assign Badge</h3>
-        <label className="block">
-          <span className="text-xs text-text-secondary">Badge Number</span>
-          <input
-            type="text"
-            value={badgeNumber}
-            onChange={(e) => setBadgeNumber(e.target.value)}
-            className="form-input mt-1"
-          />
-          <p className="text-xs text-text-tertiary mt-1">Auto-generated. Edit if using a different physical badge.</p>
-        </label>
-      </Card>
-
-      {/* Simulated pass preview */}
-      <Card className="overflow-hidden !p-0">
-        <div className="bg-brand px-5 py-3">
-          <p className="text-xs text-white/70 font-medium uppercase tracking-wider">Visitor Pass</p>
-        </div>
-        <div className="p-5 space-y-3">
-          <div className="flex items-start justify-between">
+        {/* Visitor identity */}
+        <Card>
+          <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-lg font-bold text-text-primary">{visitor?.name}</p>
+              <p className="text-base font-semibold text-text-primary">{visitor?.name ?? 'Unknown'}</p>
               {visitor?.company && <p className="text-sm text-text-secondary">{visitor.company}</p>}
             </div>
-            {/* Placeholder QR */}
-            <div className="w-16 h-16 rounded-lg bg-surface-secondary border border-border flex items-center justify-center shrink-0">
-              <i className="ri-qr-code-line text-2xl text-text-tertiary" />
-            </div>
+            <StatusBadge status={visit.status} />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <p className="text-text-tertiary">Badge</p>
-              <p className="font-semibold text-text-primary">{badgeNumber}</p>
-            </div>
-            <div>
-              <p className="text-text-tertiary">Host</p>
-              <p className="font-semibold text-text-primary">{host?.name}</p>
-            </div>
-            <div>
-              <p className="text-text-tertiary">Date</p>
-              <p className="font-semibold text-text-primary">{new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <Detail label="Mobile" value={visitor?.mobile ?? '—'} />
+            {visitor?.email && <Detail label="Email" value={visitor.email} />}
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* Action */}
-      <Button fullWidth icon="ri-login-box-line" onClick={handleCheckIn} disabled={!badgeNumber.trim()}>
-        Issue Pass & Check In
-      </Button>
+        {/* Visit details */}
+        <Card>
+          <SectionLabel icon="ri-calendar-check-line" title="Visit Details" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
+            <Detail label="Pass Type" value={getVisitTypeLabel(visit.visitType)} />
+            <Detail label="Purpose" value={getPurposeLabel(visit.purpose)} />
+            <Detail label="Host" value={host?.name ?? '—'} />
+            {visit.department && <Detail label="Department" value={getDepartmentLabel(visit.department)} />}
+            <Detail label="Location" value={location?.name ?? '—'} />
+            <Detail label="Date" value={formatDate(visit.scheduledDate)} />
+            <Detail label="Time" value={formatTime(visit.scheduledTime)} />
+            {visit.duration != null && (
+              <Detail label="Duration" value={formatDuration(visit.duration)} />
+            )}
+          </div>
+        </Card>
+
+        {/* Delegates */}
+        {hasDelegates && (
+          <Card>
+            <SectionLabel icon="ri-group-line" title={`Group Visit · ${visit.delegates!.length + 1} visitors`} />
+            <div className="mt-3 space-y-2">
+              {/* Primary visitor */}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-primary font-medium">{visitor?.name}</span>
+                <span className="text-xs text-text-tertiary">Primary</span>
+              </div>
+              {/* Delegates */}
+              {visit.delegates!.map((d, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-text-primary">{d.name}</span>
+                  <span className="text-text-secondary text-xs">{d.mobile}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Customer details */}
+        {hasCustomerInfo && (
+          <Card>
+            <SectionLabel icon="ri-building-2-line" title="Customer Details" />
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
+              {visit.businessSegment && <Detail label="Segment" value={getBusinessSegmentLabel(visit.businessSegment)} />}
+              {visit.priority && <Detail label="Priority" value={getVisitorPriorityLabel(visit.priority)} />}
+              {visit.model && <Detail label="Model" value={visit.model} />}
+              {visit.businessSegmentRemarks && (
+                <div className="col-span-2">
+                  <Detail label="Remarks" value={visit.businessSegmentRemarks} />
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* Security & devices */}
+        {hasDevices && (
+          <Card>
+            <SectionLabel icon="ri-shield-check-line" title="Devices Declared" />
+            <div className="mt-3 space-y-3 text-sm">
+              {visit.laptopDetails && <Detail label="Laptop" value={visit.laptopDetails} />}
+              {visit.otherDeviceDetails && <Detail label="Other Devices" value={visit.otherDeviceDetails} />}
+            </div>
+          </Card>
+        )}
+
+        {/* Notes */}
+        {visit.notes && (
+          <Card>
+            <SectionLabel icon="ri-sticky-note-line" title="Notes" />
+            <p className="mt-2 text-sm text-text-secondary">{visit.notes}</p>
+          </Card>
+        )}
+
+        {/* Badge assignment */}
+        <Card>
+          <SectionLabel icon="ri-nfc-line" title="Assign Badge" />
+          <label className="block mt-3">
+            <span className="text-xs text-text-secondary">Badge Number</span>
+            <input
+              type="text"
+              value={badgeNumber}
+              onChange={(e) => setBadgeNumber(e.target.value)}
+              className="form-input mt-1"
+            />
+            <p className="text-xs text-text-tertiary mt-1">Auto-generated. Edit if using a different physical badge.</p>
+          </label>
+        </Card>
+
+        {/* Visitor pass preview */}
+        <Card className="overflow-hidden !p-0">
+          <div className="bg-zinc-100 border-b border-zinc-200 px-5 py-3">
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Visitor Pass Preview</p>
+          </div>
+          <div className="p-5 space-y-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-lg font-bold text-text-primary">{visitor?.name}</p>
+                {visitor?.company && <p className="text-sm text-text-secondary">{visitor.company}</p>}
+              </div>
+              <div className="w-16 h-16 rounded-lg bg-surface-secondary border border-border flex items-center justify-center shrink-0">
+                <i className="ri-qr-code-line text-2xl text-text-tertiary" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <p className="text-text-tertiary">Badge</p>
+                <p className="font-semibold text-text-primary">{badgeNumber}</p>
+              </div>
+              <div>
+                <p className="text-text-tertiary">Host</p>
+                <p className="font-semibold text-text-primary">{host?.name}</p>
+              </div>
+              <div>
+                <p className="text-text-tertiary">Date</p>
+                <p className="font-semibold text-text-primary">{new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Button fullWidth icon="ri-login-box-line" onClick={handleCheckIn} disabled={!badgeNumber.trim()}>
+          Issue Pass & Check In
+        </Button>
+      </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+function SectionLabel({ icon, title }: { icon: string; title: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <i className={`${icon} text-sm text-text-tertiary`} />
+      <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">{title}</span>
     </div>
   )
 }
