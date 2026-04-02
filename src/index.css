@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+/* ============================================================
+   VMS Design System — GSS Design / Mintways
+   Source: docs/textStyles.json + docs/Colour Palette.json
+   ============================================================ */
+
+@theme {
+  /* ----------------------------------------------------------
+     SPACING — 4px base grid
+     All spacing must be a multiple of 4px. The base unit
+     --spacing: 0.25rem means p-1=4px, p-2=8px, p-4=16px, etc.
+     ---------------------------------------------------------- */
+  --spacing: 0.25rem; /* 1 unit = 4px */
+
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+     Font: Inter — Regular (400), Medium (500), Semi Bold (600)
+     ---------------------------------------------------------- */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Font sizes — direct from textStyles.json */
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.875rem;   /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  1.875rem;   /* 30px */
+
+  /* ----------------------------------------------------------
+     BRAND RED — Primary brand colour (EB2128)
+     Use for primary CTAs, active nav, key brand moments
+     ---------------------------------------------------------- */
+  --color-brand-red-50:  #FEF5F5;
+  --color-brand-red-100: #FCDEDF;
+  --color-brand-red-200: #F7AFB1;
+  --color-brand-red-300: #F38084;
+  --color-brand-red-400: #EF5157;
+  --color-brand-red-500: #EB2128;
+  --color-brand-red-600: #C91218;
+  --color-brand-red-700: #9A0D12;
+  --color-brand-red-800: #6B090D;
+  --color-brand-red-900: #3C0507;
+  --color-brand-red-950: #170202;
+
+  /* ----------------------------------------------------------
+     BLUE — Secondary / Accent (00A6F4)
+     Use for links, info states, interactive elements
+     ---------------------------------------------------------- */
+  --color-blue-50:  #F0F9FF;
+  --color-blue-100: #DFF2FE;
+  --color-blue-200: #B8E6FE;
+  --color-blue-300: #74D4FF;
+  --color-blue-400: #00BCFF;
+  --color-blue-500: #00A6F4;
+  --color-blue-600: #0084D1;
+  --color-blue-700: #0069A8;
+  --color-blue-800: #00598A;
+  --color-blue-900: #024A70;
+  --color-blue-950: #052F4A;
+
+  /* ----------------------------------------------------------
+     ZINC — Neutrals (warm-tinted, never pure gray)
+     Use for text, borders, surfaces, dividers
+     ---------------------------------------------------------- */
+  --color-zinc-50:  #FAFAFA;
+  --color-zinc-100: #F5F4F4;
+  --color-zinc-200: #E7E4E4;
+  --color-zinc-300: #D8D4D4;
+  --color-zinc-400: #A99F9F;
+  --color-zinc-500: #7B7171;
+  --color-zinc-600: #5C5252;
+  --color-zinc-700: #463F3F;
+  --color-zinc-800: #2A2727;
+  --color-zinc-900: #1B1818;
+  --color-zinc-950: #0B0909;
+
+  /* ----------------------------------------------------------
+     SEMANTIC STATUS COLOURS
+     ---------------------------------------------------------- */
+
+  /* Green — success, approved, active, checked-in */
+  --color-green-50:  #F0FDF4;
+  --color-green-100: #DCFCE7;
+  --color-green-200: #BBF7D0;
+  --color-green-300: #86EFAC;
+  --color-green-400: #4ADE80;
+  --color-green-500: #22C55E;
+  --color-green-600: #16A34A;
+  --color-green-700: #15803D;
+  --color-green-800: #166534;
+  --color-green-900: #14532D;
+  --color-green-950: #052E16;
+
+  /* Red — error, rejected, danger */
+  --color-red-50:  #FEF2F2;
+  --color-red-100: #FEE2E2;
+  --color-red-200: #FECACA;
+  --color-red-300: #F87171;
+  --color-red-400: #EF4444;
+  --color-red-500: #DC2626;
+  --color-red-600: #B91C1C;
+  --color-red-700: #991B1B;
+  --color-red-800: #7F1D1D;
+  --color-red-900: #450A0A;
+  --color-red-950: #160303;
+
+  /* Orange — warning, pending, awaiting */
+  --color-orange-50:  #FFF7ED;
+  --color-orange-100: #FFEDD5;
+  --color-orange-200: #FED7AA;
+  --color-orange-300: #FDBA74;
+  --color-orange-400: #FB923C;
+  --color-orange-500: #F97316;
+  --color-orange-600: #EA580C;
+  --color-orange-700: #C2410C;
+  --color-orange-800: #9A3412;
+  --color-orange-900: #7C2D12;
+  --color-orange-950: #431407;
+
+  /* ----------------------------------------------------------
+     SEMANTIC BADGE BACKGROUNDS
+     Triads: light (bg) / subtle (border or icon) / dark (text)
+     ---------------------------------------------------------- */
+  --color-badge-yellow-light:  #FDF4E7;
+  --color-badge-yellow-subtle: #F6D6AB;
+  --color-badge-yellow-dark:   #E89221;
+
+  --color-badge-blue-light:    #E8F0FD;
+  --color-badge-blue-subtle:   #A7C7F5;
+  --color-badge-blue-dark:     #4B8DEC;
+
+  --color-badge-red-light:     #FDE8EC;
+  --color-badge-red-subtle:    #F7B5C0;
+  --color-badge-red-dark:      #EE6179;
+
+  --color-badge-green-light:   #DBF9E2;
+  --color-badge-green-subtle:  #A6F1B6;
+  --color-badge-green-dark:    #1FD447;
+
+  --color-badge-pink-light:    #FDE8F4;
+  --color-badge-pink-subtle:   #F5A7D6;
+  --color-badge-pink-dark:     #EA34A1;
+
+  --color-badge-purple-light:  #FAE7FD;
+  --color-badge-purple-subtle: #EBABF6;
+  --color-badge-purple-dark:   #CA21E8;
+
+  --color-badge-violet-light:  #EBE8FD;
+  --color-badge-violet-subtle: #C4B7F9;
+  --color-badge-violet-dark:   #7558F2;
+
+  /* ----------------------------------------------------------
+     SEMANTIC ALIASES — map design intent to palette
+     Use these in components instead of raw palette values
+     ---------------------------------------------------------- */
+
+  /* Surfaces */
+  --color-surface:           var(--color-zinc-50);
+  --color-surface-secondary: var(--color-zinc-100);
+  --color-surface-tertiary:  var(--color-zinc-200);
+
+  /* Borders */
+  --color-border:       var(--color-zinc-200);
+  --color-border-light: var(--color-zinc-100);
+
+  /* Text */
+  --color-text-primary:   var(--color-zinc-900);
+  --color-text-secondary: var(--color-zinc-600);
+  --color-text-tertiary:  var(--color-zinc-400);
+
+  /* Brand shortcuts */
+  --color-brand:       var(--color-brand-red-500);
+  --color-brand-hover: var(--color-brand-red-600);
+  --color-brand-light: var(--color-brand-red-50);
+
+  /* Status — maps VMS visit statuses to palette */
+  --color-pending:        var(--color-orange-500);
+  --color-pending-light:  var(--color-badge-yellow-light);
+  --color-confirmed:      var(--color-green-500);
+  --color-confirmed-light: var(--color-badge-green-light);
+  --color-active:         var(--color-blue-500);
+  --color-active-light:   var(--color-badge-blue-light);
+  --color-rejected:       var(--color-red-500);
+  --color-rejected-light: var(--color-badge-red-light);
+  --color-on-premises:    var(--color-badge-violet-dark);
+  --color-on-premises-light: var(--color-badge-violet-light);
+  --color-completed:      var(--color-zinc-500);
+  --color-completed-light: var(--color-zinc-100);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shared form input style */
+.form-input {
+  display: block;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background-color: white;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.form-input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-brand) 15%, transparent);
+}
+
+.form-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Animation keyframes */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoom-in-95 {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-in {
+  animation: fade-in 0.15s ease-out, zoom-in-95 0.15s ease-out;
+}

@@ -1,0 +1,25 @@
+import type { Visitor } from '@/types/user'
+
+export const visitors: Visitor[] = [
+  { id: 'vis-1', name: 'Arjun Mehta', mobile: '+91 98410 12345', company: 'L&T Construction', email: 'arjun.m@lnt.com' },
+  { id: 'vis-2', name: 'Fatima Sheikh', mobile: '+91 98765 43210', company: 'Tata Projects', email: 'fatima.s@tata.com' },
+  { id: 'vis-3', name: 'Ravi Chandran', mobile: '+91 87654 32109', company: 'Caterpillar Inc.', email: 'ravi.c@cat.com' },
+  { id: 'vis-4', name: 'Pooja Agarwal', mobile: '+91 99887 76655', company: 'NHAI' },
+  { id: 'vis-5', name: 'Manoj Tiwari', mobile: '+91 77889 90011', company: 'JCB India' },
+  { id: 'vis-6', name: 'Sneha Kulkarni', mobile: '+91 88990 01122', company: 'Shapoorji Pallonji' },
+  { id: 'vis-7', name: 'Imran Khan', mobile: '+91 96543 21098', company: 'PWD Karnataka' },
+  { id: 'vis-8', name: 'Geeta Ramachandran', mobile: '+91 91234 56789' },
+  { id: 'vis-9', name: 'Sunil Deshmukh', mobile: '+91 80123 45678', company: 'Reliance Infra' },
+  { id: 'vis-10', name: 'Nandini Bhat', mobile: '+91 70987 65432', company: 'Caterpillar Inc.', email: 'nandini.b@cat.com' },
+  { id: 'vis-11', name: 'Prakash Jain', mobile: '+91 85678 90123', company: 'Adani Ports' },
+  { id: 'vis-12', name: 'Revathi Sundaram', mobile: '+91 94321 09876' },
+  { id: 'vis-13', name: 'Dinesh Choudhary', mobile: '+91 78901 23456', company: 'Komatsu India' },
+  { id: 'vis-14', name: 'Asha Menon', mobile: '+91 89012 34567', company: 'BSNL' },
+  { id: 'vis-15', name: 'Karan Mehta', mobile: '+91 97654 32101', company: 'Birla Group', email: 'karan.m@birla.com' },
+  { id: 'vis-16', name: 'Priya Nair', mobile: '+91 88123 45678', company: 'SAIL' },
+  { id: 'vis-17', name: 'Aditya Sharma', mobile: '+91 99001 23456', company: 'SBI Capital', email: 'aditya.s@sbicap.com' },
+  { id: 'vis-18', name: 'Lakshmi Venkat', mobile: '+91 76543 21098', company: 'NTPC' },
+  { id: 'vis-19', name: 'Rohit Gupta', mobile: '+91 84567 89012', company: 'Wipro Infrastructure' },
+  { id: 'vis-20', name: 'Anjali Kapoor', mobile: '+91 93210 98765', company: 'IndiaMART' },
+  { id: 'vis-21', name: 'Sameer Rao', mobile: '+91 78012 34567', company: 'Caterpillar Inc.', email: 'sameer.r@cat.com' },
+]
