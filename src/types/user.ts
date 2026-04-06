@@ -14,4 +14,5 @@ export interface Visitor {
   mobile: string
   email?: string
   company?: string
+  avatar?: string
 }

@@ -15,7 +15,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, breadcrumb, onBack, actions }: PageHeaderProps) {
   return (
-    <header className="shrink-0 flex items-center gap-2 px-4 py-3 bg-white border-b border-zinc-200">
+    <header className="shrink-0 flex items-center gap-2 px-6 py-3 bg-white border-b border-zinc-200">
       {onBack && (
         <button
           onClick={onBack}

@@ -6,6 +6,7 @@ import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import SearchBar from '@/components/SearchBar'
 import Button from '@/components/Button'
 import KpiCard from '@/components/KpiCard'
+import KpiCardV2 from '@/components/KpiCardV2'
 import VisitCard from '@/components/VisitCard'
 import PageHeader from '@/components/PageHeader'
 import { visitors as seedVisitors } from '@/data/visitors'
@@ -136,20 +137,23 @@ export default function FrontDeskDashboard() {
 
           {/* ── KPI row ─────────────────────────────────────────── */}
           <div className="rounded-xl bg-white border border-zinc-200 grid grid-cols-3 divide-x divide-zinc-200">
-            <KpiCard
+            <KpiCardV2
               label="Total Visitors"
               info="All visits scheduled today"
               value={todaysVisits.length}
+              icon="ri-group-line"
             />
-            <KpiCard
+            <KpiCardV2
               label="Expected"
               info="Confirmed, awaiting arrival"
               value={kpiExpected.length}
+              icon="ri-calendar-check-line"
             />
-            <KpiCard
+            <KpiCardV2
               label="On Premises"
               info="Currently inside the facility"
               value={kpiOnPremises.length}
+              icon="ri-building-2-line"
             />
           </div>
 
@@ -203,6 +207,7 @@ export default function FrontDeskDashboard() {
                           visit={visit}
                           visitorName={visitor?.name ?? 'Unknown Visitor'}
                           visitorCompany={visitor?.company}
+                          visitorAvatar={visitor?.avatar}
                           role="front-desk"
                         />
                       )
@@ -228,6 +233,7 @@ export default function FrontDeskDashboard() {
                           visit={visit}
                           visitorName={visitor?.name ?? 'Unknown Visitor'}
                           visitorCompany={visitor?.company}
+                          visitorAvatar={visitor?.avatar}
                           role="front-desk"
                         />
                       )
@@ -264,6 +270,7 @@ export default function FrontDeskDashboard() {
                           visit={visit}
                           visitorName={visitor?.name ?? 'Unknown Visitor'}
                           visitorCompany={visitor?.company}
+                          visitorAvatar={visitor?.avatar}
                           role="front-desk"
                         />
                       )
@@ -271,6 +278,7 @@ export default function FrontDeskDashboard() {
                   )}
                 </div>
               )}
+
             </div>
 
             {/* ── On Premises (right, 40%) ─────────────────────── */}
@@ -319,9 +327,17 @@ export default function FrontDeskDashboard() {
                           onClick={() => setExpandedVisitId(isExpanded ? null : visit.id)}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 transition-colors"
                         >
-                          <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-semibold leading-none select-none ${isOverdue ? 'bg-red-50 text-red-500' : 'bg-brand-red-50 text-brand-red-500'}`}>
-                            {initials}
-                          </div>
+                          {visitor?.avatar ? (
+                            <img
+                              src={visitor.avatar}
+                              alt={name}
+                              className={`shrink-0 h-8 w-8 rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.15)] ${isOverdue ? 'ring-2 ring-red-300' : ''}`}
+                            />
+                          ) : (
+                            <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-semibold leading-none select-none shadow-[0_2px_8px_rgba(0,0,0,0.10)] ${isOverdue ? 'bg-red-50 text-red-500' : 'bg-brand-red-50 text-brand-red-500'}`}>
+                              {initials}
+                            </div>
+                          )}
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-medium text-zinc-900 truncate">{name}</p>
                             <p className="text-[11px] text-zinc-400 truncate mt-0.5">

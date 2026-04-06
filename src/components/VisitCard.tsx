@@ -10,10 +10,11 @@ interface VisitCardProps {
   visit: Visit
   visitorName: string
   visitorCompany?: string
+  visitorAvatar?: string
   role: Role
 }
 
-export default function VisitCard({ visit, visitorName, visitorCompany, role }: VisitCardProps) {
+export default function VisitCard({ visit, visitorName, visitorCompany, visitorAvatar, role }: VisitCardProps) {
   const navigate = useNavigate()
   const host = employees.find((e) => e.id === visit.hostEmployeeId)
   const expectedOut = visit.duration
@@ -22,11 +23,33 @@ export default function VisitCard({ visit, visitorName, visitorCompany, role }: 
 
   const isClickable = role === 'front-desk'
 
+  const initials = visitorName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('')
+
   return (
     <div
-      className={`rounded-xl bg-white border border-border-light p-4 flex gap-4 transition-colors duration-150 ${isClickable ? 'cursor-pointer hover:border-zinc-300' : ''}`}
+      className={`rounded-xl bg-white border border-border-light p-4 flex gap-3 shadow-sm transition-all duration-150 ${isClickable ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''}`}
       onClick={isClickable ? () => navigate(`/front-desk/check-in/${visit.id}`) : undefined}
     >
+      {/* Avatar */}
+      <div className="shrink-0">
+        {visitorAvatar ? (
+          <img
+            src={visitorAvatar}
+            alt={visitorName}
+            className="h-10 w-10 rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+          />
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-brand-red-50 flex items-center justify-center text-[11px] font-semibold text-brand-red-500 shadow-[0_2px_8px_rgba(0,0,0,0.10)]">
+            {initials}
+          </div>
+        )}
+      </div>
+
       {/* Left: header + details */}
       <div className="flex-1 min-w-0 space-y-2">
         {/* Header row */}

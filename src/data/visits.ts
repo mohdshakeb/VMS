@@ -410,7 +410,7 @@ export const visits: Visit[] = [
     visitType: 'contractor',
     scheduledDate: TODAY,
     scheduledTime: '07:30',
-    duration: 60,
+    duration: 480,
     checkInTime: `${TODAY}T07:32:00`,
     badgeNumber: 'B-0034',
     createdAt: `${TODAY}T06:00:00`,
@@ -451,7 +451,7 @@ export const visits: Visit[] = [
     createdBy: 'emp-6',
   },
 
-  // --- OVERDUE on premises (checked in early, past expected out time) ---
+  // --- ON PREMISES — intentionally overdue for prototype (flagged via OVERDUE_VISIT_IDS) ---
   {
     id: 'visit-28',
     visitorId: 'vis-15',
@@ -487,3 +487,13 @@ export const visits: Visit[] = [
     createdBy: 'front-desk',
   },
 ]
+
+// ── Prototype mock state ─────────────────────────────────────────────────────
+// These sets replace time-based computation so the prototype looks correct
+// at any time of day. Add/remove IDs here to control the demo state.
+
+/** Checked-in visits that have exceeded their allotted time. */
+export const OVERDUE_VISIT_IDS = new Set(['visit-28', 'visit-29'])
+
+/** Pending-approval requests that have been waiting too long and need follow-up. */
+export const DELAYED_VISIT_IDS = new Set(['visit-1', 'visit-2'])

@@ -6,7 +6,7 @@ interface VisitColumnProps {
   title: string
   subtitle: string
   visits: Visit[]
-  visitorMap: Record<string, { name: string; company?: string }>
+  visitorMap: Record<string, { name: string; company?: string; avatar?: string }>
   role: Role
 }
 
@@ -41,6 +41,7 @@ export default function VisitColumn({ title, subtitle, visits, visitorMap, role 
                 visit={visit}
                 visitorName={visitor?.name ?? 'Unknown Visitor'}
                 visitorCompany={visitor?.company}
+                visitorAvatar={visitor?.avatar}
                 role={role}
               />
             )

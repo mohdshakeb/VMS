@@ -59,6 +59,7 @@ export default function MyVisits() {
                   visit={visit}
                   visitorName={visitor?.name ?? 'Unknown'}
                   visitorCompany={visitor?.company}
+                  visitorAvatar={visitor?.avatar}
                   role="employee"
                 />
               )

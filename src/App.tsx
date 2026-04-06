@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
 import FrontDeskDashboard from '@/pages/frontdesk/Dashboard'
+import FrontDeskDashboardV2 from '@/pages/frontdesk/DashboardV2'
 import CreateWalkIn from '@/pages/frontdesk/CreateWalkIn'
 import VisitRequests from '@/pages/frontdesk/VisitRequests'
 import CheckIn from '@/pages/frontdesk/CheckIn'
@@ -18,7 +19,8 @@ export default function App() {
         <Route path="/" element={<Navigate to="/front-desk/dashboard" replace />} />
 
         {/* Front Desk */}
-        <Route path="/front-desk/dashboard" element={<FrontDeskDashboard />} />
+        <Route path="/front-desk/dashboard" element={<FrontDeskDashboardV2 />} />
+        <Route path="/front-desk/dashboard-v1" element={<FrontDeskDashboard />} />
         <Route path="/front-desk/walk-in" element={<CreateWalkIn />} />
         <Route path="/front-desk/visit-requests" element={<VisitRequests />} />
         <Route path="/front-desk/check-in/:visitId" element={<CheckIn />} />

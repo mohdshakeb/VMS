@@ -33,6 +33,7 @@ export default function Button({
   fullWidth,
   children,
   className = '',
+
   ...props
 }: ButtonProps) {
   return (
