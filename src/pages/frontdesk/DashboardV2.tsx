@@ -148,7 +148,7 @@ export default function FrontDeskDashboardV2() {
             <div className="rounded-xl bg-white border border-zinc-200 overflow-hidden">
               <KpiCardV2
                 label="Total Visitors"
-                info="All visits scheduled today"
+                info="Visitors checked-in"
                 value={todaysVisits.length}
                 icon="ri-group-fill"
                 color="blue"
@@ -336,11 +336,10 @@ export default function FrontDeskDashboardV2() {
                   <div className="shrink-0 flex items-center gap-2 px-4 py-2.5">
                     <button
                       onClick={() => handleFilterCard('ready')}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${
-                        activeFilter === 'ready'
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'ready'
                           ? 'bg-[var(--color-badge-blue-light)] text-[var(--color-badge-blue-dark)]'
                           : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
-                      }`}
+                        }`}
                     >
                       Confirmed
                       {activeFilter === 'ready' && (
@@ -349,11 +348,10 @@ export default function FrontDeskDashboardV2() {
                     </button>
                     <button
                       onClick={() => handleFilterCard('pending')}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${
-                        activeFilter === 'pending'
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'pending'
                           ? 'bg-[var(--color-badge-yellow-light)] text-[var(--color-badge-yellow-dark)]'
                           : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
-                      }`}
+                        }`}
                     >
                       Pending
                       {activeFilter === 'pending' && (
@@ -362,11 +360,10 @@ export default function FrontDeskDashboardV2() {
                     </button>
                     <button
                       onClick={() => handleFilterCard('scheduled')}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${
-                        activeFilter === 'scheduled'
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'scheduled'
                           ? 'bg-[var(--color-badge-green-light)] text-[var(--color-badge-green-dark)]'
                           : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
-                      }`}
+                        }`}
                     >
                       Scheduled
                       {activeFilter === 'scheduled' && (
@@ -435,107 +432,107 @@ export default function FrontDeskDashboardV2() {
                       .sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
                       .slice(0, 5)
                       .map((visit, idx) => {
-                      const visitor = visitorMap[visit.visitorId]
-                      const name = visitor?.name ?? 'Unknown Visitor'
-                      const initials = name
-                        .split(' ')
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .map((w) => w[0].toUpperCase())
-                        .join('')
-                      const host = employees.find((e) => e.id === visit.hostEmployeeId)
-                      const expectedOutTime =
-                        visit.checkInTime && visit.duration
-                          ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60 * 1000)
-                          : null
-                      const outTimeDisplay = expectedOutTime
-                        ? expectedOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : '—'
-                      const checkInDisplay = visit.checkInTime
-                        ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : '—'
-                      const isOverdue = OVERDUE_VISIT_IDS.has(visit.id)
-                      const isRowExpanded = expandedVisitId === visit.id
-                      return (
-                        <div key={visit.id}>
-                          {idx > 0 && <div className="h-px bg-zinc-100 mx-4" />}
-                          {/* ── Summary row ── */}
-                          <button
-                            onClick={() => setExpandedVisitId(isRowExpanded ? null : visit.id)}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 transition-colors"
-                          >
-                            {visitor?.avatar ? (
-                              <img
-                                src={visitor.avatar}
-                                alt={name}
-                                className="shrink-0 h-8 w-8 rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
-                              />
-                            ) : (
-                              <div className="shrink-0 h-8 w-8 rounded-full bg-brand-red-50 text-brand-red-500 flex items-center justify-center text-[11px] font-semibold leading-none select-none shadow-[0_2px_8px_rgba(0,0,0,0.10)]">
-                                {initials}
-                              </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <p className="text-xs font-medium text-zinc-900 truncate">{name}</p>
-                                {isOverdue && (
-                                  <span className="shrink-0 relative flex h-1.5 w-1.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                                {visitor?.company && <span>{visitor.company}</span>}
-                                {visitor?.company && outTimeDisplay !== '—' && <span className="mx-1">·</span>}
-                                {outTimeDisplay !== '—' && (
-                                  <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
-                                    {outTimeDisplay}
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                            <i className={`shrink-0 text-zinc-400 transition-transform duration-200 ${isRowExpanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}`} />
-                          </button>
-
-                          {/* ── Smooth expand/collapse ── */}
-                          <div className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${isRowExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                            <div className="overflow-hidden min-h-0">
-                              <div className="px-4 pb-4 pt-1 space-y-3">
-                                <div className="grid grid-cols-3 gap-x-3 gap-y-2">
-                                  <div>
-                                    <p className="text-[10px] text-zinc-400 leading-none">Check-in</p>
-                                    <p className="text-xs font-medium text-zinc-700 mt-1">{checkInDisplay}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] text-zinc-400 leading-none">Meeting</p>
-                                    <p className="text-xs font-medium text-zinc-700 mt-1 truncate">{host?.name ?? '—'}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] text-zinc-400 leading-none">Pass type</p>
-                                    <p className="text-xs font-medium text-zinc-700 mt-1">{getVisitTypeLabel(visit.visitType)}</p>
-                                  </div>
+                        const visitor = visitorMap[visit.visitorId]
+                        const name = visitor?.name ?? 'Unknown Visitor'
+                        const initials = name
+                          .split(' ')
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((w) => w[0].toUpperCase())
+                          .join('')
+                        const host = employees.find((e) => e.id === visit.hostEmployeeId)
+                        const expectedOutTime =
+                          visit.checkInTime && visit.duration
+                            ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60 * 1000)
+                            : null
+                        const outTimeDisplay = expectedOutTime
+                          ? expectedOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '—'
+                        const checkInDisplay = visit.checkInTime
+                          ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '—'
+                        const isOverdue = OVERDUE_VISIT_IDS.has(visit.id)
+                        const isRowExpanded = expandedVisitId === visit.id
+                        return (
+                          <div key={visit.id}>
+                            {idx > 0 && <div className="h-px bg-zinc-100 mx-4" />}
+                            {/* ── Summary row ── */}
+                            <button
+                              onClick={() => setExpandedVisitId(isRowExpanded ? null : visit.id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 transition-colors"
+                            >
+                              {visitor?.avatar ? (
+                                <img
+                                  src={visitor.avatar}
+                                  alt={name}
+                                  className="shrink-0 h-8 w-8 rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+                                />
+                              ) : (
+                                <div className="shrink-0 h-8 w-8 rounded-full bg-brand-red-50 text-brand-red-500 flex items-center justify-center text-[11px] font-semibold leading-none select-none shadow-[0_2px_8px_rgba(0,0,0,0.10)]">
+                                  {initials}
                                 </div>
-                                {isOverdue ? (
-                                  <div className="flex gap-2">
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs font-medium text-zinc-900 truncate">{name}</p>
+                                  {isOverdue && (
+                                    <span className="shrink-0 relative flex h-1.5 w-1.5">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                                  {visitor?.company && <span>{visitor.company}</span>}
+                                  {visitor?.company && outTimeDisplay !== '—' && <span className="mx-1">·</span>}
+                                  {outTimeDisplay !== '—' && (
+                                    <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
+                                      {outTimeDisplay}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <i className={`shrink-0 text-zinc-400 transition-transform duration-200 ${isRowExpanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}`} />
+                            </button>
+
+                            {/* ── Smooth expand/collapse ── */}
+                            <div className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${isRowExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                              <div className="overflow-hidden min-h-0">
+                                <div className="px-4 pb-4 pt-1 space-y-3">
+                                  <div className="grid grid-cols-3 gap-x-3 gap-y-2">
+                                    <div>
+                                      <p className="text-[10px] text-zinc-400 leading-none">Check-in</p>
+                                      <p className="text-xs font-medium text-zinc-700 mt-1">{checkInDisplay}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] text-zinc-400 leading-none">Meeting</p>
+                                      <p className="text-xs font-medium text-zinc-700 mt-1 truncate">{host?.name ?? '—'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] text-zinc-400 leading-none">Pass type</p>
+                                      <p className="text-xs font-medium text-zinc-700 mt-1">{getVisitTypeLabel(visit.visitType)}</p>
+                                    </div>
+                                  </div>
+                                  {isOverdue ? (
+                                    <div className="flex gap-2">
+                                      <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={() => checkOut(visit.id)}>
+                                        Check out
+                                      </Button>
+                                      <Button size="sm" variant="secondary" icon="ri-notification-3-line" fullWidth onClick={() => { }}>
+                                        Notify
+                                      </Button>
+                                    </div>
+                                  ) : (
                                     <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={() => checkOut(visit.id)}>
                                       Check out
                                     </Button>
-                                    <Button size="sm" variant="secondary" icon="ri-notification-3-line" fullWidth onClick={() => {}}>
-                                      Notify
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={() => checkOut(visit.id)}>
-                                    Check out
-                                  </Button>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })
+                        )
+                      })
                   )}
                 </div>
 
