@@ -2,10 +2,11 @@ import type { ReactNode, HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  padding?: 'sm' | 'md' | 'lg'
+  padding?: 'sm' | 'md' | 'lg' | 'none'
 }
 
 const paddingClasses = {
+  none: '',
   sm: 'p-3',
   md: 'p-4',
   lg: 'p-5',

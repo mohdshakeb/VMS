@@ -24,7 +24,7 @@ const mobileNavByRole: Record<Role, MobileNavItem[]> = {
     { label: 'Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
     { label: 'Alerts', path: '/notifications', icon: 'ri-notification-3-line', activeIcon: 'ri-notification-3-fill' },
   ],
-  'visitor-manager': [
+  'branch-admin': [
     { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
     { label: 'Alerts', path: '/notifications', icon: 'ri-notification-3-line', activeIcon: 'ri-notification-3-fill' },
   ],
@@ -33,7 +33,7 @@ const mobileNavByRole: Record<Role, MobileNavItem[]> = {
 const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/visits',
-  'visitor-manager': '/manager/dashboard',
+  'branch-admin': '/manager/dashboard',
 }
 
 // Routes that take over the full screen (no sidebar, no nav bars)
@@ -69,7 +69,7 @@ export default function AppLayout() {
   const mobileItems = mobileNavByRole[currentRole]
 
   return (
-    <div className="flex h-dvh bg-zinc-950">
+    <div className="flex h-dvh bg-chrome-bg">
       {/* Desktop sidebar — hidden on full-screen routes */}
       {!isFullScreen && (
         <aside className="hidden md:flex md:w-64 md:flex-col md:shrink-0">
@@ -88,7 +88,7 @@ export default function AppLayout() {
           {/* Toast */}
           {toastMessage && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]">
-              <div className="rounded-xl bg-zinc-900 px-4 py-3 text-sm text-white shadow-lg">
+              <div className="rounded-xl bg-chrome-toast px-4 py-3 text-sm text-white shadow-lg">
                 {toastMessage}
               </div>
             </div>
@@ -100,12 +100,12 @@ export default function AppLayout() {
       <div className="flex md:hidden flex-1 flex-col overflow-hidden">
         {/* Mobile top bar — hidden on full-screen routes */}
         {!isFullScreen && (
-          <header className="flex items-center justify-between px-4 py-3 bg-zinc-950 border-b border-zinc-800 shrink-0">
+          <header className="flex items-center justify-between px-4 py-3 bg-chrome-bg border-b border-chrome-border-subtle shrink-0">
             <img src={logoUrl} alt="GMMCO — CKA Birla Group" className="h-8 w-auto" />
             <NavLink to="/notifications" className="relative p-2">
-              <i className="ri-notification-3-line text-xl text-zinc-400" />
+              <i className="ri-notification-3-line text-xl text-chrome-text-muted" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-red-500 px-1 text-[10px] font-bold text-white">
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
                   {unreadCount}
                 </span>
               )}
@@ -120,7 +120,7 @@ export default function AppLayout() {
         {/* Toast */}
         {toastMessage && (
           <div className={`fixed left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] ${isFullScreen ? 'bottom-20' : 'bottom-20'}`}>
-            <div className="rounded-xl bg-zinc-900 px-4 py-3 text-sm text-white shadow-lg">
+            <div className="rounded-xl bg-chrome-toast px-4 py-3 text-sm text-white shadow-lg">
               {toastMessage}
             </div>
           </div>
@@ -128,14 +128,14 @@ export default function AppLayout() {
 
         {/* Mobile bottom bar — hidden on full-screen routes */}
         {!isFullScreen && (
-          <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200">
+          <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-border">
             <div className="flex items-center justify-around px-2 py-1">
               {mobileItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   className={({ isActive }) =>
-                    `flex flex-col items-center gap-0.5 px-3 py-2 text-xs font-medium transition-colors duration-150 ${isActive ? 'text-brand-red-500' : 'text-zinc-400'
+                    `flex flex-col items-center gap-0.5 px-3 py-2 text-xs font-medium transition-colors duration-150 ${isActive ? 'text-brand' : 'text-text-tertiary'
                     }`
                   }
                 >
@@ -144,7 +144,7 @@ export default function AppLayout() {
                       <div className="relative">
                         <i className={`${isActive ? item.activeIcon : item.icon} text-xl`} />
                         {item.label === 'Alerts' && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-brand-red-500 px-1 text-[9px] font-bold text-white">
+                          <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white">
                             {unreadCount}
                           </span>
                         )}

@@ -26,7 +26,7 @@ export default function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
           {tab.label}
           {tab.count !== undefined && (
             <span
-              className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
+              className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium ${
                 activeTab === tab.value
                   ? 'bg-brand-light text-brand'
                   : 'bg-surface-tertiary text-text-secondary'

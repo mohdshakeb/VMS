@@ -19,7 +19,7 @@ export default function MyVisits() {
 
   const pending = getPendingApprovals(visits, employeeId)
   const upcoming = myVisits.filter((v) =>
-    ['confirmed', 'scheduled', 'pending-confirmation'].includes(v.status) && v.scheduledDate >= today
+    ['confirmed', 'scheduled'].includes(v.status) && v.scheduledDate >= today
   )
   const past = myVisits.filter((v) =>
     ['checked-out', 'rejected', 'cancelled'].includes(v.status)
@@ -58,7 +58,7 @@ export default function MyVisits() {
                   key={visit.id}
                   visit={visit}
                   visitorName={visitor?.name ?? 'Unknown'}
-                  visitorCompany={visitor?.company}
+                  visitorPhone={visitor?.mobile}
                   visitorAvatar={visitor?.avatar}
                   role="employee"
                 />

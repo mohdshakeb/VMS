@@ -8,18 +8,19 @@ interface BreadcrumbItem {
 
 interface PageHeaderProps {
   title: string
+  titleNode?: ReactNode
   breadcrumb?: BreadcrumbItem[]
   onBack?: () => void
   actions?: ReactNode
 }
 
-export default function PageHeader({ title, breadcrumb, onBack, actions }: PageHeaderProps) {
+export default function PageHeader({ title, titleNode, breadcrumb, onBack, actions }: PageHeaderProps) {
   return (
-    <header className="shrink-0 flex items-center gap-2 px-6 py-3 bg-white border-b border-zinc-200">
+    <header className="shrink-0 flex items-center gap-2 px-6 py-3 bg-white border-b border-border">
       {onBack && (
         <button
           onClick={onBack}
-          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors -ml-1"
+          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors -ml-1"
           aria-label="Go back"
         >
           <i className="ri-arrow-left-line text-lg" />
@@ -28,18 +29,18 @@ export default function PageHeader({ title, breadcrumb, onBack, actions }: PageH
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
         {breadcrumb && breadcrumb.length > 0 && breadcrumb.map((item, i) => (
           <span key={i} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-zinc-400 text-sm">·</span>}
+            {i > 0 && <span className="text-text-tertiary text-sm">·</span>}
             {item.path ? (
-              <Link to={item.path} className="text-sm text-zinc-400 hover:text-zinc-500 transition-colors">
+              <Link to={item.path} className="text-sm text-text-tertiary hover:text-text-secondary transition-colors">
                 {item.label}
               </Link>
             ) : (
-              <span className="text-sm text-zinc-400">{item.label}</span>
+              <span className="text-sm text-text-tertiary">{item.label}</span>
             )}
-            <span className="text-zinc-400 text-sm">·</span>
+            <span className="text-text-tertiary text-sm">·</span>
           </span>
         ))}
-        <h2 className="text-sm font-semibold text-zinc-700">{title}</h2>
+        {titleNode ?? <h2 className="text-sm font-medium text-text-primary">{title}</h2>}
       </div>
       {actions && (
         <div className="flex items-center gap-1 ml-auto">

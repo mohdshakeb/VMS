@@ -392,7 +392,7 @@ export default function FrontDeskDashboardV2() {
                               <VisitCard
                                 visit={visit}
                                 visitorName={visitor?.name ?? 'Unknown Visitor'}
-                                visitorCompany={visitor?.company}
+                                visitorPhone={visitor?.mobile}
                                 visitorAvatar={visitor?.avatar}
                                 role="front-desk"
                               />

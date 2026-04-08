@@ -26,7 +26,7 @@ export default function CheckIn() {
   const checkIn = useVisitStore((s) => s.checkIn)
 
   const visit = visits.find((v) => v.id === visitId)
-  const [badgeNumber, setBadgeNumber] = useState(() => generateBadgeNumber())
+  const [badgeNumber, setBadgeNumber] = useState(() => visit?.badgeId ?? generateBadgeNumber())
 
   if (!visit) {
     return (
@@ -165,14 +165,14 @@ export default function CheckIn() {
         </Card>
 
         {/* Visitor pass preview */}
-        <Card className="overflow-hidden !p-0">
-          <div className="bg-zinc-100 border-b border-zinc-200 px-5 py-3">
-            <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Visitor Pass Preview</p>
+        <Card padding="none" className="overflow-hidden">
+          <div className="bg-surface-secondary border-b border-border px-5 py-3">
+            <p className="text-xs text-text-secondary font-medium uppercase tracking-wider">Visitor Pass Preview</p>
           </div>
           <div className="p-5 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-lg font-bold text-text-primary">{visitor?.name}</p>
+                <p className="text-lg font-semibold text-text-primary">{visitor?.name}</p>
                 {visitor?.company && <p className="text-sm text-text-secondary">{visitor.company}</p>}
               </div>
               <div className="w-16 h-16 rounded-lg bg-surface-secondary border border-border flex items-center justify-center shrink-0">
@@ -182,11 +182,11 @@ export default function CheckIn() {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div>
                 <p className="text-text-tertiary">Badge</p>
-                <p className="font-semibold text-text-primary">{badgeNumber}</p>
+                <p className="font-medium text-text-primary">{badgeNumber}</p>
               </div>
               <div>
                 <p className="text-text-tertiary">Host</p>
-                <p className="font-semibold text-text-primary">{host?.name}</p>
+                <p className="font-medium text-text-primary">{host?.name}</p>
               </div>
               <div>
                 <p className="text-text-tertiary">Date</p>

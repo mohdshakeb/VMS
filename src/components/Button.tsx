@@ -20,9 +20,9 @@ const variantClasses: Record<Variant, string> = {
 }
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'px-3 py-1 text-xs gap-1.5',
-  md: 'px-4 py-2 text-sm font-semibold gap-2',
-  lg: 'px-5 py-3 text-sm gap-2',
+  sm: 'px-3 py-1 text-xs font-medium gap-1.5',
+  md: 'px-4 py-2 text-sm font-medium gap-2',
+  lg: 'px-5 py-3 text-base font-medium gap-2',
 }
 
 export default function Button({
@@ -38,7 +38,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 disabled:!bg-zinc-100 disabled:!text-zinc-400 disabled:!border-zinc-100 disabled:pointer-events-none ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 disabled:!bg-surface-disabled disabled:!text-text-disabled disabled:!border-border-disabled disabled:pointer-events-none ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
       {...props}
     >
       {icon && <i className={`${icon} text-base`} />}

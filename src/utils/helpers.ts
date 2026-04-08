@@ -18,6 +18,17 @@ export function generateBadgeNumber(): string {
   return `B-${String(badgeCounter).padStart(4, '0')}`
 }
 
+let visitCounter = 0
+
+export function generateVisitId(): string {
+  visitCounter++
+  const now = new Date()
+  const yy = String(now.getFullYear()).slice(2)
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return `VIS-${yy}${mm}${dd}-${String(visitCounter).padStart(4, '0')}`
+}
+
 export function formatDate(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00')
   return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -55,7 +66,6 @@ export function formatRelativeTime(isoStr: string): string {
 export function getStatusLabel(status: VisitStatus): string {
   const labels: Record<VisitStatus, string> = {
     'pending-approval': 'Pending Approval',
-    'pending-confirmation': 'Pending Confirmation',
     scheduled: 'Scheduled',
     confirmed: 'Confirmed',
     'checked-in': 'On Premises',
@@ -69,7 +79,6 @@ export function getStatusLabel(status: VisitStatus): string {
 export function getStatusColor(status: VisitStatus): { bg: string; text: string } {
   const colors: Record<VisitStatus, { bg: string; text: string }> = {
     'pending-approval': { bg: 'bg-pending-light', text: 'text-pending' },
-    'pending-confirmation': { bg: 'bg-pending-light', text: 'text-pending' },
     scheduled: { bg: 'bg-confirmed-light', text: 'text-confirmed' },
     confirmed: { bg: 'bg-confirmed-light', text: 'text-confirmed' },
     'checked-in': { bg: 'bg-on-premises-light', text: 'text-on-premises' },
@@ -100,10 +109,10 @@ export function getVisitTypeLabel(type: string): string {
 export function getPurposeLabel(purpose: string): string {
   const labels: Record<string, string> = {
     official: 'Official',
-    training: 'Training',
     personal: 'Personal',
-    customer: 'Customer',
-    other: 'Other',
+    training: 'Training',
+    interview: 'Interview',
+    delivery: 'Delivery',
   }
   return labels[purpose] || purpose
 }

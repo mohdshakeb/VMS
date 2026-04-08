@@ -19,6 +19,8 @@ export default function CheckOut() {
   const storeVisitors = useVisitStore((s) => s.visitors)
   const checkOut = useVisitStore((s) => s.checkOut)
 
+  const [outTemperature, setOutTemperature] = useState('')
+
   const visit = visits.find((v) => v.id === visitId)
 
   if (!visit) {
@@ -39,7 +41,7 @@ export default function CheckOut() {
   const durationStr = (now > 0 && checkInTime) ? (hours > 0 ? `${hours}h ${mins}m` : `${mins}m`) : '—'
 
   function handleCheckOut() {
-    checkOut(visit!.id)
+    checkOut(visit!.id, outTemperature.trim() || undefined)
     navigate('/front-desk/dashboard')
   }
 
@@ -55,7 +57,7 @@ export default function CheckOut() {
       <div className="px-4 md:px-6 py-5 max-w-lg mx-auto space-y-4">
         <Card>
           <div className="mb-4">
-            <p className="text-base font-semibold text-text-primary">{visitor?.name ?? 'Unknown'}</p>
+            <p className="text-base font-medium text-text-primary">{visitor?.name ?? 'Unknown'}</p>
             {visitor?.company && <p className="text-sm text-text-secondary">{visitor.company}</p>}
           </div>
 
@@ -68,6 +70,23 @@ export default function CheckOut() {
               <p className="text-sm font-medium text-on-premises">{durationStr}</p>
             </div>
           </div>
+        </Card>
+
+        {/* Out Temperature */}
+        <Card>
+          <label className="block">
+            <div className="flex items-center gap-2 mb-3">
+              <i className="ri-temp-cold-line text-sm text-text-tertiary" />
+              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Exit Temperature</span>
+            </div>
+            <input
+              type="text"
+              value={outTemperature}
+              onChange={(e) => setOutTemperature(e.target.value)}
+              placeholder="e.g. 98.4°F or 37.0°C (optional)"
+              className="form-input"
+            />
+          </label>
         </Card>
 
         <Button fullWidth variant="danger" icon="ri-logout-box-line" onClick={handleCheckOut}>

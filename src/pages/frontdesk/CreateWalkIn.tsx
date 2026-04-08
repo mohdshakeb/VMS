@@ -4,9 +4,10 @@ import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
-import { PURPOSE_BY_LOCATION, VISIT_TYPE_BY_PURPOSE } from '@/types/visit'
+import { VISIT_TYPE_BY_PURPOSE } from '@/types/visit'
 import type { Purpose, VisitType, BusinessSegment, VisitorPriority, Delegate } from '@/types/visit'
 import Button from '@/components/Button'
+import Modal from '@/components/Modal'
 import {
   getPurposeLabel,
   getVisitTypeLabel,
@@ -14,101 +15,106 @@ import {
   getVisitorPriorityLabel,
   getDepartmentLabel,
   getLocalDateString,
+  generateVisitId,
+  formatDate,
+  formatTime,
 } from '@/utils/helpers'
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const ALL_PURPOSES: Purpose[] = ['official', 'personal', 'training', 'interview', 'delivery']
+
+const BUSINESS_SEGMENTS: BusinessSegment[] = ['machines', 'engines', 'parts-purchased', 'service-inquiry', 'other']
+const VISITOR_PRIORITIES: VisitorPriority[] = ['immediate', 'in-a-month', 'exploring']
+
+const COMPANY_REQUIRED_TYPES: VisitType[] = ['vendor', 'contractor', 'customer', 'government-official']
+const ID_PROOF_REQUIRED_TYPES: VisitType[] = ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'general-visitor', 'other']
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface WizardFormData {
-  // Step 1
+interface FormData {
+  // Section 1 — Visitor Identity
+  firstName: string
+  lastName: string
   mobile: string
-  visitorName: string
   email: string
-  company: string
-  // Step 2
-  visitType: VisitType | ''
+  // Section 2 — Visit Details
   purpose: Purpose | ''
+  visitType: VisitType | ''
+  company: string
   hostEmployeeId: string
   department: string
   scheduledDate: string
   scheduledTime: string
   duration: number | ''
   isDelegation: boolean
-  // Step 3
-  laptopDetails: string
-  otherDeviceDetails: string
+  // Section 3 — Additional Info
   photo: string
-  photoIdProof: string
+  idProofType: string
   idProofNumber: string
+  idPhotoCapture: string
   businessSegment: BusinessSegment | ''
   priority: VisitorPriority | ''
   model: string
   businessSegmentRemarks: string
+  laptopDetails: string
+  otherDeviceDetails: string
+  hasVehicle: boolean
+  vehicleRegistration: string
+  visitorInTemperature: string
   notes: string
 }
 
-const ALL_PASS_TYPES: VisitType[] = [
-  'visitor',
-  'interview',
-  'contractor',
-  'vendor',
-  'customer',
-  'employee-visitor',
-  'general-visitor',
-  'government-official',
-  'employee-other-branch',
-  'cat-officials',
-  'other',
-]
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const BUSINESS_SEGMENTS: BusinessSegment[] = ['machines', 'engines', 'parts-purchased', 'service-inquiry', 'other']
-const VISITOR_PRIORITIES: VisitorPriority[] = ['immediate', 'in-a-month', 'exploring']
-const DEPARTMENTS = ['admin', 'hr', 'it', 'accounts'] as const
-
-function getTodayDate(): string {
-  return getLocalDateString()
+function isCompanyRequired(visitType: VisitType | ''): boolean {
+  return COMPANY_REQUIRED_TYPES.includes(visitType as VisitType)
 }
 
-function getCurrentTime(): string {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+function isIdProofRequired(visitType: VisitType | ''): boolean {
+  return ID_PROOF_REQUIRED_TYPES.includes(visitType as VisitType)
 }
 
-const defaultFormData: WizardFormData = {
+function isFormValid(data: FormData): boolean {
+  if (!data.firstName.trim() || !data.mobile.trim()) return false
+  if (!data.purpose || !data.visitType || !data.hostEmployeeId) return false
+  if (isCompanyRequired(data.visitType) && !data.company.trim()) return false
+  return true
+}
+
+// ── Default ───────────────────────────────────────────────────────────────────
+
+const defaultFormData: FormData = {
+  firstName: '',
+  lastName: '',
   mobile: '',
-  visitorName: '',
   email: '',
-  company: '',
-  visitType: '',
   purpose: '',
+  visitType: '',
+  company: '',
   hostEmployeeId: '',
   department: '',
-  scheduledDate: getTodayDate(),
-  scheduledTime: getCurrentTime(),
+  scheduledDate: getLocalDateString(),
+  scheduledTime: (() => {
+    const now = new Date()
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  })(),
   duration: '',
   isDelegation: false,
-  laptopDetails: '',
-  otherDeviceDetails: '',
   photo: '',
-  photoIdProof: '',
+  idProofType: '',
   idProofNumber: '',
+  idPhotoCapture: '',
   businessSegment: '',
   priority: '',
   model: '',
   businessSegmentRemarks: '',
+  laptopDetails: '',
+  otherDeviceDetails: '',
+  hasVehicle: false,
+  vehicleRegistration: '',
+  visitorInTemperature: '',
   notes: '',
-}
-
-// ── Validation ────────────────────────────────────────────────────────────────
-
-function isStep1Valid(data: WizardFormData): boolean {
-  return data.mobile.trim().length > 0 && data.visitorName.trim().length > 0
-}
-
-function isStep2Valid(data: WizardFormData, isEO: boolean): boolean {
-  const hasHost = data.hostEmployeeId.length > 0
-  const hasPassType = data.visitType !== ''
-  const hasPurpose = !isEO || data.purpose !== ''
-  return hasHost && hasPassType && hasPurpose
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -119,17 +125,18 @@ export default function CreateWalkIn() {
   const locationId = useAuthStore((s) => s.currentLocationId)
   const location = locations.find((l) => l.id === locationId)
 
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [formData, setFormData] = useState<WizardFormData>(defaultFormData)
+  const [formData, setFormData] = useState<FormData>(defaultFormData)
   const [delegates, setDelegates] = useState<Delegate[]>([])
+  const [visitId] = useState(() => generateVisitId())
 
-  // Employee search state
+  const [showPreview, setShowPreview] = useState(false)
   const [employeeSearch, setEmployeeSearch] = useState('')
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const isEO = location?.type === 'enterprise-office'
   const showCustomerBlock = formData.visitType === 'customer'
+  const companyRequired = isCompanyRequired(formData.visitType)
+  const idProofRequired = isIdProofRequired(formData.visitType)
 
   const locationEmployees = employees.filter((e) => e.locationId === locationId)
   const filteredEmployees = locationEmployees.filter(
@@ -138,10 +145,10 @@ export default function CreateWalkIn() {
       e.department.toLowerCase().includes(employeeSearch.toLowerCase())
   )
   const selectedEmployee = employees.find((e) => e.id === formData.hostEmployeeId)
+  const availableVisitTypes = formData.purpose
+    ? (VISIT_TYPE_BY_PURPOSE[formData.purpose as Purpose] ?? [])
+    : []
 
-  const availablePurposes = location ? PURPOSE_BY_LOCATION[location.type] : []
-
-  // Close employee dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -152,24 +159,16 @@ export default function CreateWalkIn() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  function handleChange<K extends keyof WizardFormData>(field: K, value: WizardFormData[K]) {
+  function handleChange<K extends keyof FormData>(field: K, value: FormData[K]) {
     setFormData((prev) => {
       const next = { ...prev, [field]: value }
-      if (field === 'purpose' && isEO) {
-        next.visitType = ''
+      if (field === 'purpose') next.visitType = ''
+      if (field === 'hostEmployeeId') {
+        const emp = employees.find((e) => e.id === (value as string))
+        next.department = emp?.department ?? ''
       }
       return next
     })
-  }
-
-  function handleNext() {
-    if (step === 1 && isStep1Valid(formData)) setStep(2)
-    else if (step === 2 && isStep2Valid(formData, isEO)) setStep(3)
-  }
-
-  function handleBack() {
-    if (step === 2) setStep(1)
-    else if (step === 3) setStep(2)
   }
 
   function handleAddDelegate() {
@@ -186,30 +185,34 @@ export default function CreateWalkIn() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (step !== 3) return
-    if (!isStep1Valid(formData) || !isStep2Valid(formData, isEO)) return
+    if (!isFormValid(formData)) return
+    setShowPreview(true)
+  }
 
-    const resolvedPurpose: Purpose = isEO && formData.purpose
-      ? (formData.purpose as Purpose)
-      : formData.visitType === 'customer' ? 'customer' : 'other'
+  function handleConfirm() {
+    const visitorName = [formData.firstName.trim(), formData.lastName.trim()].filter(Boolean).join(' ')
 
-    createWalkIn({
-      visitorName: formData.visitorName.trim(),
+    const newVisit = createWalkIn({
+      visitorName,
       visitorMobile: formData.mobile.trim(),
       visitorEmail: formData.email.trim() || undefined,
       visitorCompany: formData.company.trim() || undefined,
       hostEmployeeId: formData.hostEmployeeId,
       locationId,
-      purpose: resolvedPurpose,
+      purpose: formData.purpose as Purpose,
       visitType: formData.visitType as VisitType,
       department: formData.department || undefined,
       scheduledDate: formData.scheduledDate,
       scheduledTime: formData.scheduledTime,
       duration: formData.duration !== '' ? formData.duration : undefined,
       delegates: delegates.filter((d) => d.name.trim() && d.mobile.trim()),
+      idProofType: formData.idProofType || undefined,
+      idProofNumber: formData.idProofNumber.trim() || undefined,
       laptopDetails: formData.laptopDetails.trim() || undefined,
       otherDeviceDetails: formData.otherDeviceDetails.trim() || undefined,
-      idProofNumber: formData.idProofNumber.trim() || undefined,
+      hasVehicle: formData.hasVehicle || undefined,
+      vehicleRegistration: formData.vehicleRegistration.trim() || undefined,
+      visitorInTemperature: formData.visitorInTemperature.trim() || undefined,
       businessSegment: (formData.businessSegment as BusinessSegment) || undefined,
       priority: (formData.priority as VisitorPriority) || undefined,
       model: formData.model.trim() || undefined,
@@ -217,9 +220,8 @@ export default function CreateWalkIn() {
       notes: formData.notes.trim() || undefined,
     })
 
-    // Auto-set employee to the host so demo flows naturally
     useAuthStore.getState().setCurrentEmployee(formData.hostEmployeeId)
-    navigate('/front-desk/dashboard')
+    navigate('/front-desk/dashboard', { state: { newVisitId: newVisit.id } })
   }
 
   return (
@@ -249,32 +251,145 @@ export default function CreateWalkIn() {
         </button>
       </header>
 
-      {/* ── Scrollable Content ─────────────────────────────────────────────── */}
-      <div className="flex-1 px-4 md:px-6 py-8 max-w-lg mx-auto w-full">
-        {/* Step Indicator */}
-        <StepIndicator step={step} />
+      {/* ── Preview Modal ──────────────────────────────────────────────────── */}
+      <Modal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        title="Review Walk-in"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="secondary" fullWidth onClick={() => setShowPreview(false)}>
+              Edit
+            </Button>
+            <Button icon="ri-check-line" fullWidth onClick={handleConfirm}>
+              Confirm & Submit
+            </Button>
+          </div>
+        }
+      >
+        {/* Visitor chip */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand font-semibold text-base select-none">
+            {[formData.firstName[0], formData.lastName[0]].filter(Boolean).join('').toUpperCase() || '?'}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-text-primary truncate">
+              {[formData.firstName.trim(), formData.lastName.trim()].filter(Boolean).join(' ')}
+            </p>
+            <p className="text-xs text-text-secondary truncate">{formData.mobile}</p>
+          </div>
+          <span className="ml-auto shrink-0 rounded-full bg-pending-light px-2.5 py-0.5 text-[11px] font-medium text-pending">
+            Pending Approval
+          </span>
+        </div>
 
-        <form id="visit-form" onSubmit={handleSubmit} className="mt-10 space-y-4">
-        {/* ── Step 1: Visitor Identity ───────────────────────────────────── */}
-        {step === 1 && (
-          <>
+        <div className="overflow-y-auto max-h-[52vh] -mx-5 px-5 space-y-4 pb-1">
+
+          {/* Visit Details */}
+          <PreviewSection title="Visit Details">
+            <PreviewRow label="Purpose" value={getPurposeLabel(formData.purpose as string)} />
+            <PreviewRow label="Visitor Type" value={getVisitTypeLabel(formData.visitType as string)} />
+            {formData.company.trim() && <PreviewRow label="Company" value={formData.company.trim()} />}
+            <PreviewRow label="Host" value={selectedEmployee?.name ?? '—'} />
+            {formData.department && <PreviewRow label="Department" value={getDepartmentLabel(formData.department)} />}
+            <PreviewRow label="Date" value={formatDate(formData.scheduledDate)} />
+            <PreviewRow label="Time" value={formatTime(formData.scheduledTime)} />
+            {formData.duration !== '' && (
+              <PreviewRow
+                label="Duration"
+                value={
+                  formData.duration >= 60
+                    ? `${formData.duration / 60}h`
+                    : `${formData.duration}m`
+                }
+              />
+            )}
+          </PreviewSection>
+
+          {/* Additional — only render if anything is filled */}
+          {(formData.email.trim() ||
+            formData.idProofType ||
+            formData.hasVehicle ||
+            formData.laptopDetails.trim() ||
+            formData.otherDeviceDetails.trim() ||
+            formData.notes.trim() ||
+            (formData.isDelegation && delegates.some((d) => d.name.trim()))) && (
+            <PreviewSection title="Additional Info">
+              {formData.email.trim() && <PreviewRow label="Email" value={formData.email.trim()} />}
+              {formData.idProofType && (
+                <PreviewRow
+                  label="ID Proof"
+                  value={[formData.idProofType, formData.idProofNumber.trim()].filter(Boolean).join(' · ')}
+                />
+              )}
+              {formData.hasVehicle && formData.vehicleRegistration.trim() && (
+                <PreviewRow label="Vehicle" value={formData.vehicleRegistration.trim()} />
+              )}
+              {formData.laptopDetails.trim() && <PreviewRow label="Laptop" value={formData.laptopDetails.trim()} />}
+              {formData.otherDeviceDetails.trim() && <PreviewRow label="Other Devices" value={formData.otherDeviceDetails.trim()} />}
+              {formData.isDelegation && delegates.filter((d) => d.name.trim()).length > 0 && (
+                <PreviewRow
+                  label="Delegates"
+                  value={`${delegates.filter((d) => d.name.trim()).length} additional visitor${delegates.filter((d) => d.name.trim()).length > 1 ? 's' : ''}`}
+                />
+              )}
+              {formData.notes.trim() && <PreviewRow label="Notes" value={formData.notes.trim()} />}
+            </PreviewSection>
+          )}
+
+          {/* Visit ID */}
+          <div className="flex items-center justify-between rounded-lg bg-surface px-3 py-2.5 border border-border">
+            <span className="text-xs text-text-tertiary font-medium">Visit ID</span>
+            <span className="font-mono text-xs font-medium text-secondary">{visitId}</span>
+          </div>
+
+        </div>
+      </Modal>
+
+      {/* ── Scrollable Form ─────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
+        <form id="visit-form" onSubmit={handleSubmit} className="px-4 md:px-6 py-6 max-w-lg mx-auto space-y-24">
+
+          {/* ── Section 1: Visitor Identity ─────────────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeader icon="ri-user-3-line" title="Visitor Identity" />
+
+            <div className="flex items-center justify-between rounded-lg bg-surface border border-border px-4 py-3">
+              <div className="flex items-center gap-2">
+                <i className="ri-hashtag text-text-tertiary text-sm" />
+                <span className="text-xs text-text-secondary font-medium uppercase tracking-wide">Visit ID</span>
+              </div>
+              <span className="font-mono text-sm font-medium text-secondary">{visitId}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="First Name" required>
+                <input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => handleChange('firstName', e.target.value)}
+                  placeholder="First name"
+                  className="form-input"
+                  autoFocus
+                />
+              </Field>
+              <Field label="Last Name">
+                <input
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => handleChange('lastName', e.target.value)}
+                  placeholder="Last name"
+                  className="form-input"
+                />
+              </Field>
+            </div>
+
             <Field label="Mobile Number" required>
               <input
                 type="tel"
                 value={formData.mobile}
                 onChange={(e) => handleChange('mobile', e.target.value)}
                 placeholder="+91 98410 12345"
-                className="form-input"
-                autoFocus
-              />
-            </Field>
-
-            <Field label="Visitor Name" required>
-              <input
-                type="text"
-                value={formData.visitorName}
-                onChange={(e) => handleChange('visitorName', e.target.value)}
-                placeholder="Full name"
                 className="form-input"
               />
             </Field>
@@ -288,56 +403,49 @@ export default function CreateWalkIn() {
                 className="form-input"
               />
             </Field>
+          </section>
 
-            <Field label="Visitor Company">
+          {/* ── Section 2: Visit Details ────────────────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeader icon="ri-calendar-check-line" title="Visit Details" />
+
+            <Field label="Purpose of Visit" required>
+              <select
+                value={formData.purpose}
+                onChange={(e) => handleChange('purpose', e.target.value as Purpose)}
+                className="form-input"
+              >
+                <option value="">Select purpose</option>
+                {ALL_PURPOSES.map((p) => (
+                  <option key={p} value={p}>{getPurposeLabel(p)}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Visitor Type" required>
+              <select
+                value={formData.visitType}
+                onChange={(e) => handleChange('visitType', e.target.value as VisitType)}
+                disabled={!formData.purpose}
+                className="form-input disabled:opacity-50"
+              >
+                <option value="">
+                  {!formData.purpose ? 'Select purpose first' : 'Select visitor type'}
+                </option>
+                {availableVisitTypes.map((vt) => (
+                  <option key={vt} value={vt}>{getVisitTypeLabel(vt)}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Visitor Company" required={companyRequired}>
               <input
                 type="text"
                 value={formData.company}
                 onChange={(e) => handleChange('company', e.target.value)}
-                placeholder="Organization name"
+                placeholder={companyRequired ? 'Required for this visitor type' : 'Organization name (optional)'}
                 className="form-input"
               />
-            </Field>
-          </>
-        )}
-
-        {/* ── Step 2: Visit Details ──────────────────────────────────────── */}
-        {step === 2 && (
-          <>
-            {/* Purpose — EO only, shown first so Pass Type can be filtered */}
-            {isEO && (
-              <Field label="Purpose" required>
-                <select
-                  value={formData.purpose}
-                  onChange={(e) => handleChange('purpose', e.target.value as Purpose)}
-                  className="form-input"
-                >
-                  <option value="">Select purpose</option>
-                  {availablePurposes.map((p) => (
-                    <option key={p} value={p}>{getPurposeLabel(p)}</option>
-                  ))}
-                </select>
-              </Field>
-            )}
-
-            {/* Pass Type — filtered by purpose on EO, full list on Branch */}
-            <Field label="Pass Type" required>
-              <select
-                value={formData.visitType}
-                onChange={(e) => handleChange('visitType', e.target.value as VisitType)}
-                disabled={isEO && !formData.purpose}
-                className="form-input disabled:opacity-50"
-              >
-                <option value="">
-                  {isEO && !formData.purpose ? 'Select purpose first' : 'Select pass type'}
-                </option>
-                {(isEO && formData.purpose
-                  ? VISIT_TYPE_BY_PURPOSE[formData.purpose as Purpose] ?? []
-                  : ALL_PASS_TYPES
-                ).map((vt) => (
-                  <option key={vt} value={vt}>{getVisitTypeLabel(vt)}</option>
-                ))}
-              </select>
             </Field>
 
             {/* Whom to Meet */}
@@ -400,23 +508,18 @@ export default function CreateWalkIn() {
               </div>
             </Field>
 
-            {/* Department */}
+            {/* Department — auto-filled */}
             <Field label="Department">
-              <select
-                value={formData.department}
-                onChange={(e) => handleChange('department', e.target.value)}
-                className="form-input"
-              >
-                <option value="">Select department</option>
-                {DEPARTMENTS.map((d) => (
-                  <option key={d} value={d}>{getDepartmentLabel(d)}</option>
-                ))}
-              </select>
+              <div className={`form-input flex items-center gap-2 ${formData.department ? 'bg-surface-secondary text-text-secondary' : 'text-text-tertiary'}`}>
+                {formData.department
+                  ? <><i className="ri-check-line text-xs text-confirmed" /><span className="text-sm">{getDepartmentLabel(formData.department)}</span></>
+                  : <span className="text-sm">Auto-filled from host selection</span>
+                }
+              </div>
             </Field>
 
-            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Date">
+              <Field label="Date" required>
                 <input
                   type="date"
                   value={formData.scheduledDate}
@@ -424,7 +527,7 @@ export default function CreateWalkIn() {
                   className="form-input"
                 />
               </Field>
-              <Field label="Time">
+              <Field label="Time" required>
                 <input
                   type="time"
                   value={formData.scheduledTime}
@@ -434,14 +537,13 @@ export default function CreateWalkIn() {
               </Field>
             </div>
 
-            {/* Duration */}
             <Field label="Duration">
               <select
                 value={formData.duration}
                 onChange={(e) => handleChange('duration', e.target.value === '' ? '' : Number(e.target.value))}
                 className="form-input"
               >
-                <option value="">Select duration</option>
+                <option value="">Select duration (optional)</option>
                 <option value={30}>30 minutes</option>
                 <option value={60}>1 hour</option>
                 <option value={90}>1.5 hours</option>
@@ -452,7 +554,7 @@ export default function CreateWalkIn() {
               </select>
             </Field>
 
-            {/* Delegation */}
+            {/* Group / Delegation */}
             <div className="rounded-lg border border-border p-4 space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -473,7 +575,7 @@ export default function CreateWalkIn() {
               {formData.isDelegation && (
                 <div className="space-y-2 pt-1">
                   <p className="text-xs text-text-tertiary">
-                    Primary visitor details are captured in this form. Add additional delegates below.
+                    Primary visitor details are captured above. Add additional delegates below.
                   </p>
                   {delegates.map((delegate, index) => (
                     <div key={index} className="flex gap-2 items-start">
@@ -513,19 +615,68 @@ export default function CreateWalkIn() {
                 </div>
               )}
             </div>
-          </>
-        )}
+          </section>
 
-        {/* ── Step 3: Additional Info ────────────────────────────────────── */}
-        {step === 3 && (
-          <>
-            {/* Customer block — any location if pass type is Customer */}
-            {showCustomerBlock && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-1 border-b border-border">
-                  <i className="ri-building-2-line text-brand text-sm" />
-                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Customer Details</span>
+          {/* ── Section 3: Additional Info ──────────────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeader icon="ri-file-list-3-line" title="Additional Info" />
+
+            {/* Photo */}
+            <Field label="Visitor Photo" required>
+              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary hover:border-border transition-colors cursor-pointer py-8">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-border shadow-sm">
+                  <i className="ri-camera-line text-xl text-brand" />
                 </div>
+                <p className="text-sm font-medium text-text-primary">Capture or upload photo</p>
+                <p className="text-xs text-text-tertiary">Camera · Gallery</p>
+              </div>
+            </Field>
+
+            {/* Identity */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">ID Proof</p>
+
+              <Field label="ID Proof Type" required={idProofRequired}>
+                <select
+                  value={formData.idProofType}
+                  onChange={(e) => handleChange('idProofType', e.target.value)}
+                  className="form-input"
+                >
+                  <option value="">Select ID type</option>
+                  <option value="aadhar">Aadhar Card</option>
+                  <option value="pan">PAN Card</option>
+                  <option value="passport">Passport</option>
+                  <option value="driving-license">Driving License</option>
+                  <option value="voter-id">Voter ID</option>
+                  <option value="other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="ID Number" required={idProofRequired}>
+                <input
+                  type="text"
+                  value={formData.idProofNumber}
+                  onChange={(e) => handleChange('idProofNumber', e.target.value)}
+                  placeholder="e.g. XXXX XXXX XXXX"
+                  className="form-input"
+                />
+              </Field>
+
+              <Field label="ID Photo Capture">
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary hover:border-border transition-colors cursor-pointer py-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-border shadow-sm">
+                    <i className="ri-image-line text-lg text-brand" />
+                  </div>
+                  <p className="text-sm font-medium text-text-primary">Capture ID document</p>
+                  <p className="text-xs text-text-tertiary">Optional · Camera · Gallery</p>
+                </div>
+              </Field>
+            </div>
+
+            {/* Customer details — only for customer visitor type */}
+            {showCustomerBlock && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Customer Details</p>
 
                 <Field label="Business Segment">
                   <select
@@ -575,14 +726,9 @@ export default function CreateWalkIn() {
               </div>
             )}
 
-            {/* Device & Security */}
-            <div className="space-y-4">
-              {showCustomerBlock && (
-                <div className="flex items-center gap-2 pb-1 border-b border-border">
-                  <i className="ri-shield-check-line text-brand text-sm" />
-                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Security & Devices</span>
-                </div>
-              )}
+            {/* Devices */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Devices</p>
 
               <Field label="Laptop Details">
                 <textarea
@@ -594,7 +740,7 @@ export default function CreateWalkIn() {
                 />
               </Field>
 
-              <Field label="Other Device Details">
+              <Field label="Other Devices">
                 <textarea
                   value={formData.otherDeviceDetails}
                   onChange={(e) => handleChange('otherDeviceDetails', e.target.value)}
@@ -605,53 +751,47 @@ export default function CreateWalkIn() {
               </Field>
             </div>
 
-            {/* ID Proof */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border">
-                <i className="ri-id-card-line text-brand text-sm" />
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Identity</span>
-              </div>
+            {/* Vehicle */}
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.hasVehicle}
+                  onChange={(e) => handleChange('hasVehicle', e.target.checked)}
+                  className="w-4 h-4 rounded border-border accent-brand"
+                />
+                <div>
+                  <span className="text-sm font-medium text-text-primary">Visitor has a vehicle</span>
+                  <p className="text-xs text-text-secondary">Record registration for security log</p>
+                </div>
+              </label>
 
-              <Field label="Photo ID Proof">
-                <select
-                  value={formData.photoIdProof}
-                  onChange={(e) => handleChange('photoIdProof', e.target.value)}
-                  className="form-input"
-                >
-                  <option value="">Select ID type</option>
-                  <option value="aadhar">Aadhar Card</option>
-                  <option value="pan">PAN Card</option>
-                  <option value="passport">Passport</option>
-                  <option value="driving-license">Driving License</option>
-                  <option value="voter-id">Voter ID</option>
-                  <option value="other">Other</option>
-                </select>
-              </Field>
-
-              {/* ID Proof Number — EO only */}
-              {isEO && (
-                <Field label="ID Proof Number">
+              {formData.hasVehicle && (
+                <Field label="Registration Number">
                   <input
                     type="text"
-                    value={formData.idProofNumber}
-                    onChange={(e) => handleChange('idProofNumber', e.target.value)}
-                    placeholder="e.g. XXXX XXXX XXXX"
-                    className="form-input"
+                    value={formData.vehicleRegistration}
+                    onChange={(e) => handleChange('vehicleRegistration', e.target.value.toUpperCase())}
+                    placeholder="e.g. KA 01 AB 1234"
+                    className="form-input uppercase"
                   />
                 </Field>
               )}
-
-              {/* Photo — placeholder for prototype */}
-              <Field label="Visitor Photo">
-                <div className="form-input flex items-center gap-3 cursor-pointer bg-surface-secondary hover:bg-surface-tertiary transition-colors">
-                  <i className="ri-camera-line text-text-tertiary" />
-                  <span className="text-sm text-text-tertiary">Tap to capture or upload photo</span>
-                </div>
-              </Field>
             </div>
 
-            {/* Notes */}
-            <Field label="Notes">
+            {/* Entry Temperature */}
+            <Field label="Entry Temperature">
+              <input
+                type="text"
+                value={formData.visitorInTemperature}
+                onChange={(e) => handleChange('visitorInTemperature', e.target.value)}
+                placeholder="e.g. 98.4°F or 37.0°C (optional)"
+                className="form-input"
+              />
+            </Field>
+
+            {/* Remarks */}
+            <Field label="Remarks">
               <textarea
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
@@ -660,111 +800,74 @@ export default function CreateWalkIn() {
                 className="form-input resize-none"
               />
             </Field>
-          </>
-        )}
 
-      </form>
-      </div>{/* end scrollable content */}
+            {/* Submit */}
+            <div className="pt-2 pb-4">
+              <Button
+                form="visit-form"
+                type="submit"
+                icon="ri-user-add-line"
+                fullWidth
+                disabled={!isFormValid(formData)}
+              >
+                Submit Walk-In
+              </Button>
+            </div>
+          </section>
 
-      {/* ── Sticky Footer Navigation ───────────────────────────────────────── */}
-      <footer className="sticky bottom-0 bg-white border-t border-border px-4 py-3 shrink-0">
-        {step === 1 ? (
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              disabled={!isStep1Valid(formData)}
-              onClick={handleNext}
-              iconRight="ri-arrow-right-line"
-            >
-              Next
-            </Button>
-          </div>
-        ) : step === 2 ? (
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={handleBack}>
-              Back
-            </Button>
-            <Button
-              key="next-btn"
-              type="button"
-              disabled={!isStep2Valid(formData, isEO)}
-              onClick={handleNext}
-              iconRight="ri-arrow-right-line"
-            >
-              Next
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={handleBack}>
-              Back
-            </Button>
-            <Button key="submit-btn" form="visit-form" type="submit" icon="ri-user-add-line">
-              Submit Walk-In
-            </Button>
-          </div>
-        )}
-      </footer>
+        </form>
+      </div>
     </div>
   )
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
-  const steps = [
-    { num: 1, label: 'Visitor' },
-    { num: 2, label: 'Visit' },
-    { num: 3, label: 'Details' },
-  ]
-
+function SectionHeader({ icon, title }: { icon: string; title: string; index?: number }) {
   return (
-    <div className="flex items-center">
-      {steps.map((s, idx) => {
-        const isCompleted = step > s.num
-        const isActive = step === s.num
-
-        return (
-          <div key={s.num} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className={[
-                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors',
-                  isCompleted
-                    ? 'bg-confirmed text-white'
-                    : isActive
-                    ? 'bg-brand text-white'
-                    : 'bg-surface-tertiary text-text-tertiary',
-                ].join(' ')}
-              >
-                {isCompleted ? <i className="ri-check-line text-xs" /> : s.num}
-              </div>
-              <span
-                className={[
-                  'text-xs whitespace-nowrap',
-                  isActive ? 'text-text-primary font-medium' : 'text-text-tertiary',
-                ].join(' ')}
-              >
-                {s.label}
-              </span>
-            </div>
-
-            {idx < steps.length - 1 && (
-              <div
-                className={[
-                  'flex-1 h-px mx-2 mb-4 transition-colors',
-                  step > s.num ? 'bg-confirmed' : 'bg-border',
-                ].join(' ')}
-              />
-            )}
-          </div>
-        )
-      })}
+    <div className="flex items-center gap-3 -mx-1">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
+          <i className={`${icon} text-brand text-base`} />
+        </div>
+        <h2 className="text-base font-semibold text-text-primary tracking-tight">{title}</h2>
+      </div>
+      <div className="flex-1 h-px bg-border" />
     </div>
   )
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function PreviewSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">{title}</p>
+      <div className="rounded-xl border border-border divide-y divide-border-light overflow-hidden">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+      <span className="text-xs text-text-tertiary shrink-0">{label}</span>
+      <span className="text-xs font-medium text-text-primary text-right break-words max-w-[60%]">{value}</span>
+    </div>
+  )
+}
+
+function Field({
+  label,
+  required,
+  hint,
+  children,
+}: {
+  label: string
+  required?: boolean
+  hint?: string
+  children: React.ReactNode
+}) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-text-primary">
@@ -772,6 +875,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
         {required && <span className="text-rejected ml-0.5">*</span>}
       </span>
       <div className="mt-1.5">{children}</div>
+      {hint && <p className="text-xs text-text-tertiary mt-1">{hint}</p>}
     </label>
   )
 }

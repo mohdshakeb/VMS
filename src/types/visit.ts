@@ -1,6 +1,5 @@
 export type VisitStatus =
   | 'pending-approval'
-  | 'pending-confirmation'
   | 'scheduled'
   | 'confirmed'
   | 'checked-in'
@@ -12,19 +11,16 @@ export type EntryPath = 'employee-request' | 'walk-in' | 'self-register' | 'pre-
 
 export type LocationType = 'enterprise-office' | 'branch-office'
 
-export type Purpose = 'official' | 'training' | 'personal' | 'customer' | 'other'
+export type Purpose = 'official' | 'personal' | 'training' | 'interview' | 'delivery'
 
 export type VisitType =
-  | 'interview'
   | 'contractor'
   | 'vendor'
   | 'customer'
   | 'government-official'
   | 'cat-officials'
   | 'employee-other-branch'
-  | 'employee-visitor'
   | 'general-visitor'
-  | 'visitor'
   | 'other'
 
 export type BusinessSegment =
@@ -54,10 +50,11 @@ export interface Visit {
   visitType: VisitType
   scheduledDate: string
   scheduledTime: string
-  duration?: number        // expected duration in minutes
+  duration?: number          // expected duration in minutes
   checkInTime?: string
   checkOutTime?: string
   badgeNumber?: string
+  badgeId?: string           // pre-assigned badge (captured at registration)
   rejectionReason?: string
   createdAt: string
   createdBy: string
@@ -67,24 +64,24 @@ export interface Visit {
   delegates?: Delegate[]
   laptopDetails?: string
   otherDeviceDetails?: string
+  idProofType?: string
   idProofNumber?: string
+  idPhotoCapture?: string
   businessSegment?: BusinessSegment
   priority?: VisitorPriority
   model?: string
   businessSegmentRemarks?: string
+  hasVehicle?: boolean
+  vehicleRegistration?: string
+  visitorInTemperature?: string
+  visitorOutTemperature?: string
 }
 
-/** Purpose options available per location type */
-export const PURPOSE_BY_LOCATION: Record<LocationType, Purpose[]> = {
-  'enterprise-office': ['official', 'training', 'personal'],
-  'branch-office': ['customer', 'other'],
-}
-
-/** Visit type options available per purpose */
+/** Visit type options available per purpose (universal — applies to all locations) */
 export const VISIT_TYPE_BY_PURPOSE: Record<Purpose, VisitType[]> = {
-  official: ['interview', 'contractor', 'vendor', 'customer', 'government-official', 'cat-officials', 'employee-other-branch'],
-  training: ['interview', 'contractor', 'vendor'],
-  personal: ['employee-visitor', 'general-visitor', 'visitor'],
-  customer: ['customer'],
-  other: ['other', 'visitor'],
+  official:  ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'employee-other-branch', 'general-visitor', 'other'],
+  personal:  ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'employee-other-branch', 'general-visitor', 'other'],
+  training:  ['contractor', 'customer', 'employee-other-branch', 'general-visitor', 'other'],
+  interview: ['vendor', 'employee-other-branch', 'general-visitor', 'other'],
+  delivery:  ['general-visitor', 'other'],
 }

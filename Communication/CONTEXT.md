@@ -9,6 +9,7 @@ This folder stores all files, assets, and references shared by the client. Log e
 | Date | File / Reference | Type | Notes |
 |------|-----------------|------|-------|
 | 2026-03-31 | VMS.md | Brief | Initial prototype brief with full requirements, role definitions, visit lifecycle, screen inventory, and design direction |
+| 2026-04-06 | Unified Visitor Form, Role Management, Notification - Share.xlsx | Stakeholder Update | Three sheets: (1) Visitor Form Final — field-by-visitor-type matrix, mandatory rules; (2) Purpose vs Visitor Type mapping; (3) Role Management — feature permissions per role. Supersedes formFields.md. |
 | 2026-03-31 | docs/Employee User Manual.pdf | Manual | Happy Visitor employee user manual — documents the current third-party VMS being replaced. Covers create visit, invite visitor, dashboard, and reports. |
 | 2026-03-31 | docs/Secuirty User Manual.pdf | Manual | Happy Visitor security/front desk user manual — documents current check-in, check-out, dashboard, and login flows. Reveals UX pain points (manual badge entry, badge-only checkout). |
 | 2026-03-31 | [Stakeholder Pain Points](https://docs.google.com/document/d/1SUOfZ352e0Ex4yjUXVGztoQm4Oh16hYV25QDj5R86Zk/edit?tab=t.0) | Document | Google Doc capturing key stakeholder needs: front desk visibility, employee adoption barriers, management intelligence gap, and strategic objectives. |

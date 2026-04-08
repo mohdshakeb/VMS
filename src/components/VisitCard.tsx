@@ -3,18 +3,18 @@ import type { Role } from '@/types/user'
 import Button from './Button'
 import { employees } from '@/data/employees'
 import { useVisitStore } from '@/store/visitStore'
-import { formatTime, getVisitTypeLabel, addMinutesToTime } from '@/utils/helpers'
+import { formatTime, addMinutesToTime } from '@/utils/helpers'
 import { useNavigate } from 'react-router-dom'
 
 interface VisitCardProps {
   visit: Visit
   visitorName: string
-  visitorCompany?: string
+  visitorPhone?: string
   visitorAvatar?: string
   role: Role
 }
 
-export default function VisitCard({ visit, visitorName, visitorCompany, visitorAvatar, role }: VisitCardProps) {
+export default function VisitCard({ visit, visitorName, visitorPhone, visitorAvatar, role }: VisitCardProps) {
   const navigate = useNavigate()
   const host = employees.find((e) => e.id === visit.hostEmployeeId)
   const expectedOut = visit.duration
@@ -41,10 +41,10 @@ export default function VisitCard({ visit, visitorName, visitorCompany, visitorA
           <img
             src={visitorAvatar}
             alt={visitorName}
-            className="h-10 w-10 rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+            className="h-10 w-10 rounded-full object-cover border border-border"
           />
         ) : (
-          <div className="h-10 w-10 rounded-full bg-brand-red-50 flex items-center justify-center text-[11px] font-semibold text-brand-red-500 shadow-[0_2px_8px_rgba(0,0,0,0.10)]">
+          <div className="h-10 w-10 rounded-full bg-brand-red-50 flex items-center justify-center text-[11px] font-medium text-brand-red-500 border border-brand-red-100">
             {initials}
           </div>
         )}
@@ -55,9 +55,9 @@ export default function VisitCard({ visit, visitorName, visitorCompany, visitorA
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-text-primary truncate">{visitorName}</p>
-            {visitorCompany && (
-              <p className="text-xs text-text-secondary truncate">{visitorCompany}</p>
+            <p className="text-sm font-medium text-text-primary truncate">{visitorName}</p>
+            {visitorPhone && (
+              <p className="text-xs text-text-secondary truncate">{visitorPhone}</p>
             )}
           </div>
         </div>
@@ -71,10 +71,6 @@ export default function VisitCard({ visit, visitorName, visitorCompany, visitorA
           <span className="inline-flex items-center gap-1">
             <i className="ri-user-line" />
             {host?.name ?? 'Unknown'}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <i className="ri-briefcase-line" />
-            {getVisitTypeLabel(visit.visitType)}
           </span>
           {visit.badgeNumber && (
             <span className="inline-flex items-center gap-1">
@@ -99,24 +95,18 @@ export default function VisitCard({ visit, visitorName, visitorCompany, visitorA
 }
 
 function VisitActions({ visit, role, navigate }: { visit: Visit; role: Role; navigate: ReturnType<typeof useNavigate> }) {
-  const { confirmVisit, checkOut } = useVisitStore()
+  const { checkOut } = useVisitStore()
 
   if (role === 'front-desk') {
     switch (visit.status) {
       case 'pending-approval':
         return (
-          <p className="text-xs text-pending font-medium whitespace-nowrap">
-            <i className="ri-time-line mr-1" />Waiting for approval
-          </p>
-        )
-      case 'pending-confirmation':
-        return (
-          <div className="flex gap-2">
-            <Button size="sm" variant="primary" onClick={() => confirmVisit(visit.id)}>
-              Confirm
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => navigate(`/front-desk/check-in/${visit.id}`)}>
-              Review
+          <div className="flex flex-col items-end gap-1.5">
+            <p className="text-xs text-pending font-medium whitespace-nowrap">
+              <i className="ri-time-line mr-1" />Waiting for approval
+            </p>
+            <Button size="sm" variant="secondary" icon="ri-login-box-line" onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/check-in/${visit.id}`) }}>
+              Manual Check-in
             </Button>
           </div>
         )

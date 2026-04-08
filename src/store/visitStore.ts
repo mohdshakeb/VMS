@@ -20,16 +20,21 @@ interface VisitState {
     visitorCompany?: string
     hostEmployeeId: string
     locationId: string
-    purpose?: Purpose
+    purpose: Purpose
     visitType: VisitType
     department?: string
     scheduledDate?: string
     scheduledTime?: string
     duration?: number
     delegates?: Delegate[]
+    badgeId?: string
+    idProofType?: string
+    idProofNumber?: string
     laptopDetails?: string
     otherDeviceDetails?: string
-    idProofNumber?: string
+    hasVehicle?: boolean
+    vehicleRegistration?: string
+    visitorInTemperature?: string
     businessSegment?: BusinessSegment
     priority?: VisitorPriority
     model?: string
@@ -40,7 +45,7 @@ interface VisitState {
   approveWalkIn: (visitId: string) => void
   rejectWalkIn: (visitId: string, reason: string) => void
   checkIn: (visitId: string, badgeNumber: string) => void
-  checkOut: (visitId: string) => void
+  checkOut: (visitId: string, outTemperature?: string) => void
   confirmVisit: (visitId: string) => void
   rejectVisit: (visitId: string, reason: string) => void
   cancelVisit: (visitId: string) => void
@@ -72,8 +77,6 @@ export const useVisitStore = create<VisitState>((set, get) => ({
     }
 
     const now = new Date()
-    // Derive purpose for branch offices if not explicitly provided
-    const resolvedPurpose: Purpose = data.purpose ?? (data.visitType === 'customer' ? 'customer' : 'other')
 
     const visit: Visit = {
       id: generateId(),
@@ -82,7 +85,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       locationId: data.locationId,
       status: 'pending-approval',
       entryPath: 'walk-in' as EntryPath,
-      purpose: resolvedPurpose,
+      purpose: data.purpose,
       visitType: data.visitType,
       scheduledDate: data.scheduledDate ?? getLocalDateString(now),
       scheduledTime: data.scheduledTime ?? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
@@ -92,9 +95,14 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       notes: data.notes,
       department: data.department,
       delegates: data.delegates && data.delegates.length > 0 ? data.delegates : undefined,
+      badgeId: data.badgeId,
+      idProofType: data.idProofType,
+      idProofNumber: data.idProofNumber,
       laptopDetails: data.laptopDetails,
       otherDeviceDetails: data.otherDeviceDetails,
-      idProofNumber: data.idProofNumber,
+      hasVehicle: data.hasVehicle,
+      vehicleRegistration: data.vehicleRegistration,
+      visitorInTemperature: data.visitorInTemperature,
       businessSegment: data.businessSegment,
       priority: data.priority,
       model: data.model,
@@ -187,11 +195,12 @@ export const useVisitStore = create<VisitState>((set, get) => ({
     })
   },
 
-  checkOut: (visitId) => {
+  checkOut: (visitId, outTemperature) => {
     set((state) => ({
       visits: updateVisitStatus(state.visits, visitId, {
         status: 'checked-out',
         checkOutTime: new Date().toISOString(),
+        visitorOutTemperature: outTemperature,
       }),
       toastMessage: 'Visitor checked out',
     }))

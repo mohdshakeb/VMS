@@ -10,7 +10,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
   const label = getStatusLabel(status)
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${bg} ${text}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${bg} ${text}`}>
       {label}
     </span>
   )

@@ -205,7 +205,7 @@ export default function FrontDeskDashboard() {
                           key={visit.id}
                           visit={visit}
                           visitorName={visitor?.name ?? 'Unknown Visitor'}
-                          visitorCompany={visitor?.company}
+                          visitorPhone={visitor?.mobile}
                           visitorAvatar={visitor?.avatar}
                           role="front-desk"
                         />
@@ -231,7 +231,7 @@ export default function FrontDeskDashboard() {
                           key={visit.id}
                           visit={visit}
                           visitorName={visitor?.name ?? 'Unknown Visitor'}
-                          visitorCompany={visitor?.company}
+                          visitorPhone={visitor?.mobile}
                           visitorAvatar={visitor?.avatar}
                           role="front-desk"
                         />
@@ -268,7 +268,7 @@ export default function FrontDeskDashboard() {
                           key={visit.id}
                           visit={visit}
                           visitorName={visitor?.name ?? 'Unknown Visitor'}
-                          visitorCompany={visitor?.company}
+                          visitorPhone={visitor?.mobile}
                           visitorAvatar={visitor?.avatar}
                           role="front-desk"
                         />

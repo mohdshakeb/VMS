@@ -2,24 +2,24 @@ type Color = 'blue' | 'purple' | 'green' | 'yellow'
 
 const colorMap: Record<Color, { iconBg: string; iconBorder: string; iconColor: string }> = {
   blue: {
-    iconBg: 'bg-[var(--color-badge-blue-light)]',
-    iconBorder: 'border border-[var(--color-badge-blue-subtle)]',
-    iconColor: 'text-[var(--color-badge-blue-dark)]',
+    iconBg: 'bg-badge-blue-light',
+    iconBorder: 'border border-badge-blue-subtle',
+    iconColor: 'text-badge-blue-dark',
   },
   purple: {
-    iconBg: 'bg-[var(--color-badge-purple-light)]',
-    iconBorder: 'border border-[var(--color-badge-purple-subtle)]',
-    iconColor: 'text-[var(--color-badge-purple-dark)]',
+    iconBg: 'bg-badge-purple-light',
+    iconBorder: 'border border-badge-purple-subtle',
+    iconColor: 'text-badge-purple-dark',
   },
   green: {
-    iconBg: 'bg-[var(--color-badge-green-light)]',
-    iconBorder: 'border border-[var(--color-badge-green-subtle)]',
-    iconColor: 'text-[var(--color-badge-green-dark)]',
+    iconBg: 'bg-badge-green-light',
+    iconBorder: 'border border-badge-green-subtle',
+    iconColor: 'text-badge-green-dark',
   },
   yellow: {
-    iconBg: 'bg-[var(--color-badge-yellow-light)]',
-    iconBorder: 'border border-[var(--color-badge-yellow-subtle)]',
-    iconColor: 'text-[var(--color-badge-yellow-dark)]',
+    iconBg: 'bg-badge-yellow-light',
+    iconBorder: 'border border-badge-yellow-subtle',
+    iconColor: 'text-badge-yellow-dark',
   },
 }
 
@@ -35,11 +35,12 @@ interface KpiCardV2Props {
   alertCount?: number
   alertLabel?: string
   alertColor?: 'red' | 'orange'
+  onClick?: () => void
 }
 
 export default function KpiCardV2({
   label, info, value, icon, color = 'blue',
-  trend, alertCount, alertLabel = '', alertColor = 'red',
+  trend, alertCount, alertLabel = '', alertColor = 'red', onClick,
 }: KpiCardV2Props) {
   const display = value < 10 ? String(value).padStart(2, '0') : String(value)
   const c = colorMap[color]
@@ -52,7 +53,7 @@ export default function KpiCardV2({
         ? 'text-orange-500'
         : 'text-red-500'
       return (
-        <span className={`text-xs font-semibold leading-none ${cls}`}>
+        <span className={`text-xs font-medium leading-none ${cls}`}>
           {alertCount} {alertLabel}
         </span>
       )
@@ -61,24 +62,27 @@ export default function KpiCardV2({
     // Trend mode (vs yesterday)
     if (trend === undefined) return null
     if (trend === 0) return (
-      <span className="text-xs text-zinc-400 font-medium leading-none">— same as yesterday</span>
+      <span className="text-xs text-text-tertiary font-medium leading-none">— same as yesterday</span>
     )
     const up = trend > 0
     return (
-      <span className={`flex items-baseline gap-0.5 text-xs font-semibold leading-none ${up ? 'text-green-600' : 'text-red-500'}`}>
-        <i className={`${up ? 'ri-arrow-right-up-line' : 'ri-arrow-right-down-line'} text-[11px]`} />
+      <span className={`flex items-baseline gap-1 text-xs font-medium leading-none ${up ? 'text-green-600' : 'text-red-500'}`}>
+        <i className={`${up ? 'ri-arrow-right-up-line' : 'ri-arrow-right-down-line'} text-[14px]`} />
         {up ? '+' : ''}{trend} vs yesterday
       </span>
     )
   })()
 
   return (
-    <div className="px-6 pt-5 pb-5 flex flex-col gap-4">
+    <div
+      onClick={onClick}
+      className={`rounded-xl bg-white border border-border-light px-6 pt-5 pb-5 flex flex-col gap-4 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
+    >
       {/* Top row: label + subtitle aligned with icon */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col">
-          <p className="text-xs font-bold text-zinc-900 uppercase tracking-widest leading-none">{label}</p>
-          <p className="text-xs mt-1 text-zinc-400">{info}</p>
+          <p className="text-xs font-semibold text-text-primary uppercase tracking-widest leading-none">{label}</p>
+          <p className="text-xs mt-1 text-text-tertiary">{info}</p>
         </div>
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconBorder}`}>
           <i className={`${icon} text-xl ${c.iconColor}`} />
@@ -86,8 +90,8 @@ export default function KpiCardV2({
       </div>
 
       {/* Bottom row: count + trend/alert, baseline aligned */}
-      <div className="flex items-baseline gap-2.5">
-        <p className="text-2xl font-bold text-zinc-900 tabular-nums leading-none">{display}</p>
+      <div className="flex items-baseline gap-1.5">
+        <p className="text-2xl font-semibold text-text-primary tabular-nums leading-none">{display}</p>
         {bottomEl}
       </div>
     </div>
