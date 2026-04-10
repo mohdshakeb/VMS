@@ -153,7 +153,6 @@ export default function CreateWalkIn() {
   const navigate = useNavigate()
   const createWalkIn = useVisitStore((s) => s.createWalkIn)
   const locationId = useAuthStore((s) => s.currentLocationId)
-  const location = locations.find((l) => l.id === locationId)
 
   const [formData, setFormData] = useState<FormData>(defaultFormData)
   const [delegates, setDelegates] = useState<Delegate[]>([])
