@@ -19,6 +19,7 @@ type ActiveFilter = 'all' | 'ready' | 'pending'
 export default function FrontDeskDashboardV3() {
   const visits = useVisitStore((s) => s.visits)
   const checkOut = useVisitStore((s) => s.checkOut)
+  const checkOutDelegate = useVisitStore((s) => s.checkOutDelegate)
   const storeVisitors = useVisitStore((s) => s.visitors)
   const { currentLocationId, currentRole } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
@@ -37,7 +38,7 @@ export default function FrontDeskDashboardV3() {
       navigate('/front-desk/dashboard', { replace: true, state: {} })
     }
   }, [])
-  const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null)
+  const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [showAllOnPremises, setShowAllOnPremises] = useState(false)
 
@@ -64,6 +65,7 @@ export default function FrontDeskDashboardV3() {
   )
   const kpiOnPremises = todaysVisits.filter((v) => v.status === 'checked-in')
   const pendingApproval = todaysVisits.filter((v) => v.status === 'pending-approval')
+
 
   // ── Mock KPI supplementary data (prototype — static, time-independent) ──
   const overdueCount = kpiOnPremises.filter((v) => OVERDUE_VISIT_IDS.has(v.id)).length
@@ -97,27 +99,30 @@ export default function FrontDeskDashboardV3() {
       <PageHeader
         title="Front-Desk Dashboard"
         titleNode={
-          <div className="w-72 flex items-center gap-2 bg-surface border border-border rounded-lg px-4 h-9 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
-            <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Try Name, Mobile or Badge No"
-              className="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
-            />
-            {searchInput && (
-              <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
-                <i className="ri-close-line text-base" />
-              </button>
-            )}
-          </div>
+          <>
+            <h2 className="text-sm font-medium text-text-primary md:hidden">Dashboard</h2>
+            <div className="hidden md:flex w-72 items-center gap-2 bg-surface border border-border rounded-lg px-4 h-9 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
+              <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Try Name, Mobile or Badge No"
+                className="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
+              />
+              {searchInput && (
+                <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+                  <i className="ri-close-line text-base" />
+                </button>
+              )}
+            </div>
+          </>
         }
         actions={
           <>
             <NavLink
               to="/notifications"
-              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
+              className="relative hidden md:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
             >
               <i className="ri-notification-3-line text-xl text-text-secondary" />
               {unreadCount > 0 && (
@@ -126,19 +131,38 @@ export default function FrontDeskDashboardV3() {
                 </span>
               )}
             </NavLink>
-            <Button size="md" variant="secondary" onClick={() => navigate('/front-desk/check-out')} className="ml-1">
+            <Button size="md" variant="secondary" onClick={() => navigate('/front-desk/check-out')} className="ml-1 hidden md:inline-flex">
               Check-out
             </Button>
-            <Button size="md" icon="ri-user-add-line" onClick={() => navigate('/front-desk/walk-in')} className="ml-1">
+            <Button size="md" icon="ri-user-add-line" onClick={() => navigate('/front-desk/walk-in')} className="ml-1 hidden md:inline-flex">
               Walk-in
             </Button>
           </>
         }
       />
 
+      {/* Mobile-only search bar */}
+      <div className="md:hidden px-4 pt-3 pb-0 shrink-0">
+        <div className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 h-10 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
+          <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search visitor name or company..."
+            className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
+          />
+          {searchInput && (
+            <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+              <i className="ri-close-line text-base" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Scrollable content ────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 pt-6 pb-10 flex flex-col gap-5 min-h-full">
+        <div className="px-4 pt-4 pb-10 md:px-6 md:pt-6 flex flex-col gap-3 md:gap-5 min-h-full">
 
           {searchInput.trim() ? (
             /* ── Search results ──────────────────────────────── */
@@ -176,7 +200,7 @@ export default function FrontDeskDashboardV3() {
           ) : (
             <>
               {/* ── KPI row ─────────────────────────────────────────── */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 <KpiCardV2
                   label="Total Visitors"
                   info="Visitors checked-in"
@@ -187,13 +211,15 @@ export default function FrontDeskDashboardV3() {
                   onClick={() => handleFilterChange('all')}
                 />
                 <KpiCardV2
-                  label="Expected"
-                  info="Awaiting arrival"
-                  value={kpiExpected.length}
-                  icon="ri-calendar-check-fill"
-                  color="purple"
-                  trend={MOCK_TREND_EXPECTED}
-                  onClick={() => handleFilterChange('ready')}
+                  label="Pending"
+                  info="Awaiting approval"
+                  value={pendingApproval.length}
+                  icon="ri-time-fill"
+                  color="yellow"
+                  alertCount={delayedCount}
+                  alertLabel="need follow-up"
+                  alertColor="orange"
+                  onClick={() => handleFilterChange('pending')}
                 />
                 <KpiCardV2
                   label="On Premises"
@@ -207,28 +233,27 @@ export default function FrontDeskDashboardV3() {
                   onClick={() => navigate('/front-desk/check-out')}
                 />
                 <KpiCardV2
-                  label="Pending"
-                  info="Awaiting approval"
-                  value={pendingApproval.length}
-                  icon="ri-time-fill"
-                  color="yellow"
-                  alertCount={delayedCount}
-                  alertLabel="need follow-up"
-                  alertColor="orange"
-                  onClick={() => handleFilterChange('pending')}
+                  label="Expected"
+                  info="Awaiting arrival"
+                  value={kpiExpected.length}
+                  icon="ri-calendar-check-fill"
+                  color="purple"
+                  trend={MOCK_TREND_EXPECTED}
+                  onClick={() => handleFilterChange('ready')}
                 />
               </div>
 
-              {/* ── 60 / 40 layout ──────────────────────────────────── */}
-              <div className="grid grid-cols-5 gap-5">
+              {/* ── 60 / 40 layout — stacked on mobile/tablet, side-by-side on desktop ── */}
+              <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 lg:gap-5">
 
-                {/* ── Find Visits (left, 60%) ──────────────────────── */}
-                <div className="col-span-3">
+                {/* ── Find Visits (left on desktop, full-width on tablet/mobile) ── */}
+                <div className="lg:col-span-3">
                   <div className="bg-white rounded-xl border border-border overflow-hidden">
 
                     {/* Header */}
                     <div className="flex items-center gap-2 px-4 pt-3.5 pb-1">
                       <p className="text-sm font-semibold text-text-primary">Today's Visits</p>
+                      <p className="text-sm font-medium text-text-tertiary">Check-In</p>
                       <span className="text-[11px] font-semibold text-text-tertiary bg-surface-secondary rounded-full px-2 py-0.5">
                         {resultList.length}
                       </span>
@@ -252,7 +277,7 @@ export default function FrontDeskDashboardV3() {
                           : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
                           }`}
                       >
-                        Confirmed
+                        Pending Check-In
                       </button>
                       <button
                         onClick={() => handleFilterChange('pending')}
@@ -261,7 +286,7 @@ export default function FrontDeskDashboardV3() {
                           : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
                           }`}
                       >
-                        Pending
+                        Pending Approval
                       </button>
                     </div>
 
@@ -298,13 +323,14 @@ export default function FrontDeskDashboardV3() {
                   </div>
                 </div>
 
-                {/* ── On Premises (right, 40%) ─────────────────────── */}
-                <div className="col-span-2 sticky top-4 self-start">
+                {/* ── On Premises (right on desktop, full-width below on tablet/mobile) ── */}
+                <div className="lg:col-span-2 lg:sticky lg:top-4 lg:self-start">
                   <div className="bg-white rounded-xl border border-border overflow-hidden">
 
                     {/* Header */}
                     <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light shrink-0">
                       <p className="text-sm font-semibold text-text-primary">On Premises</p>
+                      <p className="text-sm font-medium text-text-tertiary">Check-Out</p>
                       <span className="text-[11px] font-semibold text-text-tertiary bg-surface-secondary rounded-full px-2 py-0.5">
                         {kpiOnPremises.length}
                       </span>
@@ -324,13 +350,9 @@ export default function FrontDeskDashboardV3() {
                           .map((visit, idx) => {
                             const visitor = visitorMap[visit.visitorId]
                             const name = visitor?.name ?? 'Unknown Visitor'
-                            const initials = name
-                              .split(' ')
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .map((w) => w[0].toUpperCase())
-                              .join('')
+                            const initials = name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
                             const host = employees.find((e) => e.id === visit.hostEmployeeId)
+                            const hasGroup = (visit.delegates?.length ?? 0) > 0
                             const expectedOutTime =
                               visit.checkInTime && visit.duration
                                 ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60 * 1000)
@@ -351,32 +373,42 @@ export default function FrontDeskDashboardV3() {
                               const m = totalMin % 60
                               return `+${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
                             })()
-                            const isRowExpanded = expandedVisitId === visit.id
+                            const isRowExpanded = expandedEntryKey === visit.id
+                            function handleCheckOutAll() {
+                              visit.delegates?.forEach((d, i) => {
+                                if (!d.checkOutTime) checkOutDelegate(visit.id, i)
+                              })
+                              checkOut(visit.id)
+                            }
                             return (
                               <div key={visit.id}>
                                 {idx > 0 && <div className="h-px bg-surface-secondary mx-4" />}
                                 <button
-                                  onClick={() => setExpandedVisitId(isRowExpanded ? null : visit.id)}
-                                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface transition-colors"
+                                  onClick={() => setExpandedEntryKey(isRowExpanded ? null : visit.id)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors ${isRowExpanded ? '' : 'hover:bg-surface'}`}
                                 >
-                                  {visitor?.avatar ? (
-                                    <img
-                                      src={visitor.avatar}
-                                      alt={name}
-                                      className="shrink-0 h-8 w-8 rounded-full object-cover border border-border"
-                                    />
-                                  ) : (
-                                    <div className="shrink-0 h-8 w-8 rounded-full bg-brand-red-50 text-brand-red-500 flex items-center justify-center text-[11px] font-semibold leading-none select-none border border-brand-red-100">
-                                      {initials}
-                                    </div>
-                                  )}
+                                  <div className={`relative shrink-0 rounded-full${isOverdue ? ' ring-[3px] ring-offset-0 ring-red-400/40' : ''}`}>
+                                    {isOverdue && (
+                                      <span className="animate-sonar absolute inset-0 rounded-full border-2 pointer-events-none" />
+                                    )}
+                                    {visitor?.avatar ? (
+                                      <img
+                                        src={visitor.avatar}
+                                        alt={name}
+                                        className="h-8 w-8 rounded-full object-cover border border-border"
+                                      />
+                                    ) : (
+                                      <div className="h-8 w-8 rounded-full bg-brand-red-50 text-brand-red-500 flex items-center justify-center text-[11px] font-semibold leading-none select-none border border-brand-red-100">
+                                        {initials}
+                                      </div>
+                                    )}
+                                  </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5">
                                       <p className="text-xs font-medium text-text-primary truncate">{name}</p>
-                                      {isOverdue && (
-                                        <span className="shrink-0 relative flex h-1.5 w-1.5">
-                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                                      {hasGroup && (
+                                        <span className="shrink-0 text-[11px] text-brand">
+                                          +{visit.delegates!.length} others
                                         </span>
                                       )}
                                     </div>
@@ -405,7 +437,9 @@ export default function FrontDeskDashboardV3() {
 
                                 <div className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${isRowExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                                   <div className="overflow-hidden min-h-0">
-                                    <div className="px-4 pb-4 pt-1 space-y-3">
+                                    <div className="px-4 pb-4 space-y-3">
+                                      <div className="h-px bg-border-light" />
+                                      {/* Visit details */}
                                       <div className="grid grid-cols-3 gap-x-3 gap-y-2">
                                         <div>
                                           <p className="text-[10px] text-text-tertiary leading-none">Check-in</p>
@@ -420,20 +454,53 @@ export default function FrontDeskDashboardV3() {
                                           <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
                                         </div>
                                       </div>
-                                      {isOverdue ? (
-                                        <div className="flex gap-2">
-                                          <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={() => checkOut(visit.id)}>
-                                            Check out
-                                          </Button>
-                                          <Button size="sm" variant="secondary" icon="ri-notification-3-line" fullWidth onClick={() => { }}>
-                                            Notify
-                                          </Button>
+
+                                      {/* Members — only for group visits */}
+                                      {hasGroup && (
+                                        <div>
+                                          <div className="h-px bg-border-light mb-2.5" />
+                                          <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">Members</p>
+                                          <div className="space-y-2">
+                                            {visit.delegates!.map((d, i) => {
+                                              const coTime = d.checkOutTime ? new Date(d.checkOutTime) : null
+                                              const dInitials = d.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+                                              return (
+                                                <div key={i} className="flex items-center gap-2">
+                                                  <div className="h-5 w-5 rounded-full bg-surface-secondary flex items-center justify-center text-[9px] font-semibold text-text-tertiary shrink-0">
+                                                    {dInitials}
+                                                  </div>
+                                                  <div className="min-w-0 flex-1">
+                                                    <p className="text-xs text-text-primary truncate">{d.name}</p>
+                                                    <p className="text-[11px] text-text-tertiary">{d.mobile}</p>
+                                                  </div>
+                                                  {coTime ? (
+                                                    <span className="text-[11px] text-text-tertiary whitespace-nowrap shrink-0">
+                                                      Left {coTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                  ) : (
+                                                    <Button size="sm" variant="secondary" icon="ri-logout-box-line"
+                                                      onClick={(e) => { e.stopPropagation(); checkOutDelegate(visit.id, i) }}>
+                                                      Check out
+                                                    </Button>
+                                                  )}
+                                                </div>
+                                              )
+                                            })}
+                                          </div>
+                                          <div className="h-px bg-border-light mt-2.5" />
                                         </div>
-                                      ) : (
-                                        <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={() => checkOut(visit.id)}>
-                                          Check out
-                                        </Button>
                                       )}
+
+                                      {/* Action buttons */}
+                                      <div className="flex gap-2">
+                                        <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
+                                          onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/check-out/${visit.id}`) }}>
+                                          View Details
+                                        </Button>
+                                        <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={handleCheckOutAll}>
+                                          {hasGroup ? 'Check out all' : 'Check out'}
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>

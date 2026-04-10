@@ -19,6 +19,8 @@ export default function CheckOut() {
   const storeVisitors = useVisitStore((s) => s.visitors)
   const checkOut = useVisitStore((s) => s.checkOut)
 
+  const checkOutDelegate = useVisitStore((s) => s.checkOutDelegate)
+
   const [outTemperature, setOutTemperature] = useState('')
 
   const visit = visits.find((v) => v.id === visitId)
@@ -71,6 +73,41 @@ export default function CheckOut() {
             </div>
           </div>
         </Card>
+
+        {/* Companions */}
+        {visit.delegates && visit.delegates.length > 0 && (
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <i className="ri-group-line text-sm text-text-tertiary" />
+              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+                Companions ({visit.delegates.length})
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {visit.delegates.map((d, i) => {
+                const coTime = d.checkOutTime ? new Date(d.checkOutTime) : null
+                return (
+                  <div key={i} className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm text-text-primary truncate">{d.name}</p>
+                      <p className="text-xs text-text-secondary">{d.mobile}</p>
+                    </div>
+                    {coTime ? (
+                      <span className="text-xs text-text-tertiary whitespace-nowrap">
+                        Left {formatTime(`${coTime.getHours()}:${String(coTime.getMinutes()).padStart(2, '0')}`)}
+                      </span>
+                    ) : (
+                      <Button size="sm" variant="secondary" icon="ri-logout-box-line"
+                        onClick={() => checkOutDelegate(visit!.id, i)}>
+                        Check Out
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        )}
 
         {/* Out Temperature */}
         <Card>

@@ -42,6 +42,7 @@ interface VisitState {
     notes?: string
   }) => Visit
 
+  checkOutDelegate: (visitId: string, delegateIndex: number) => void
   approveWalkIn: (visitId: string) => void
   rejectWalkIn: (visitId: string, reason: string) => void
   checkIn: (visitId: string, badgeNumber: string) => void
@@ -128,6 +129,19 @@ export const useVisitStore = create<VisitState>((set, get) => ({
     })
 
     return visit
+  },
+
+  checkOutDelegate: (visitId, delegateIndex) => {
+    set((state) => ({
+      visits: state.visits.map((v) => {
+        if (v.id !== visitId || !v.delegates) return v
+        const delegates = v.delegates.map((d, i) =>
+          i === delegateIndex ? { ...d, checkOutTime: new Date().toISOString() } : d
+        )
+        return { ...v, delegates }
+      }),
+      toastMessage: 'Companion checked out',
+    }))
   },
 
   approveWalkIn: (visitId) => {

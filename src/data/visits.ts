@@ -666,6 +666,124 @@ export const visits: Visit[] = [
     notes: 'Vendor unable to attend — rescheduling',
   },
 
+  // --- GROUP WALK-INS — demonstrates multi-visitor scenarios ---
+
+  // Group A: pending-approval, 3 people (primary + 2 companions)
+  {
+    id: 'visit-g1',
+    visitorId: 'vis-22',
+    hostEmployeeId: 'emp-2',
+    locationId: 'loc-1',
+    status: 'pending-approval',
+    entryPath: 'walk-in',
+    purpose: 'official',
+    visitType: 'vendor',
+    scheduledDate: TODAY,
+    scheduledTime: '11:00',
+    duration: 120,
+    createdAt: `${TODAY}T10:50:00`,
+    createdBy: 'front-desk',
+    notes: 'Product demo team from IndiaMART — 3 people',
+    delegates: [
+      { name: 'Suresh Iyer', mobile: '+91 93456 78902' },
+      { name: 'Meena Pillai', mobile: '+91 93456 78903' },
+    ],
+  },
+
+  // Group B: confirmed (pre-scheduled, shows in "Expected" / Confirmed filter)
+  {
+    id: 'visit-g3',
+    visitorId: 'vis-10',
+    hostEmployeeId: 'emp-5',
+    locationId: 'loc-1',
+    status: 'confirmed',
+    entryPath: 'pre-scheduled',
+    purpose: 'official',
+    visitType: 'cat-officials',
+    scheduledDate: TODAY,
+    scheduledTime: '15:30',
+    duration: 90,
+    createdAt: `${TODAY}T07:30:00`,
+    createdBy: 'emp-5',
+    notes: 'Caterpillar product review — team of 4',
+    delegates: [
+      { name: 'Vikram Nair', mobile: '+91 98001 11223' },
+      { name: 'Tanuja Shetty', mobile: '+91 98001 11224' },
+      { name: 'Arun Pillai', mobile: '+91 98001 11225' },
+    ],
+  },
+
+  // Group C: checked-in, one companion already departed
+  {
+    id: 'visit-g2',
+    visitorId: 'vis-23',
+    hostEmployeeId: 'emp-4',
+    locationId: 'loc-1',
+    status: 'checked-in',
+    entryPath: 'walk-in',
+    purpose: 'official',
+    visitType: 'contractor',
+    scheduledDate: TODAY,
+    scheduledTime: '08:30',
+    duration: 240,
+    checkInTime: `${TODAY}T08:35:00`,
+    badgeNumber: 'B-0039',
+    createdAt: `${TODAY}T08:25:00`,
+    createdBy: 'front-desk',
+    delegates: [
+      { name: 'Aryan Sharma', mobile: '+91 82345 67891', checkOutTime: `${TODAY}T09:30:00` },
+      { name: 'Preethi Reddy', mobile: '+91 82345 67892' },
+    ],
+  },
+
+  // Group D: checked-in group, all 3 members still on premises, overdue (for visibility)
+  {
+    id: 'visit-g4',
+    visitorId: 'vis-24',
+    hostEmployeeId: 'emp-1',
+    locationId: 'loc-1',
+    status: 'checked-in',
+    entryPath: 'employee-request',
+    purpose: 'official',
+    visitType: 'vendor',
+    scheduledDate: TODAY,
+    scheduledTime: '07:00',
+    duration: 60,
+    checkInTime: `${TODAY}T07:02:00`,
+    badgeNumber: 'B-0040',
+    createdAt: `${TODAY}T06:45:00`,
+    createdBy: 'emp-1',
+    notes: 'Voltas HVAC team — annual servicing inspection',
+    delegates: [
+      { name: 'Rekha Srinivasan', mobile: '+91 91234 00012' },
+      { name: 'Tarun Bajaj',      mobile: '+91 91234 00013' },
+    ],
+  },
+
+  // Group E: checked-in group, one companion already departed
+  {
+    id: 'visit-g5',
+    visitorId: 'vis-25',
+    hostEmployeeId: 'emp-7',
+    locationId: 'loc-1',
+    status: 'checked-in',
+    entryPath: 'pre-scheduled',
+    purpose: 'official',
+    visitType: 'contractor',
+    scheduledDate: TODAY,
+    scheduledTime: '09:00',
+    duration: 300,
+    checkInTime: `${TODAY}T09:04:00`,
+    badgeNumber: 'B-0041',
+    createdAt: `${TODAY}T07:30:00`,
+    createdBy: 'emp-7',
+    notes: 'L&T structural audit — 3-person team',
+    delegates: [
+      { name: 'Divya Krishnan',   mobile: '+91 76001 88235', checkOutTime: `${TODAY}T10:45:00` },
+      { name: 'Saurabh Mishra',   mobile: '+91 76001 88236' },
+    ],
+  },
+
   // --- ON PREMISES — intentionally overdue for prototype (flagged via OVERDUE_VISIT_IDS) ---
   {
     id: 'visit-28',
@@ -708,7 +826,7 @@ export const visits: Visit[] = [
 // at any time of day. Add/remove IDs here to control the demo state.
 
 /** Checked-in visits that have exceeded their allotted time. */
-export const OVERDUE_VISIT_IDS = new Set(['visit-28', 'visit-29'])
+export const OVERDUE_VISIT_IDS = new Set(['visit-28', 'visit-29', 'visit-g4'])
 
 /** Pending-approval requests that have been waiting too long and need follow-up. */
 export const DELAYED_VISIT_IDS = new Set(['visit-1', 'visit-2'])

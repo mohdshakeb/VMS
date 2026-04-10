@@ -22,4 +22,8 @@ export const visitors: Visitor[] = [
   { id: 'vis-19', name: 'Rohit Gupta',         mobile: '+91 84567 89012', company: 'Wipro Infrastructure',                                  avatar: 'https://randomuser.me/api/portraits/men/38.jpg' },
   { id: 'vis-20', name: 'Anjali Kapoor',       mobile: '+91 93210 98765', company: 'IndiaMART',                                             avatar: 'https://randomuser.me/api/portraits/women/62.jpg' },
   { id: 'vis-21', name: 'Sameer Rao',          mobile: '+91 78012 34567', company: 'Caterpillar Inc.',       email: 'sameer.r@cat.com',     avatar: 'https://randomuser.me/api/portraits/men/74.jpg' },
+  { id: 'vis-22', name: 'Deepa Iyer',          mobile: '+91 93456 78901', company: 'IndiaMART Intermesh',                                     avatar: 'https://randomuser.me/api/portraits/women/33.jpg' },
+  { id: 'vis-23', name: 'Nikhil Sharma',       mobile: '+91 82345 67890', company: 'BHEL',                                                    avatar: 'https://randomuser.me/api/portraits/men/41.jpg' },
+  { id: 'vis-24', name: 'Hemanth Nair',        mobile: '+91 91234 00011', company: 'Voltas Ltd',             email: 'hemanth.n@voltas.com', avatar: 'https://randomuser.me/api/portraits/men/83.jpg' },
+  { id: 'vis-25', name: 'Cyrus Patel',         mobile: '+91 76001 88234', company: 'Larsen & Toubro',        email: 'cyrus.p@lnt.com',      avatar: 'https://randomuser.me/api/portraits/men/26.jpg' },
 ]

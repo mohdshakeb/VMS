@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useVisitStore } from '@/store/visitStore'
 import PageHeader from '@/components/PageHeader'
+import StatusBadge from '@/components/StatusBadge'
 import { employees } from '@/data/employees'
 import { formatDate, formatTime, getStatusLabel, getStatusColor, getVisitTypeLabel } from '@/utils/helpers'
 import type { VisitStatus } from '@/types/visit'
@@ -60,11 +61,11 @@ export default function VisitHistory() {
   const start = (page - 1) * ITEMS_PER_PAGE
   const paginatedRows = filtered.slice(start, start + ITEMS_PER_PAGE)
 
-  const tabs: { label: string; value: FilterTab; count: number }[] = [
-    { label: 'All', value: 'all', count: visits.length },
-    { label: 'Open', value: 'open', count: visits.filter((v) => (OPEN_STATUSES as string[]).includes(v.status)).length },
-    { label: 'Completed', value: 'completed', count: visits.filter((v) => (COMPLETED_STATUSES as string[]).includes(v.status)).length },
-    { label: 'Cancelled / Rejected', value: 'cancelled-rejected', count: visits.filter((v) => (CLOSED_STATUSES as string[]).includes(v.status)).length },
+  const tabs: { label: string; shortLabel: string; value: FilterTab; count: number }[] = [
+    { label: 'All', shortLabel: 'All', value: 'all', count: visits.length },
+    { label: 'Open', shortLabel: 'Open', value: 'open', count: visits.filter((v) => (OPEN_STATUSES as string[]).includes(v.status)).length },
+    { label: 'Completed', shortLabel: 'Done', value: 'completed', count: visits.filter((v) => (COMPLETED_STATUSES as string[]).includes(v.status)).length },
+    { label: 'Cancelled / Rejected', shortLabel: 'Cancelled', value: 'cancelled-rejected', count: visits.filter((v) => (CLOSED_STATUSES as string[]).includes(v.status)).length },
   ]
 
   return (
@@ -73,21 +74,22 @@ export default function VisitHistory() {
 
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5 space-y-4">
         {/* Controls row */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Status tabs */}
-          <div className="flex gap-1 bg-surface-secondary rounded-lg p-1 shrink-0">
+          <div className="flex gap-1 bg-surface-secondary rounded-lg p-1 shrink-0 overflow-x-auto scrollbar-none">
             {tabs.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === tab.value
                     ? 'bg-white text-text-primary shadow-sm'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
-                {tab.label}
-                <span className={`text-xs tabular-nums ${activeTab === tab.value ? 'text-text-tertiary' : 'text-text-tertiary'}`}>
+                <span className="sm:hidden">{tab.shortLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="text-xs tabular-nums text-text-tertiary">
                   {tab.count}
                 </span>
               </button>
@@ -95,20 +97,75 @@ export default function VisitHistory() {
           </div>
 
           {/* Search */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none" />
             <input
               type="text"
               placeholder="Search visitor or company..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-60 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
+              className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
             />
           </div>
         </div>
 
-        {/* Table card */}
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
+        {/* Mobile: card list — hidden on sm+ */}
+        <div className="sm:hidden space-y-2">
+          {paginatedRows.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-text-tertiary">
+              <i className="ri-search-line text-2xl" />
+              <p className="text-sm">No visits found</p>
+            </div>
+          ) : (
+            paginatedRows.map((visit) => {
+              const visitor = visitorMap[visit.visitorId]
+              const host = employees.find((e) => e.id === visit.hostEmployeeId)
+              const initials = (visitor?.name ?? '?')
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((w) => w[0].toUpperCase())
+                .join('')
+              const checkIn = visit.checkInTime ? formatTime(extractTime(visit.checkInTime)) : null
+              const checkOut = visit.checkOutTime ? formatTime(extractTime(visit.checkOutTime)) : null
+
+              return (
+                <div key={visit.id} className="bg-white rounded-xl border border-border-light px-4 py-3.5">
+                  <div className="flex items-start gap-3">
+                    {visitor?.avatar ? (
+                      <img src={visitor.avatar} alt={visitor.name} className="h-9 w-9 rounded-full object-cover shrink-0 mt-0.5" />
+                    ) : (
+                      <div className="h-9 w-9 rounded-full bg-brand-red-50 flex items-center justify-center text-[10px] font-medium text-brand-red-500 shrink-0 mt-0.5">
+                        {initials}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate leading-tight">{visitor?.name ?? 'Unknown'}</p>
+                          {visitor?.company && (
+                            <p className="text-xs text-text-tertiary truncate leading-tight mt-0.5">{visitor.company}</p>
+                          )}
+                        </div>
+                        <StatusBadge status={visit.status} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs text-text-tertiary">
+                        <span>{formatDate(visit.scheduledDate)} · {formatTime(visit.scheduledTime)}</span>
+                        {host && <span>· {host.name}</span>}
+                        {checkIn && (
+                          <span>· In {checkIn}{checkOut ? ` · Out ${checkOut}` : ''}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop/tablet: table — hidden on mobile */}
+        <div className="hidden sm:block bg-white rounded-xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
               <thead>
@@ -154,76 +211,49 @@ export default function VisitHistory() {
                         key={visit.id}
                         className="border-b border-border-light last:border-0 hover:bg-surface/70 transition-colors"
                       >
-                        {/* # */}
                         <td className="px-4 py-3.5 text-sm text-text-tertiary tabular-nums">
                           {String(rowNum).padStart(2, '0')}
                         </td>
-
-                        {/* Visitor */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
                             {visitor?.avatar ? (
-                              <img
-                                src={visitor.avatar}
-                                alt={visitor.name}
-                                className="h-8 w-8 rounded-full object-cover shrink-0"
-                              />
+                              <img src={visitor.avatar} alt={visitor.name} className="h-8 w-8 rounded-full object-cover shrink-0" />
                             ) : (
                               <div className="h-8 w-8 rounded-full bg-brand-red-50 flex items-center justify-center text-[10px] font-medium text-brand-red-500 shrink-0">
                                 {initials}
                               </div>
                             )}
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-text-primary truncate leading-tight">
-                                {visitor?.name ?? 'Unknown'}
-                              </p>
+                              <p className="text-sm font-medium text-text-primary truncate leading-tight">{visitor?.name ?? 'Unknown'}</p>
                               {visitor?.company && (
-                                <p className="text-xs text-text-tertiary truncate leading-tight mt-0.5">
-                                  {visitor.company}
-                                </p>
+                                <p className="text-xs text-text-tertiary truncate leading-tight mt-0.5">{visitor.company}</p>
                               )}
                             </div>
                           </div>
                         </td>
-
-                        {/* Date & Time */}
                         <td className="px-4 py-3.5">
                           <p className="text-sm text-text-primary leading-tight">{formatDate(visit.scheduledDate)}</p>
                           <p className="text-xs text-text-tertiary leading-tight mt-0.5">{formatTime(visit.scheduledTime)}</p>
                         </td>
-
-                        {/* Check In / Out */}
                         <td className="px-4 py-3.5">
                           {checkIn ? (
                             <>
                               <p className="text-sm text-text-primary leading-tight">{checkIn}</p>
-                              {checkOut && (
-                                <p className="text-xs text-text-tertiary leading-tight mt-0.5">{checkOut}</p>
-                              )}
+                              {checkOut && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{checkOut}</p>}
                             </>
                           ) : (
                             <span className="text-sm text-text-tertiary">—</span>
                           )}
                         </td>
-
-                        {/* Host */}
                         <td className="px-4 py-3.5">
                           <p className="text-sm text-text-primary leading-tight">{host?.name ?? '—'}</p>
-                          {host?.department && (
-                            <p className="text-xs text-text-tertiary leading-tight mt-0.5">{host.department}</p>
-                          )}
+                          {host?.department && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{host.department}</p>}
                         </td>
-
-                        {/* Visit Type */}
                         <td className="px-4 py-3.5 text-sm text-text-secondary">
                           {getVisitTypeLabel(visit.visitType)}
                         </td>
-
-                        {/* Status */}
                         <td className="px-4 py-3.5">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors.bg} ${statusColors.text}`}
-                          >
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors.bg} ${statusColors.text}`}>
                             {getStatusLabel(visit.status)}
                           </span>
                         </td>

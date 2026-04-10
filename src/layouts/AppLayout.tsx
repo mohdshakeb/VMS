@@ -17,6 +17,7 @@ interface MobileNavItem {
 const mobileNavByRole: Record<Role, MobileNavItem[]> = {
   'front-desk': [
     { label: 'Dashboard', path: '/front-desk/dashboard', icon: 'ri-dashboard-line', activeIcon: 'ri-dashboard-fill' },
+    { label: 'History', path: '/front-desk/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
     { label: 'Requests', path: '/front-desk/visit-requests', icon: 'ri-file-list-3-line', activeIcon: 'ri-file-list-3-fill' },
     { label: 'Alerts', path: '/notifications', icon: 'ri-notification-3-line', activeIcon: 'ri-notification-3-fill' },
   ],

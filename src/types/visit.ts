@@ -37,6 +37,7 @@ export type Department = 'admin' | 'hr' | 'it' | 'accounts'
 export interface Delegate {
   name: string
   mobile: string
+  checkOutTime?: string   // ISO string — set when this companion departs independently
 }
 
 export interface Visit {

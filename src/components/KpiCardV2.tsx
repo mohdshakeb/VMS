@@ -76,16 +76,16 @@ export default function KpiCardV2({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl bg-white border border-border-light px-6 pt-5 pb-5 flex flex-col gap-4 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`rounded-xl bg-white border border-border-light px-4 py-4 md:px-6 md:pt-5 md:pb-5 flex flex-col gap-3 md:gap-4 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* Top row: label + subtitle aligned with icon */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        <div className="flex flex-col min-w-0">
           <p className="text-xs font-semibold text-text-primary uppercase tracking-widest leading-none">{label}</p>
           <p className="text-xs mt-1 text-text-tertiary">{info}</p>
         </div>
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconBorder}`}>
-          <i className={`${icon} text-xl ${c.iconColor}`} />
+        <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconBorder}`}>
+          <i className={`${icon} text-lg md:text-xl ${c.iconColor}`} />
         </div>
       </div>
 
