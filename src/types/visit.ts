@@ -6,6 +6,7 @@ export type VisitStatus =
   | 'checked-out'
   | 'rejected'
   | 'cancelled'
+  | 'no-show'
 
 export type EntryPath = 'employee-request' | 'walk-in' | 'self-register' | 'pre-scheduled'
 

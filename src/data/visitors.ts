@@ -26,4 +26,6 @@ export const visitors: Visitor[] = [
   { id: 'vis-23', name: 'Nikhil Sharma',       mobile: '+91 82345 67890', company: 'BHEL',                                                    avatar: 'https://randomuser.me/api/portraits/men/41.jpg' },
   { id: 'vis-24', name: 'Hemanth Nair',        mobile: '+91 91234 00011', company: 'Voltas Ltd',             email: 'hemanth.n@voltas.com', avatar: 'https://randomuser.me/api/portraits/men/83.jpg' },
   { id: 'vis-25', name: 'Cyrus Patel',         mobile: '+91 76001 88234', company: 'Larsen & Toubro',        email: 'cyrus.p@lnt.com',      avatar: 'https://randomuser.me/api/portraits/men/26.jpg' },
+  { id: 'vis-26', name: 'Kavitha Pillai',      mobile: '+91 82001 33456', company: 'Bosch India',                                               avatar: 'https://randomuser.me/api/portraits/women/14.jpg' },
+  { id: 'vis-27', name: 'Rajender Singh',      mobile: '+91 97321 54678', company: 'Siemens India',                                             avatar: 'https://randomuser.me/api/portraits/men/66.jpg' },
 ]

@@ -784,6 +784,39 @@ export const visits: Visit[] = [
     ],
   },
 
+  // --- CANCELLED / NO-SHOW — loc-1, today (for All tab terminal state demo) ---
+  {
+    id: 'visit-30',
+    visitorId: 'vis-26',
+    hostEmployeeId: 'emp-2',
+    locationId: 'loc-1',
+    status: 'cancelled',
+    entryPath: 'employee-request',
+    purpose: 'official',
+    visitType: 'vendor',
+    scheduledDate: TODAY,
+    scheduledTime: '10:30',
+    duration: 60,
+    createdAt: `${TODAY}T07:00:00`,
+    createdBy: 'emp-2',
+    notes: 'Cancelled by host — meeting rescheduled to next week',
+  },
+  {
+    id: 'visit-31',
+    visitorId: 'vis-27',
+    hostEmployeeId: 'emp-7',
+    locationId: 'loc-1',
+    status: 'no-show',
+    entryPath: 'employee-request',
+    purpose: 'official',
+    visitType: 'contractor',
+    scheduledDate: TODAY,
+    scheduledTime: '09:00',
+    duration: 90,
+    createdAt: `${TODAY}T07:30:00`,
+    createdBy: 'emp-7',
+  },
+
   // --- ON PREMISES — intentionally overdue for prototype (flagged via OVERDUE_VISIT_IDS) ---
   {
     id: 'visit-28',

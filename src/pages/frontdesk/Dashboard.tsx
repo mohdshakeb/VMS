@@ -418,13 +418,6 @@ export default function FrontDeskDashboard() {
         </div>
       </div>
 
-      {/* ── Mobile FAB ────────────────────────────────────────── */}
-      <button
-        onClick={() => navigate('/front-desk/walk-in')}
-        className="md:hidden fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-red-500 text-white shadow-lg active:scale-95 transition-transform duration-150"
-      >
-        <i className="ri-user-add-line text-2xl" />
-      </button>
     </div>
   )
 }

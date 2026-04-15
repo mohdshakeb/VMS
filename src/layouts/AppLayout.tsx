@@ -1,11 +1,13 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Sidebar from './Sidebar'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import { useVisitStore } from '@/store/visitStore'
 import type { Role } from '@/types/user'
-import logoUrl from '@/assets/Logo.svg'
+import logoBlackUrl from '@/assets/logoBlack.svg'
+import { employees } from '@/data/employees'
+import { locations } from '@/data/locations'
 
 interface MobileNavItem {
   label: string
@@ -14,20 +16,19 @@ interface MobileNavItem {
   activeIcon: string
 }
 
+// Mirrors the desktop sidebar nav exactly
 const mobileNavByRole: Record<Role, MobileNavItem[]> = {
   'front-desk': [
-    { label: 'Dashboard', path: '/front-desk/dashboard', icon: 'ri-dashboard-line', activeIcon: 'ri-dashboard-fill' },
+    { label: 'Home', path: '/front-desk/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
     { label: 'History', path: '/front-desk/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
-    { label: 'Requests', path: '/front-desk/visit-requests', icon: 'ri-file-list-3-line', activeIcon: 'ri-file-list-3-fill' },
-    { label: 'Alerts', path: '/notifications', icon: 'ri-notification-3-line', activeIcon: 'ri-notification-3-fill' },
   ],
   employee: [
-    { label: 'Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
-    { label: 'Alerts', path: '/notifications', icon: 'ri-notification-3-line', activeIcon: 'ri-notification-3-fill' },
+    { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
+    { label: 'Approvals', path: '/employee/approve', icon: 'ri-checkbox-circle-line', activeIcon: 'ri-checkbox-circle-fill' },
   ],
   'branch-admin': [
-    { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
-    { label: 'Alerts', path: '/notifications', icon: 'ri-notification-3-line', activeIcon: 'ri-notification-3-fill' },
+    { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
+    { label: 'Reports', path: '/manager/reports', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
   ],
 }
 
@@ -41,7 +42,7 @@ const roleHomeRoutes: Record<Role, string> = {
 const FULL_SCREEN_ROUTES = ['/front-desk/walk-in']
 
 export default function AppLayout() {
-  const { currentRole, currentEmployeeId } = useAuthStore()
+  const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname)
@@ -49,6 +50,22 @@ export default function AppLayout() {
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
   const { toastMessage, clearToast } = useVisitStore()
 
+  const currentEmployee = employees.find((e) => e.id === currentEmployeeId)
+  const currentLocation = locations.find((l) => l.id === currentLocationId)
+  const initials = currentEmployee?.name.split(' ').map((n) => n[0]).join('').slice(0, 2) ?? '??'
+
+  const [locationOpen, setLocationOpen] = useState(false)
+  const locationRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Navigate to role home only when the role actually changes (not on mount)
   const prevRole = useRef<Role>(currentRole)
@@ -97,64 +114,111 @@ export default function AppLayout() {
         </div>
       </div>
 
-      {/* Mobile layout — full bleed, no rounding */}
-      <div className="flex md:hidden flex-1 flex-col overflow-hidden">
-        {/* Mobile top bar — hidden on full-screen routes */}
-        {!isFullScreen && (
-          <header className="flex items-center justify-between px-4 py-3 bg-chrome-bg border-b border-chrome-border-subtle shrink-0">
-            <img src={logoUrl} alt="GMMCO — CKA Birla Group" className="h-8 w-auto" />
-            <NavLink to="/notifications" className="relative p-2">
-              <i className="ri-notification-3-line text-xl text-chrome-text-muted" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </NavLink>
-          </header>
-        )}
+      {/* Mobile layout — dark chrome shell with inset content area */}
+      <div className="flex md:hidden flex-1 flex-col overflow-hidden bg-chrome-bg">
 
-        <main className={`flex-1 overflow-y-auto ${isFullScreen ? '' : 'pb-20'}`}>
-          <Outlet />
-        </main>
+        {/* Main content area — 8px inset from top and sides, sits above bottom nav */}
+        <div className={`flex flex-col flex-1 overflow-hidden ${isFullScreen ? '' : 'mt-2 mx-2 rounded-xl'}`}>
+
+          {/* Mobile top bar — inside content area with white background */}
+          {!isFullScreen && (
+            <header className="flex items-center gap-2 px-4 py-2 bg-white border-b border-border shrink-0">
+              {/* Left: logo + location selector */}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <img src={logoBlackUrl} alt="GMMCO — CKA Birla Group" className="h-9 w-auto shrink-0" />
+
+                {/* Location pill + dropdown */}
+                <div ref={locationRef} className="relative min-w-0">
+                  <button
+                    onClick={() => setLocationOpen((o) => !o)}
+                    className="flex items-center gap-1 bg-surface-secondary hover:bg-surface-tertiary rounded-lg px-2.5 h-8 transition-colors duration-150 min-w-0"
+                  >
+                    <i className="ri-map-pin-2-fill text-[11px] text-text-tertiary shrink-0" />
+                    <span className="text-xs font-medium text-text-primary truncate max-w-24">
+                      {currentLocation ? (currentLocation.name.split(' — ')[0]) : '—'}
+                    </span>
+                    <i className={`ri-arrow-down-s-line text-xs text-text-tertiary shrink-0 transition-transform duration-150 ${locationOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {locationOpen && (
+                    <div className="absolute top-full left-0 mt-1.5 min-w-40 bg-white border border-border rounded-xl shadow-lg overflow-hidden z-30">
+                      {locations.map((loc, idx) => (
+                        <button
+                          key={loc.id}
+                          onClick={() => { setCurrentLocation(loc.id); setLocationOpen(false) }}
+                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors hover:bg-surface-secondary ${idx > 0 ? 'border-t border-border-light' : ''}`}
+                        >
+                          <i className={`ri-map-pin-2-fill text-sm shrink-0 ${loc.id === currentLocationId ? 'text-brand' : 'text-text-tertiary'}`} />
+                          <span className={`truncate ${loc.id === currentLocationId ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>{loc.name}</span>
+                          {loc.id === currentLocationId && <i className="ri-check-line text-brand text-sm ml-auto shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: notification + avatar */}
+              <div className="flex items-center gap-1 shrink-0">
+                <NavLink to="/notifications" className="relative p-2">
+                  <i className="ri-notification-3-line text-xl text-text-secondary" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </NavLink>
+                <div className="h-8 w-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
+                  <span className="text-xs font-medium text-text-primary">{initials}</span>
+                </div>
+              </div>
+            </header>
+          )}
+
+          <main className="flex-1 overflow-y-auto">
+            <Outlet />
+          </main>
+
+        </div>
 
         {/* Toast */}
         {toastMessage && (
-          <div className={`fixed left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] ${isFullScreen ? 'bottom-20' : 'bottom-20'}`}>
+          <div className="fixed left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] bottom-16">
             <div className="rounded-xl bg-chrome-toast px-4 py-3 text-sm text-white shadow-lg">
               {toastMessage}
             </div>
           </div>
         )}
 
-        {/* Mobile bottom bar — hidden on full-screen routes */}
+        {/* Mobile bottom nav — below the main content area, in the dark chrome zone */}
         {!isFullScreen && (
-          <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-border">
-            <div className="flex items-center justify-around px-2 py-1">
+          <nav className="bg-chrome-bg shrink-0 px-3 py-2">
+            <div className="flex items-center gap-2">
+              {/* Tab items — same tokens as desktop sidebar active/inactive states */}
               {mobileItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `flex flex-col items-center gap-0.5 px-3 py-2 text-xs font-medium transition-colors duration-150 ${isActive ? 'text-brand' : 'text-text-tertiary'
-                    }`
-                  }
-                >
+                <NavLink key={item.path} to={item.path}>
                   {({ isActive }) => (
-                    <>
-                      <div className="relative">
-                        <i className={`${isActive ? item.activeIcon : item.icon} text-xl`} />
-                        {item.label === 'Alerts' && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white">
-                            {unreadCount}
-                          </span>
-                        )}
+                    <div className="flex flex-col items-center gap-1 px-2 py-1.5">
+                      {/* Background pill wraps only the icon */}
+                      <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-colors duration-150 ${isActive ? 'bg-chrome-active-bg' : ''}`}>
+                        <i className={`text-xl leading-none ${isActive ? `${item.activeIcon} text-chrome-active-text` : `${item.icon} text-chrome-text-muted`}`} />
                       </div>
-                      <span>{item.label}</span>
-                    </>
+                      <span className={`text-xs font-medium leading-none ${isActive ? 'text-chrome-active-text' : 'text-chrome-text-muted'}`}>{item.label}</span>
+                    </div>
                   )}
                 </NavLink>
               ))}
+
+              {/* Walk-in CTA — front-desk role only */}
+              {currentRole === 'front-desk' && (
+                <NavLink
+                  to="/front-desk/walk-in"
+                  className="ml-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover rounded-xl px-5 py-3 text-sm font-medium text-white transition-colors duration-150"
+                >
+                  <i className="ri-user-add-line text-base leading-none" />
+                  Walk-in
+                </NavLink>
+              )}
             </div>
           </nav>
         )}

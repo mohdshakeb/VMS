@@ -62,11 +62,11 @@ export default function KpiCardV2({
     // Trend mode (vs yesterday)
     if (trend === undefined) return null
     if (trend === 0) return (
-      <span className="text-xs text-text-tertiary font-medium leading-none">— same as yesterday</span>
+      <span className="text-xs text-text-tertiary font-medium leading-none whitespace-nowrap">— No change</span>
     )
     const up = trend > 0
     return (
-      <span className={`flex items-baseline gap-1 text-xs font-medium leading-none ${up ? 'text-green-600' : 'text-red-500'}`}>
+      <span className={`flex items-baseline gap-1 text-xs font-medium leading-none whitespace-nowrap ${up ? 'text-green-600' : 'text-red-500'}`}>
         <i className={`${up ? 'ri-arrow-right-up-line' : 'ri-arrow-right-down-line'} text-[14px]`} />
         {up ? '+' : ''}{trend} vs yesterday
       </span>
@@ -78,19 +78,24 @@ export default function KpiCardV2({
       onClick={onClick}
       className={`rounded-xl bg-white border border-border-light px-4 py-4 md:px-6 md:pt-5 md:pb-5 flex flex-col gap-3 md:gap-4 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
     >
-      {/* Top row: label + subtitle aligned with icon */}
+      {/* Top row: label + icon */}
       <div className="flex items-center justify-between gap-2 md:gap-4">
         <div className="flex flex-col min-w-0">
-          <p className="text-xs font-semibold text-text-primary uppercase tracking-widest leading-none">{label}</p>
-          <p className="text-xs mt-1 text-text-tertiary">{info}</p>
+          <p className="text-xs font-semibold text-text-primary uppercase tracking-widest leading-snug">
+            {label}
+          </p>
+          {/* Sub-heading — desktop only */}
+          <p className="hidden md:block text-xs mt-1 text-text-tertiary">{info}</p>
         </div>
         <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconBorder}`}>
           <i className={`${icon} text-lg md:text-xl ${c.iconColor}`} />
         </div>
       </div>
 
-      {/* Bottom row: count + trend/alert, baseline aligned */}
-      <div className="flex items-baseline gap-1.5">
+      {/* Bottom section: count + trend/alert */}
+      {/* Mobile: stacked (count on top, trend/alert below) */}
+      {/* Desktop: inline baseline-aligned row */}
+      <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-1.5">
         <p className="text-2xl font-semibold text-text-primary tabular-nums leading-none">{display}</p>
         {bottomEl}
       </div>

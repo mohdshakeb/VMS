@@ -142,7 +142,7 @@ export default function FrontDeskDashboardV3() {
       />
 
       {/* Mobile-only search bar */}
-      <div className="md:hidden px-4 pt-3 pb-0 shrink-0">
+      <div className="md:hidden px-4 pt-3 pb-3 shrink-0">
         <div className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 h-10 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
           <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
           <input
@@ -203,7 +203,7 @@ export default function FrontDeskDashboardV3() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 <KpiCardV2
                   label="Total Visitors"
-                  info="Visitors checked-in"
+                  info="Total checked-in"
                   value={todaysVisits.length}
                   icon="ri-group-fill"
                   color="blue"
@@ -211,8 +211,8 @@ export default function FrontDeskDashboardV3() {
                   onClick={() => handleFilterChange('all')}
                 />
                 <KpiCardV2
-                  label="Pending"
-                  info="Awaiting approval"
+                  label="Pending Approval"
+                  info="Awaiting employee response"
                   value={pendingApproval.length}
                   icon="ri-time-fill"
                   color="yellow"
@@ -223,7 +223,7 @@ export default function FrontDeskDashboardV3() {
                 />
                 <KpiCardV2
                   label="On Premises"
-                  info="Inside the facility"
+                  info="Currently inside the facility"
                   value={kpiOnPremises.length}
                   icon="ri-building-2-fill"
                   color="green"
@@ -233,8 +233,8 @@ export default function FrontDeskDashboardV3() {
                   onClick={() => navigate('/front-desk/check-out')}
                 />
                 <KpiCardV2
-                  label="Expected"
-                  info="Awaiting arrival"
+                  label="Expected Today"
+                  info="Confirmed, awaiting arrival"
                   value={kpiExpected.length}
                   icon="ri-calendar-check-fill"
                   color="purple"
@@ -248,7 +248,7 @@ export default function FrontDeskDashboardV3() {
 
                 {/* ── Find Visits (left on desktop, full-width on tablet/mobile) ── */}
                 <div className="lg:col-span-3">
-                  <div className="bg-white rounded-xl border border-border overflow-hidden">
+                  <div className="-mx-4 lg:mx-0 lg:bg-white lg:rounded-xl lg:border lg:border-border lg:overflow-hidden">
 
                     {/* Header */}
                     <div className="flex items-center gap-2 px-4 pt-3.5 pb-1">
@@ -265,7 +265,7 @@ export default function FrontDeskDashboardV3() {
                         onClick={() => handleFilterChange('all')}
                         className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'all'
                           ? 'bg-surface-tertiary text-text-primary'
-                          : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
+                          : 'bg-surface text-text-secondary hover:bg-surface-secondary'
                           }`}
                       >
                         All
@@ -274,7 +274,7 @@ export default function FrontDeskDashboardV3() {
                         onClick={() => handleFilterChange('ready')}
                         className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'ready'
                           ? 'bg-badge-blue-light text-badge-blue-dark'
-                          : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
+                          : 'bg-surface text-text-secondary hover:bg-surface-secondary'
                           }`}
                       >
                         Pending Check-In
@@ -283,7 +283,7 @@ export default function FrontDeskDashboardV3() {
                         onClick={() => handleFilterChange('pending')}
                         className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'pending'
                           ? 'bg-badge-yellow-light text-badge-yellow-dark'
-                          : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
+                          : 'bg-surface text-text-secondary hover:bg-surface-secondary'
                           }`}
                       >
                         Pending Approval
@@ -535,13 +535,6 @@ export default function FrontDeskDashboardV3() {
         </div>
       </div>
 
-      {/* ── Mobile FAB ────────────────────────────────────────── */}
-      <button
-        onClick={() => navigate('/front-desk/walk-in')}
-        className="md:hidden fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg active:scale-[0.97] transition-transform duration-150"
-      >
-        <i className="ri-user-add-line text-2xl" />
-      </button>
     </div>
   )
 }
