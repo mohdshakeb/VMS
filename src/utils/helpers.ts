@@ -72,6 +72,7 @@ export function getStatusLabel(status: VisitStatus): string {
     'checked-out': 'Completed',
     rejected: 'Rejected',
     cancelled: 'Cancelled',
+    'no-show': 'No Show',
   }
   return labels[status]
 }
@@ -85,6 +86,7 @@ export function getStatusColor(status: VisitStatus): { bg: string; text: string 
     'checked-out': { bg: 'bg-completed-light', text: 'text-completed' },
     rejected: { bg: 'bg-rejected-light', text: 'text-rejected' },
     cancelled: { bg: 'bg-completed-light', text: 'text-completed' },
+    'no-show': { bg: 'bg-rejected-light', text: 'text-rejected' },
   }
   return colors[status]
 }
