@@ -5,7 +5,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useVisitStore } from '@/store/visitStore'
 import PageHeader from '@/components/PageHeader'
-import StatusBadge from '@/components/StatusBadge'
 import { employees } from '@/data/employees'
 import { formatDate, formatTime, getStatusColor, getStatusLabel, getVisitTypeLabel } from '@/utils/helpers'
 import type { VisitStatus } from '@/types/visit'
