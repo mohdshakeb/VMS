@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
@@ -47,8 +47,9 @@ const roleLabels: Record<Role, string> = {
 }
 
 export default function Sidebar() {
-  const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation } = useAuthStore()
+  const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation, logout } = useAuthStore()
   const location = useLocation()
+  const navigate = useNavigate()
   const activePath = getActiveNavPath(location.pathname)
 
   const items = navByRole[currentRole]
@@ -147,7 +148,7 @@ export default function Sidebar() {
 
       {/* User footer */}
       <div className="shrink-0 border-t border-chrome-border-subtle p-4">
-        <button className="flex w-full items-center gap-3 rounded-lg p-1 transition-colors hover:bg-white/5">
+        <div className="flex items-center gap-3 rounded-lg p-1">
           {/* Avatar */}
           <div className="h-9 w-9 shrink-0 rounded-full bg-chrome-surface-hover flex items-center justify-center overflow-hidden">
             <span className="text-xs font-medium text-chrome-text">{initials}</span>
@@ -163,9 +164,15 @@ export default function Sidebar() {
             </p>
           </div>
 
-          {/* Chevron */}
-          <i className="ri-arrow-right-s-line text-xl text-chrome-text-faint shrink-0" />
-        </button>
+          {/* Logout */}
+          <button
+            onClick={() => { logout(); navigate('/login') }}
+            title="Sign out"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors duration-150 shrink-0"
+          >
+            <i className="ri-logout-box-r-line text-base text-chrome-text-muted hover:text-chrome-text" />
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import Sidebar from './Sidebar'
+import BottomNav from '@/components/Mobile/BottomNav'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import { useVisitStore } from '@/store/visitStore'
@@ -9,40 +10,23 @@ import logoBlackUrl from '@/assets/logoBlack.svg'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
 
-interface MobileNavItem {
-  label: string
-  path: string
-  icon: string
-  activeIcon: string
-}
-
-// Mirrors the desktop sidebar nav exactly
-const mobileNavByRole: Record<Role, MobileNavItem[]> = {
-  'front-desk': [
-    { label: 'Home', path: '/front-desk/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
-    { label: 'History', path: '/front-desk/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
-  ],
-  employee: [
-    { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
-    { label: 'Approvals', path: '/employee/approve', icon: 'ri-checkbox-circle-line', activeIcon: 'ri-checkbox-circle-fill' },
-  ],
-  'branch-admin': [
-    { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
-    { label: 'Reports', path: '/manager/reports', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
-  ],
-}
-
 const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/visits',
   'branch-admin': '/manager/dashboard',
 }
 
+const roleLabels: Record<Role, string> = {
+  'front-desk': 'Front Desk',
+  employee: 'Employee',
+  'branch-admin': 'Branch Admin',
+}
+
 // Routes that take over the full screen (no sidebar, no nav bars)
 const FULL_SCREEN_ROUTES = ['/front-desk/walk-in']
 
 export default function AppLayout() {
-  const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation } = useAuthStore()
+  const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname)
@@ -69,6 +53,21 @@ export default function AppLayout() {
     setTimeout(() => setLocationSheetMounted(false), 260)
   }
 
+  const [profileSheetMounted, setProfileSheetMounted] = useState(false)
+  const [profileSheetVisible, setProfileSheetVisible] = useState(false)
+
+  function openProfileSheet() {
+    setProfileSheetMounted(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setProfileSheetVisible(true))
+    })
+  }
+
+  function closeProfileSheet() {
+    setProfileSheetVisible(false)
+    setTimeout(() => setProfileSheetMounted(false), 260)
+  }
+
   // Navigate to role home only when the role actually changes (not on mount)
   const prevRole = useRef<Role>(currentRole)
   useEffect(() => {
@@ -85,8 +84,6 @@ export default function AppLayout() {
       return () => clearTimeout(timer)
     }
   }, [toastMessage, clearToast])
-
-  const mobileItems = mobileNavByRole[currentRole]
 
   return (
     <div className="flex h-dvh bg-chrome-bg">
@@ -152,9 +149,12 @@ export default function AppLayout() {
                     </span>
                   )}
                 </NavLink>
-                <div className="h-8 w-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
+                <button
+                  onClick={openProfileSheet}
+                  className="h-8 w-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0 active:bg-surface-tertiary transition-colors duration-150"
+                >
                   <span className="text-xs font-medium text-text-primary">{initials}</span>
-                </div>
+                </button>
               </div>
             </header>
           )}
@@ -175,37 +175,7 @@ export default function AppLayout() {
         )}
 
         {/* Mobile bottom nav — below the main content area, in the dark chrome zone */}
-        {!isFullScreen && (
-          <nav className="bg-chrome-bg shrink-0 px-3 py-2">
-            <div className="flex items-center gap-2">
-              {/* Tab items — same tokens as desktop sidebar active/inactive states */}
-              {mobileItems.map((item) => (
-                <NavLink key={item.path} to={item.path}>
-                  {({ isActive }) => (
-                    <div className="flex flex-col items-center gap-1 px-2 py-1.5">
-                      {/* Background pill wraps only the icon */}
-                      <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-colors duration-150 ${isActive ? 'bg-chrome-active-bg' : ''}`}>
-                        <i className={`text-xl leading-none ${isActive ? `${item.activeIcon} text-chrome-active-text` : `${item.icon} text-chrome-text-muted`}`} />
-                      </div>
-                      <span className={`text-xs font-medium leading-none ${isActive ? 'text-chrome-active-text' : 'text-chrome-text-muted'}`}>{item.label}</span>
-                    </div>
-                  )}
-                </NavLink>
-              ))}
-
-              {/* Walk-in CTA — front-desk role only */}
-              {currentRole === 'front-desk' && (
-                <NavLink
-                  to="/front-desk/walk-in"
-                  className="ml-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover rounded-xl px-5 py-3 text-sm font-medium text-white transition-colors duration-150"
-                >
-                  <i className="ri-user-add-line text-base leading-none" />
-                  Walk-in
-                </NavLink>
-              )}
-            </div>
-          </nav>
-        )}
+        {!isFullScreen && <BottomNav role={currentRole} />}
       </div>
 
       {/* Location bottom sheet — mobile only */}
@@ -262,6 +232,67 @@ export default function AppLayout() {
                   )}
                 </button>
               ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Profile bottom sheet — mobile only */}
+      {profileSheetMounted && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={closeProfileSheet}
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            style={{
+              opacity: profileSheetVisible ? 1 : 0,
+              transition: profileSheetVisible
+                ? 'opacity 240ms ease-out'
+                : 'opacity 220ms ease-in',
+            }}
+          />
+
+          {/* Sheet */}
+          <div
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl"
+            style={{
+              transform: profileSheetVisible ? 'translateY(0)' : 'translateY(100%)',
+              transition: profileSheetVisible
+                ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
+                : 'transform 240ms cubic-bezier(0.4, 0, 1, 1)',
+            }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-border" />
+            </div>
+
+            {/* User info */}
+            <div className="flex items-center gap-3 px-5 pt-3 pb-4 border-b border-border-light">
+              <div className="h-10 w-10 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
+                <span className="text-sm font-medium text-text-primary">{initials}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-text-primary truncate">
+                  {currentEmployee?.name ?? 'Unknown User'}
+                </p>
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  {roleLabels[currentRole]}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-3 pt-2 pb-8">
+              <button
+                onClick={() => { closeProfileSheet(); setTimeout(() => { logout(); navigate('/login') }, 260) }}
+                className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
+              >
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-brand/10 shrink-0">
+                  <i className="ri-logout-box-r-line text-sm text-brand" />
+                </div>
+                <span className="text-sm text-brand font-medium">Sign out</span>
+              </button>
             </div>
           </div>
         </>

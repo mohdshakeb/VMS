@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
+import Login from '@/pages/shared/Login'
 import FrontDeskDashboardV3 from '@/pages/frontdesk/DashboardV3'
 import CreateWalkIn from '@/pages/frontdesk/CreateWalkIn'
 import VisitRequests from '@/pages/frontdesk/VisitRequests'
@@ -9,11 +10,22 @@ import MyVisits from '@/pages/employee/MyVisits'
 import ApproveWalkIn from '@/pages/employee/ApproveWalkIn'
 import Notifications from '@/pages/shared/Notifications'
 import VisitHistory from '@/pages/frontdesk/VisitHistory'
+import { useAuthStore } from '@/store/authStore'
+
+function PrivateLayout() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  return <AppLayout />
+}
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      {/* Public */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Protected — requires auth */}
+      <Route element={<PrivateLayout />}>
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/front-desk/dashboard" replace />} />
 
