@@ -76,7 +76,7 @@ export default function KpiCardV2({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl bg-white border border-border-light px-4 py-4 md:px-6 md:pt-5 md:pb-5 flex flex-col gap-3 md:gap-4 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`rounded-xl bg-white border border-border-light px-4 py-4 md:px-6 md:pt-5 md:pb-5 flex flex-col justify-between transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* Top row: label + icon */}
       <div className="flex items-center justify-between gap-2 md:gap-4">
@@ -95,7 +95,7 @@ export default function KpiCardV2({
       {/* Bottom section: count + trend/alert */}
       {/* Mobile: stacked (count on top, trend/alert below) */}
       {/* Desktop: inline baseline-aligned row */}
-      <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-1.5">
+      <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:gap-1.5 mt-3 md:mt-4">
         <p className="text-2xl font-semibold text-text-primary tabular-nums leading-none">{display}</p>
         {bottomEl}
       </div>

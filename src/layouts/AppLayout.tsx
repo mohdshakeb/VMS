@@ -54,18 +54,20 @@ export default function AppLayout() {
   const currentLocation = locations.find((l) => l.id === currentLocationId)
   const initials = currentEmployee?.name.split(' ').map((n) => n[0]).join('').slice(0, 2) ?? '??'
 
-  const [locationOpen, setLocationOpen] = useState(false)
-  const locationRef = useRef<HTMLDivElement>(null)
+  const [locationSheetMounted, setLocationSheetMounted] = useState(false)
+  const [locationSheetVisible, setLocationSheetVisible] = useState(false)
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
-        setLocationOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  function openLocationSheet() {
+    setLocationSheetMounted(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setLocationSheetVisible(true))
+    })
+  }
+
+  function closeLocationSheet() {
+    setLocationSheetVisible(false)
+    setTimeout(() => setLocationSheetMounted(false), 260)
+  }
 
   // Navigate to role home only when the role actually changes (not on mount)
   const prevRole = useRef<Role>(currentRole)
@@ -127,35 +129,17 @@ export default function AppLayout() {
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <img src={logoBlackUrl} alt="GMMCO — CKA Birla Group" className="h-9 w-auto shrink-0" />
 
-                {/* Location pill + dropdown */}
-                <div ref={locationRef} className="relative min-w-0">
-                  <button
-                    onClick={() => setLocationOpen((o) => !o)}
-                    className="flex items-center gap-1 bg-surface-secondary hover:bg-surface-tertiary rounded-lg px-2.5 h-8 transition-colors duration-150 min-w-0"
-                  >
-                    <i className="ri-map-pin-2-fill text-[11px] text-text-tertiary shrink-0" />
-                    <span className="text-xs font-medium text-text-primary truncate max-w-24">
-                      {currentLocation ? (currentLocation.name.split(' — ')[0]) : '—'}
-                    </span>
-                    <i className={`ri-arrow-down-s-line text-xs text-text-tertiary shrink-0 transition-transform duration-150 ${locationOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {locationOpen && (
-                    <div className="absolute top-full left-0 mt-1.5 min-w-40 bg-white border border-border rounded-xl shadow-lg overflow-hidden z-30">
-                      {locations.map((loc, idx) => (
-                        <button
-                          key={loc.id}
-                          onClick={() => { setCurrentLocation(loc.id); setLocationOpen(false) }}
-                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors hover:bg-surface-secondary ${idx > 0 ? 'border-t border-border-light' : ''}`}
-                        >
-                          <i className={`ri-map-pin-2-fill text-sm shrink-0 ${loc.id === currentLocationId ? 'text-brand' : 'text-text-tertiary'}`} />
-                          <span className={`truncate ${loc.id === currentLocationId ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>{loc.name}</span>
-                          {loc.id === currentLocationId && <i className="ri-check-line text-brand text-sm ml-auto shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* Location pill — opens bottom sheet on tap */}
+                <button
+                  onClick={openLocationSheet}
+                  className="flex items-center gap-1 bg-surface-secondary hover:bg-surface-tertiary active:bg-surface-tertiary rounded-lg px-2.5 h-8 transition-colors duration-150 min-w-0"
+                >
+                  <i className="ri-map-pin-2-fill text-[11px] text-text-tertiary shrink-0" />
+                  <span className="text-xs font-medium text-text-primary truncate max-w-24">
+                    {currentLocation ? (currentLocation.name.split(' — ')[0]) : '—'}
+                  </span>
+                  <i className="ri-arrow-down-s-line text-xs text-text-tertiary shrink-0" />
+                </button>
               </div>
 
               {/* Right: notification + avatar */}
@@ -223,6 +207,65 @@ export default function AppLayout() {
           </nav>
         )}
       </div>
+
+      {/* Location bottom sheet — mobile only */}
+      {locationSheetMounted && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={closeLocationSheet}
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            style={{
+              opacity: locationSheetVisible ? 1 : 0,
+              transition: locationSheetVisible
+                ? 'opacity 240ms ease-out'
+                : 'opacity 220ms ease-in',
+            }}
+          />
+
+          {/* Sheet */}
+          <div
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl"
+            style={{
+              transform: locationSheetVisible ? 'translateY(0)' : 'translateY(100%)',
+              transition: locationSheetVisible
+                ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
+                : 'transform 240ms cubic-bezier(0.4, 0, 1, 1)',
+            }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-border" />
+            </div>
+
+            {/* Header */}
+            <div className="px-5 pt-2 pb-3 border-b border-border-light">
+              <p className="text-sm font-semibold text-text-primary">Select Location</p>
+            </div>
+
+            {/* Location list */}
+            <div className="px-3 pt-2 pb-8">
+              {locations.map((loc) => (
+                <button
+                  key={loc.id}
+                  onClick={() => { setCurrentLocation(loc.id); closeLocationSheet() }}
+                  className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
+                >
+                  <div className={`flex items-center justify-center h-8 w-8 rounded-full shrink-0 ${loc.id === currentLocationId ? 'bg-brand/10' : 'bg-surface-secondary'}`}>
+                    <i className={`ri-map-pin-2-fill text-sm ${loc.id === currentLocationId ? 'text-brand' : 'text-text-tertiary'}`} />
+                  </div>
+                  <span className={`flex-1 text-sm min-w-0 truncate ${loc.id === currentLocationId ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                    {loc.name}
+                  </span>
+                  {loc.id === currentLocationId && (
+                    <i className="ri-check-line text-brand text-base shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

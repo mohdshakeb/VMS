@@ -76,7 +76,7 @@ export default function DashboardV3Mobile() {
         )
       })
     }
-    if (activeFilter === 'all') return todaysVisits
+    if (activeFilter === 'all') return todaysVisits.filter((v) => v.status !== 'checked-in')
     if (activeFilter === 'ready') return kpiExpected
     if (activeFilter === 'pending') return pendingApproval
     return []
@@ -87,28 +87,26 @@ export default function DashboardV3Mobile() {
   return (
     <div className="md:hidden h-full flex flex-col bg-surface-secondary">
 
-      {/* Search bar */}
-      <div className="px-4 pt-3 pb-3 shrink-0">
-        <div className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 h-10 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
-          <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search visitor name or company..."
-            className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
-          />
-          {searchInput && (
-            <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
-              <i className="ri-close-line text-base" />
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pt-2 pb-10 flex flex-col gap-3 min-h-full">
+        <div className="px-4 pt-3 pb-10 flex flex-col gap-3 min-h-full">
+
+          {/* Search bar — scrolls with content */}
+          <div className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 h-10 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
+            <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search visitor name or company..."
+              className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
+            />
+            {searchInput && (
+              <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+                <i className="ri-close-line text-base" />
+              </button>
+            )}
+          </div>
 
           {searchInput.trim() ? (
             /* ── Search results ── */
@@ -326,7 +324,7 @@ export default function DashboardV3Mobile() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
-                                  <p className="text-xs font-medium text-text-primary truncate">{name}</p>
+                                  <p className="text-sm font-medium text-text-primary truncate">{name}</p>
                                   {hasGroup && <span className="shrink-0 text-[11px] text-brand">+{visit.delegates!.length} others</span>}
                                 </div>
                                 <div className="flex items-center gap-1 mt-0.5 text-[11px] text-text-tertiary">
