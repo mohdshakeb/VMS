@@ -1,6 +1,7 @@
 import type { Visit } from '@/types/visit'
 import type { Role } from '@/types/user'
 import VisitCard from './VisitCard'
+import EmptyState from './common/EmptyState'
 
 interface VisitColumnProps {
   title: string
@@ -28,10 +29,7 @@ export default function VisitColumn({ title, subtitle, visits, visitorMap, role 
       {/* Visit cards */}
       <div className="p-3 space-y-2">
         {visits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-text-tertiary">
-            <i className="ri-inbox-2-line text-3xl" />
-            <p className="text-xs mt-2">No visits</p>
-          </div>
+          <EmptyState icon="ri-inbox-2-line" title="No visits" iconClassName="text-3xl" />
         ) : (
           visits.map((visit) => {
             const visitor = visitorMap[visit.visitorId]

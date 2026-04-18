@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import BottomSheet from '@/components/Mobile/BottomSheet'
 import logoBlackUrl from '@/assets/logoBlack.svg'
 import manInHelmetUrl from '@/assets/ManinHalmet.png'
 import logoSecondaryUrl from '@/assets/LogoSecondary.png'
@@ -172,72 +173,50 @@ export default function LoginMobile() {
       </div>
 
       {/* ── Credentials bottom sheet ──────────────────────────────────────── */}
-      {sheetMounted && (
-        <>
-          <div
-            onClick={closeSheet}
-            className="fixed inset-0 z-40 bg-black/40"
-            style={{
-              opacity: sheetVisible ? 1 : 0,
-              transition: sheetVisible ? 'opacity 240ms ease-out' : 'opacity 220ms ease-in',
-            }}
-          />
-          <div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl"
-            style={{
-              transform: sheetVisible ? 'translateY(0)' : 'translateY(100%)',
-              transition: sheetVisible
-                ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
-                : 'transform 240ms cubic-bezier(0.4, 0, 1, 1)',
-            }}
-          >
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-9 h-1 rounded-full bg-border" />
-            </div>
-
-            <div className="px-5 pt-2 pb-4 border-b border-border-light">
-              <p className="text-sm font-semibold text-text-primary">Sign in to Gmmco</p>
-              <p className="text-xs text-text-tertiary mt-0.5">Enter your work email and password</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="px-5 pt-5 pb-8 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError('') }}
-                  placeholder="Enter your work email"
-                  className="form-input"
-                  autoComplete="email"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError('') }}
-                  placeholder="Enter your password"
-                  className="form-input"
-                  autoComplete="current-password"
-                />
-              </div>
-
-              {error && <p className="text-xs text-brand font-medium">{error}</p>}
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-brand hover:bg-brand-hover disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg py-2.5 text-sm font-medium transition-colors duration-150"
-              >
-                {isLoading ? 'Signing in…' : 'Continue'}
-              </button>
-            </form>
+      <BottomSheet
+        mounted={sheetMounted}
+        visible={sheetVisible}
+        onClose={closeSheet}
+        title="Sign in to Gmmco"
+        subtitle="Enter your work email and password"
+        mobileOnly={false}
+      >
+        <form onSubmit={handleSubmit} className="px-5 pt-5 pb-8 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError('') }}
+              placeholder="Enter your work email"
+              className="form-input"
+              autoComplete="email"
+            />
           </div>
-        </>
-      )}
+
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError('') }}
+              placeholder="Enter your password"
+              className="form-input"
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && <p className="text-xs text-brand font-medium">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-brand hover:bg-brand-hover disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg py-2.5 text-sm font-medium transition-colors duration-150"
+          >
+            {isLoading ? 'Signing in…' : 'Continue'}
+          </button>
+        </form>
+      </BottomSheet>
 
     </div>
   )

@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import Sidebar from './Sidebar'
 import BottomNav from '@/components/Mobile/BottomNav'
@@ -6,9 +6,10 @@ import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import { useVisitStore } from '@/store/visitStore'
 import type { Role } from '@/types/user'
-import logoBlackUrl from '@/assets/logoBlack.svg'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
+import BottomSheet from '@/components/Mobile/BottomSheet'
+import MobileTopBar from '@/components/Mobile/MobileTopBar'
 
 const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
@@ -121,42 +122,13 @@ export default function AppLayout() {
 
           {/* Mobile top bar — inside content area with white background */}
           {!isFullScreen && (
-            <header className="flex items-center gap-2 px-4 py-2 bg-white border-b border-border shrink-0">
-              {/* Left: logo + location selector */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <img src={logoBlackUrl} alt="GMMCO — CKA Birla Group" className="h-9 w-auto shrink-0" />
-
-                {/* Location pill — opens bottom sheet on tap */}
-                <button
-                  onClick={openLocationSheet}
-                  className="flex items-center gap-1 bg-surface-secondary hover:bg-surface-tertiary active:bg-surface-tertiary rounded-lg px-2.5 h-8 transition-colors duration-150 min-w-0"
-                >
-                  <i className="ri-map-pin-2-fill text-[11px] text-text-tertiary shrink-0" />
-                  <span className="text-xs font-medium text-text-primary truncate max-w-24">
-                    {currentLocation ? (currentLocation.name.split(' — ')[0]) : '—'}
-                  </span>
-                  <i className="ri-arrow-down-s-line text-xs text-text-tertiary shrink-0" />
-                </button>
-              </div>
-
-              {/* Right: notification + avatar */}
-              <div className="flex items-center gap-1 shrink-0">
-                <NavLink to="/notifications" className="relative p-2">
-                  <i className="ri-notification-3-line text-xl text-text-secondary" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                </NavLink>
-                <button
-                  onClick={openProfileSheet}
-                  className="h-8 w-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0 active:bg-surface-tertiary transition-colors duration-150"
-                >
-                  <span className="text-xs font-medium text-text-primary">{initials}</span>
-                </button>
-              </div>
-            </header>
+            <MobileTopBar
+              locationLabel={currentLocation ? currentLocation.name.split(' — ')[0] : '—'}
+              initials={initials}
+              unreadCount={unreadCount}
+              onLocationPress={openLocationSheet}
+              onProfilePress={openProfileSheet}
+            />
           )}
 
           <main className="flex-1 overflow-y-auto">
@@ -179,124 +151,67 @@ export default function AppLayout() {
       </div>
 
       {/* Location bottom sheet — mobile only */}
-      {locationSheetMounted && (
-        <>
-          {/* Backdrop */}
-          <div
-            onClick={closeLocationSheet}
-            className="md:hidden fixed inset-0 z-40 bg-black/40"
-            style={{
-              opacity: locationSheetVisible ? 1 : 0,
-              transition: locationSheetVisible
-                ? 'opacity 240ms ease-out'
-                : 'opacity 220ms ease-in',
-            }}
-          />
-
-          {/* Sheet */}
-          <div
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl"
-            style={{
-              transform: locationSheetVisible ? 'translateY(0)' : 'translateY(100%)',
-              transition: locationSheetVisible
-                ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
-                : 'transform 240ms cubic-bezier(0.4, 0, 1, 1)',
-            }}
-          >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-9 h-1 rounded-full bg-border" />
-            </div>
-
-            {/* Header */}
-            <div className="px-5 pt-2 pb-3 border-b border-border-light">
-              <p className="text-sm font-semibold text-text-primary">Select Location</p>
-            </div>
-
-            {/* Location list */}
-            <div className="px-3 pt-2 pb-8">
-              {locations.map((loc) => (
-                <button
-                  key={loc.id}
-                  onClick={() => { setCurrentLocation(loc.id); closeLocationSheet() }}
-                  className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
-                >
-                  <div className={`flex items-center justify-center h-8 w-8 rounded-full shrink-0 ${loc.id === currentLocationId ? 'bg-brand/10' : 'bg-surface-secondary'}`}>
-                    <i className={`ri-map-pin-2-fill text-sm ${loc.id === currentLocationId ? 'text-brand' : 'text-text-tertiary'}`} />
-                  </div>
-                  <span className={`flex-1 text-sm min-w-0 truncate ${loc.id === currentLocationId ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
-                    {loc.name}
-                  </span>
-                  {loc.id === currentLocationId && (
-                    <i className="ri-check-line text-brand text-base shrink-0" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <BottomSheet
+        mounted={locationSheetMounted}
+        visible={locationSheetVisible}
+        onClose={closeLocationSheet}
+        title="Select Location"
+      >
+        <div className="px-3 pt-2 pb-8">
+          {locations.map((loc) => (
+            <button
+              key={loc.id}
+              onClick={() => { setCurrentLocation(loc.id); closeLocationSheet() }}
+              className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
+            >
+              <div className={`flex items-center justify-center h-8 w-8 rounded-full shrink-0 ${loc.id === currentLocationId ? 'bg-brand/10' : 'bg-surface-secondary'}`}>
+                <i className={`ri-map-pin-2-fill text-sm ${loc.id === currentLocationId ? 'text-brand' : 'text-text-tertiary'}`} />
+              </div>
+              <span className={`flex-1 text-sm min-w-0 truncate ${loc.id === currentLocationId ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                {loc.name}
+              </span>
+              {loc.id === currentLocationId && (
+                <i className="ri-check-line text-brand text-base shrink-0" />
+              )}
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
 
       {/* Profile bottom sheet — mobile only */}
-      {profileSheetMounted && (
-        <>
-          {/* Backdrop */}
-          <div
-            onClick={closeProfileSheet}
-            className="md:hidden fixed inset-0 z-40 bg-black/40"
-            style={{
-              opacity: profileSheetVisible ? 1 : 0,
-              transition: profileSheetVisible
-                ? 'opacity 240ms ease-out'
-                : 'opacity 220ms ease-in',
-            }}
-          />
-
-          {/* Sheet */}
-          <div
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl"
-            style={{
-              transform: profileSheetVisible ? 'translateY(0)' : 'translateY(100%)',
-              transition: profileSheetVisible
-                ? 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)'
-                : 'transform 240ms cubic-bezier(0.4, 0, 1, 1)',
-            }}
-          >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-9 h-1 rounded-full bg-border" />
-            </div>
-
-            {/* User info */}
-            <div className="flex items-center gap-3 px-5 pt-3 pb-4 border-b border-border-light">
-              <div className="h-10 w-10 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
-                <span className="text-sm font-medium text-text-primary">{initials}</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-text-primary truncate">
-                  {currentEmployee?.name ?? 'Unknown User'}
-                </p>
-                <p className="text-xs text-text-tertiary mt-0.5">
-                  {roleLabels[currentRole]}
-                </p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="px-3 pt-2 pb-8">
-              <button
-                onClick={() => { closeProfileSheet(); setTimeout(() => { logout(); navigate('/login') }, 260) }}
-                className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
-              >
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-brand/10 shrink-0">
-                  <i className="ri-logout-box-r-line text-sm text-brand" />
-                </div>
-                <span className="text-sm text-brand font-medium">Sign out</span>
-              </button>
-            </div>
+      <BottomSheet
+        mounted={profileSheetMounted}
+        visible={profileSheetVisible}
+        onClose={closeProfileSheet}
+      >
+        {/* User info */}
+        <div className="flex items-center gap-3 px-5 pt-3 pb-4 border-b border-border-light">
+          <div className="h-10 w-10 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
+            <span className="text-sm font-medium text-text-primary">{initials}</span>
           </div>
-        </>
-      )}
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-text-primary truncate">
+              {currentEmployee?.name ?? 'Unknown User'}
+            </p>
+            <p className="text-xs text-text-tertiary mt-0.5">
+              {roleLabels[currentRole]}
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="px-3 pt-2 pb-8">
+          <button
+            onClick={() => { closeProfileSheet(); setTimeout(() => { logout(); navigate('/login') }, 260) }}
+            className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
+          >
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-brand/10 shrink-0">
+              <i className="ri-logout-box-r-line text-sm text-brand" />
+            </div>
+            <span className="text-sm text-brand font-medium">Sign out</span>
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   )
 }

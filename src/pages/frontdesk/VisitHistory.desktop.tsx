@@ -7,6 +7,9 @@ import { useVisitStore } from '@/store/visitStore'
 import PageHeader from '@/components/PageHeader'
 import { employees } from '@/data/employees'
 import { formatDate, formatTime, getStatusColor, getStatusLabel, getVisitTypeLabel } from '@/utils/helpers'
+import EmptyState from '@/components/common/EmptyState'
+import AvatarBadge from '@/components/common/AvatarBadge'
+import TabPills from '@/components/common/TabPills'
 import type { VisitStatus } from '@/types/visit'
 
 type FilterTab = 'all' | 'open' | 'completed' | 'cancelled-rejected'
@@ -73,23 +76,7 @@ export default function VisitHistoryDesktop() {
 
         {/* Controls row */}
         <div className="flex items-center justify-between gap-3">
-          {/* Status tabs */}
-          <div className="flex gap-1 bg-surface-secondary rounded-lg p-1 shrink-0 overflow-x-auto scrollbar-none">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === tab.value
-                    ? 'bg-white text-text-primary shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                {tab.label}
-                <span className="text-xs tabular-nums text-text-tertiary">{tab.count}</span>
-              </button>
-            ))}
-          </div>
+          <TabPills tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
           {/* Search */}
           <div className="relative">
@@ -122,11 +109,8 @@ export default function VisitHistoryDesktop() {
               <tbody>
                 {paginatedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-16">
-                      <div className="flex flex-col items-center gap-2 text-text-tertiary">
-                        <i className="ri-search-line text-2xl" />
-                        <p className="text-sm">No visits found</p>
-                      </div>
+                    <td colSpan={7}>
+                      <EmptyState icon="ri-search-line" title="No visits found" className="py-16" titleClassName="text-sm" />
                     </td>
                   </tr>
                 ) : (
@@ -135,8 +119,6 @@ export default function VisitHistoryDesktop() {
                     const host = employees.find((e) => e.id === visit.hostEmployeeId)
                     const rowNum = start + idx + 1
                     const statusColors = getStatusColor(visit.status)
-                    const initials = (visitor?.name ?? '?')
-                      .split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
                     const checkIn = visit.checkInTime ? formatTime(extractTime(visit.checkInTime)) : null
                     const checkOut = visit.checkOutTime ? formatTime(extractTime(visit.checkOutTime)) : null
 
@@ -147,13 +129,7 @@ export default function VisitHistoryDesktop() {
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            {visitor?.avatar ? (
-                              <img src={visitor.avatar} alt={visitor.name} className="h-8 w-8 rounded-full object-cover shrink-0" />
-                            ) : (
-                              <div className="h-8 w-8 rounded-full bg-brand-red-50 flex items-center justify-center text-[10px] font-medium text-brand-red-500 shrink-0">
-                                {initials}
-                              </div>
-                            )}
+                            <AvatarBadge name={visitor?.name ?? '?'} avatar={visitor?.avatar} />
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-text-primary truncate leading-tight">{visitor?.name ?? 'Unknown'}</p>
                               {visitor?.company && (

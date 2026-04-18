@@ -5,6 +5,7 @@ import Card from '@/components/Card'
 import Button from '@/components/Button'
 import PageHeader from '@/components/PageHeader'
 import { formatRelativeTime } from '@/utils/helpers'
+import EmptyState from '@/components/common/EmptyState'
 
 const typeIcons: Record<string, string> = {
   'walk-in-approval': 'ri-walk-line',
@@ -69,10 +70,7 @@ export default function Notifications() {
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5 max-w-lg mx-auto w-full">
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-text-tertiary">
-          <i className="ri-notification-off-line text-3xl mb-2" />
-          <p className="text-sm">No notifications</p>
-        </div>
+        <EmptyState icon="ri-notification-off-line" title="No notifications" className="py-16" iconClassName="text-3xl" titleClassName="text-sm" />
       ) : (
         <div className="space-y-2">
           {filtered.map((notification) => {

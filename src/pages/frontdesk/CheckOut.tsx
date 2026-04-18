@@ -5,6 +5,8 @@ import { employees } from '@/data/employees'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
 import PageHeader from '@/components/PageHeader'
+import DetailItem from '@/components/common/DetailItem'
+import SectionLabel from '@/components/common/SectionLabel'
 import { formatTime } from '@/utils/helpers'
 
 export default function CheckOut() {
@@ -64,9 +66,9 @@ export default function CheckOut() {
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-            <Detail label="Badge" value={visit.badgeNumber ?? '—'} />
-            <Detail label="Host" value={host?.name ?? '—'} />
-            <Detail label="Checked In" value={checkInTime ? formatTime(`${checkInTime.getHours()}:${String(checkInTime.getMinutes()).padStart(2, '0')}`) : '—'} />
+            <DetailItem label="Badge" value={visit.badgeNumber ?? '—'} />
+            <DetailItem label="Host" value={host?.name ?? '—'} />
+            <DetailItem label="Checked In" value={checkInTime ? formatTime(`${checkInTime.getHours()}:${String(checkInTime.getMinutes()).padStart(2, '0')}`) : '—'} />
             <div>
               <p className="text-xs text-text-tertiary">Duration</p>
               <p className="text-sm font-medium text-on-premises">{durationStr}</p>
@@ -77,11 +79,8 @@ export default function CheckOut() {
         {/* Companions */}
         {visit.delegates && visit.delegates.length > 0 && (
           <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <i className="ri-group-line text-sm text-text-tertiary" />
-              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
-                Companions ({visit.delegates.length})
-              </span>
+            <div className="mb-3">
+              <SectionLabel icon="ri-group-line" title={`Companions (${visit.delegates.length})`} />
             </div>
             <div className="space-y-2.5">
               {visit.delegates.map((d, i) => {
@@ -112,9 +111,8 @@ export default function CheckOut() {
         {/* Out Temperature */}
         <Card>
           <label className="block">
-            <div className="flex items-center gap-2 mb-3">
-              <i className="ri-temp-cold-line text-sm text-text-tertiary" />
-              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Exit Temperature</span>
+            <div className="mb-3">
+              <SectionLabel icon="ri-temp-cold-line" title="Exit Temperature" />
             </div>
             <input
               type="text"
@@ -135,11 +133,3 @@ export default function CheckOut() {
   )
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="text-sm text-text-primary font-medium">{value}</p>
-    </div>
-  )
-}

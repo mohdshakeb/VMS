@@ -6,6 +6,7 @@ import Card from '@/components/Card'
 import Button from '@/components/Button'
 import StatusBadge from '@/components/StatusBadge'
 import { formatTime, getVisitTypeLabel, getPurposeLabel } from '@/utils/helpers'
+import DetailItem from '@/components/common/DetailItem'
 
 export default function ApproveWalkIn() {
   const { visitId } = useParams<{ visitId: string }>()
@@ -62,12 +63,12 @@ export default function ApproveWalkIn() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <Detail label="Mobile" value={visitor?.mobile ?? ''} />
-          <Detail label="Time" value={formatTime(visit.scheduledTime)} />
-          <Detail label="Purpose" value={getPurposeLabel(visit.purpose)} />
-          <Detail label="Type" value={getVisitTypeLabel(visit.visitType)} />
-          <Detail label="Location" value={location?.name ?? ''} />
-          <Detail label="Created by" value="Front Desk" />
+          <DetailItem label="Mobile" value={visitor?.mobile ?? ''} />
+          <DetailItem label="Time" value={formatTime(visit.scheduledTime)} />
+          <DetailItem label="Purpose" value={getPurposeLabel(visit.purpose)} />
+          <DetailItem label="Type" value={getVisitTypeLabel(visit.visitType)} />
+          <DetailItem label="Location" value={location?.name ?? ''} />
+          <DetailItem label="Created by" value="Front Desk" />
         </div>
 
         {visit.notes && (
@@ -124,11 +125,3 @@ export default function ApproveWalkIn() {
   )
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="text-sm text-text-primary font-medium">{value}</p>
-    </div>
-  )
-}

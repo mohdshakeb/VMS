@@ -7,6 +7,8 @@ import Card from '@/components/Card'
 import Button from '@/components/Button'
 import StatusBadge from '@/components/StatusBadge'
 import PageHeader from '@/components/PageHeader'
+import DetailItem from '@/components/common/DetailItem'
+import SectionLabel from '@/components/common/SectionLabel'
 import {
   formatDate,
   formatTime,
@@ -70,8 +72,8 @@ export default function CheckIn() {
             <StatusBadge status={visit.status} />
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-            <Detail label="Mobile" value={visitor?.mobile ?? '—'} />
-            {visitor?.email && <Detail label="Email" value={visitor.email} />}
+            <DetailItem label="Mobile" value={visitor?.mobile ?? '—'} />
+            {visitor?.email && <DetailItem label="Email" value={visitor.email} />}
           </div>
         </Card>
 
@@ -79,15 +81,15 @@ export default function CheckIn() {
         <Card>
           <SectionLabel icon="ri-calendar-check-line" title="Visit Details" />
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
-            <Detail label="Pass Type" value={getVisitTypeLabel(visit.visitType)} />
-            <Detail label="Purpose" value={getPurposeLabel(visit.purpose)} />
-            <Detail label="Host" value={host?.name ?? '—'} />
-            {visit.department && <Detail label="Department" value={getDepartmentLabel(visit.department)} />}
-            <Detail label="Location" value={location?.name ?? '—'} />
-            <Detail label="Date" value={formatDate(visit.scheduledDate)} />
-            <Detail label="Time" value={formatTime(visit.scheduledTime)} />
+            <DetailItem label="Pass Type" value={getVisitTypeLabel(visit.visitType)} />
+            <DetailItem label="Purpose" value={getPurposeLabel(visit.purpose)} />
+            <DetailItem label="Host" value={host?.name ?? '—'} />
+            {visit.department && <DetailItem label="Department" value={getDepartmentLabel(visit.department)} />}
+            <DetailItem label="Location" value={location?.name ?? '—'} />
+            <DetailItem label="Date" value={formatDate(visit.scheduledDate)} />
+            <DetailItem label="Time" value={formatTime(visit.scheduledTime)} />
             {visit.duration != null && (
-              <Detail label="Duration" value={formatDuration(visit.duration)} />
+              <DetailItem label="Duration" value={formatDuration(visit.duration)} />
             )}
           </div>
         </Card>
@@ -118,12 +120,12 @@ export default function CheckIn() {
           <Card>
             <SectionLabel icon="ri-building-2-line" title="Customer Details" />
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
-              {visit.businessSegment && <Detail label="Segment" value={getBusinessSegmentLabel(visit.businessSegment)} />}
-              {visit.priority && <Detail label="Priority" value={getVisitorPriorityLabel(visit.priority)} />}
-              {visit.model && <Detail label="Model" value={visit.model} />}
+              {visit.businessSegment && <DetailItem label="Segment" value={getBusinessSegmentLabel(visit.businessSegment)} />}
+              {visit.priority && <DetailItem label="Priority" value={getVisitorPriorityLabel(visit.priority)} />}
+              {visit.model && <DetailItem label="Model" value={visit.model} />}
               {visit.businessSegmentRemarks && (
                 <div className="col-span-2">
-                  <Detail label="Remarks" value={visit.businessSegmentRemarks} />
+                  <DetailItem label="Remarks" value={visit.businessSegmentRemarks} />
                 </div>
               )}
             </div>
@@ -135,8 +137,8 @@ export default function CheckIn() {
           <Card>
             <SectionLabel icon="ri-shield-check-line" title="Devices Declared" />
             <div className="mt-3 space-y-3 text-sm">
-              {visit.laptopDetails && <Detail label="Laptop" value={visit.laptopDetails} />}
-              {visit.otherDeviceDetails && <Detail label="Other Devices" value={visit.otherDeviceDetails} />}
+              {visit.laptopDetails && <DetailItem label="Laptop" value={visit.laptopDetails} />}
+              {visit.otherDeviceDetails && <DetailItem label="Other Devices" value={visit.otherDeviceDetails} />}
             </div>
           </Card>
         )}
@@ -214,20 +216,3 @@ function formatDuration(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-function SectionLabel({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <i className={`${icon} text-sm text-text-tertiary`} />
-      <span className="text-xs font-semibold text-text-secondary uppercase tracking-wide">{title}</span>
-    </div>
-  )
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="text-sm text-text-primary font-medium">{value}</p>
-    </div>
-  )
-}

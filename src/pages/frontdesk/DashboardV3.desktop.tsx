@@ -16,6 +16,10 @@ import { OVERDUE_VISIT_IDS, DELAYED_VISIT_IDS } from '@/data/visits'
 import { employees } from '@/data/employees'
 import type { Visit } from '@/types/visit'
 import { getVisitTypeLabel, getLocalDateString } from '@/utils/helpers'
+import EmptyState from '@/components/common/EmptyState'
+import CountBadge from '@/components/common/CountBadge'
+import AvatarBadge, { getInitials } from '@/components/common/AvatarBadge'
+import Collapsible from '@/components/common/Collapsible'
 
 type ActiveFilter = 'all' | 'ready' | 'pending'
 
@@ -140,16 +144,11 @@ export default function DashboardV3Desktop() {
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
                 <p className="text-sm font-semibold text-text-primary flex-1">Search results</p>
-                <span className="text-[11px] font-semibold text-text-tertiary bg-surface-secondary rounded-full px-2 py-0.5">
-                  {resultList.length}
-                </span>
+                <CountBadge count={resultList.length} />
               </div>
               <div className="p-3 space-y-2">
                 {resultList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 px-4 py-16 text-text-tertiary">
-                    <i className="ri-search-2-line text-2xl" />
-                    <p className="text-xs">No visits match your search</p>
-                  </div>
+                  <EmptyState icon="ri-search-2-line" title="No visits match your search" className="py-16" />
                 ) : (
                   resultList.map((visit, idx) => {
                     const visitor = visitorMap[visit.visitorId]
@@ -223,9 +222,7 @@ export default function DashboardV3Desktop() {
                     <div className="flex items-center gap-2 px-4 pt-3.5 pb-1">
                       <p className="text-sm font-semibold text-text-primary">Today's Visits</p>
                       <p className="text-sm font-medium text-text-tertiary">Check-In</p>
-                      <span className="text-[11px] font-semibold text-text-tertiary bg-surface-secondary rounded-full px-2 py-0.5">
-                        {resultList.length}
-                      </span>
+                      <CountBadge count={resultList.length} />
                     </div>
 
                     <div className={`flex items-center gap-2 px-4 py-2.5 transition-opacity ${searchInput ? 'opacity-40 pointer-events-none' : ''}`}>
@@ -251,10 +248,7 @@ export default function DashboardV3Desktop() {
 
                     <div className="p-3 space-y-2">
                       {resultList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-text-tertiary">
-                          <i className="ri-inbox-2-line text-2xl" />
-                          <p className="text-xs">No visits found</p>
-                        </div>
+                        <EmptyState icon="ri-inbox-2-line" title="No visits found" />
                       ) : (
                         resultList.map((visit, idx) => {
                           const visitor = visitorMap[visit.visitorId]
@@ -286,17 +280,12 @@ export default function DashboardV3Desktop() {
                     <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light shrink-0">
                       <p className="text-sm font-semibold text-text-primary">On Premises</p>
                       <p className="text-sm font-medium text-text-tertiary">Check-Out</p>
-                      <span className="text-[11px] font-semibold text-text-tertiary bg-surface-secondary rounded-full px-2 py-0.5">
-                        {kpiOnPremises.length}
-                      </span>
+                      <CountBadge count={kpiOnPremises.length} />
                     </div>
 
                     <div>
                       {kpiOnPremises.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-text-tertiary">
-                          <i className="ri-building-2-line text-2xl" />
-                          <p className="text-xs">No visitors on premises</p>
-                        </div>
+                        <EmptyState icon="ri-building-2-line" title="No visitors on premises" />
                       ) : (
                         [...kpiOnPremises]
                           .sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
@@ -304,7 +293,6 @@ export default function DashboardV3Desktop() {
                           .map((visit, idx) => {
                             const visitor = visitorMap[visit.visitorId]
                             const name = visitor?.name ?? 'Unknown Visitor'
-                            const initials = name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
                             const host = employees.find((e) => e.id === visit.hostEmployeeId)
                             const hasGroup = (visit.delegates?.length ?? 0) > 0
                             const expectedOutTime =
@@ -343,13 +331,7 @@ export default function DashboardV3Desktop() {
                                 >
                                   <div className={`relative shrink-0 rounded-full${isOverdue ? ' ring-[3px] ring-offset-0 ring-red-400/40' : ''}`}>
                                     {isOverdue && <span className="animate-sonar absolute inset-0 rounded-full border-2 pointer-events-none" />}
-                                    {visitor?.avatar ? (
-                                      <img src={visitor.avatar} alt={name} className="h-8 w-8 rounded-full object-cover border border-border" />
-                                    ) : (
-                                      <div className="h-8 w-8 rounded-full bg-brand-red-50 text-brand-red-500 flex items-center justify-center text-[11px] font-semibold leading-none select-none border border-brand-red-100">
-                                        {initials}
-                                      </div>
-                                    )}
+                                    <AvatarBadge name={name} avatar={visitor?.avatar} />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5">
@@ -371,8 +353,7 @@ export default function DashboardV3Desktop() {
                                   <i className={`shrink-0 text-text-tertiary transition-transform duration-200 ${isRowExpanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}`} />
                                 </button>
 
-                                <div className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${isRowExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                                  <div className="overflow-hidden min-h-0">
+                                <Collapsible open={isRowExpanded}>
                                     <div className="px-4 pb-4 space-y-3">
                                       <div className="h-px bg-border-light" />
                                       <div className="grid grid-cols-3 gap-x-3 gap-y-2">
@@ -397,11 +378,10 @@ export default function DashboardV3Desktop() {
                                           <div className="space-y-2">
                                             {visit.delegates!.map((d, i) => {
                                               const coTime = d.checkOutTime ? new Date(d.checkOutTime) : null
-                                              const dInitials = d.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
                                               return (
                                                 <div key={i} className="flex items-center gap-2">
                                                   <div className="h-5 w-5 rounded-full bg-surface-secondary flex items-center justify-center text-[9px] font-semibold text-text-tertiary shrink-0">
-                                                    {dInitials}
+                                                    {getInitials(d.name)}
                                                   </div>
                                                   <div className="min-w-0 flex-1">
                                                     <p className="text-xs text-text-primary truncate">{d.name}</p>
@@ -435,8 +415,7 @@ export default function DashboardV3Desktop() {
                                         </Button>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
+                                </Collapsible>
                               </div>
                             )
                           })

@@ -5,6 +5,7 @@ import VisitCard from '@/components/VisitCard'
 import TabBar from '@/components/TabBar'
 import PageHeader from '@/components/PageHeader'
 import { getLocalDateString } from '@/utils/helpers'
+import EmptyState from '@/components/common/EmptyState'
 
 type VisitTab = 'upcoming' | 'pending' | 'past'
 
@@ -45,10 +46,7 @@ export default function MyVisits() {
 
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
         {activeVisits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-text-tertiary">
-            <i className="ri-inbox-line text-3xl mb-2" />
-            <p className="text-sm">No visits</p>
-          </div>
+          <EmptyState icon="ri-inbox-line" title="No visits" className="py-16" iconClassName="text-3xl" titleClassName="text-sm" />
         ) : (
           <div className="space-y-2 max-w-lg">
             {activeVisits.map((visit) => {

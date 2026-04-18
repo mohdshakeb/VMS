@@ -3,7 +3,7 @@
 // Branding block stacked above the form card. Less padding, less outer margin.
 // Parallax pattern background retained. No responsive prefixes.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
@@ -12,6 +12,10 @@ import { VISIT_TYPE_BY_PURPOSE } from '@/types/visit'
 import type { Purpose, VisitType, BusinessSegment, VisitorPriority, Delegate } from '@/types/visit'
 import Button from '@/components/Button'
 import Modal from '@/components/Modal'
+import SectionDivider from '@/components/Mobile/SectionDivider'
+import MobilePageHeader from '@/components/Mobile/MobilePageHeader'
+import FormField from '@/components/common/FormField'
+import SearchAutocomplete from '@/components/common/SearchAutocomplete'
 import visitorPictureUrl from '@/assets/visitorPicture.png'
 import logoBlackUrl from '@/assets/logoBlack.svg'
 import {
@@ -162,9 +166,6 @@ export default function CreateWalkInMobile() {
   const [showPreview, setShowPreview] = useState(false)
   const [mobileTouched, setMobileTouched] = useState(false)
   const [emailTouched, setEmailTouched] = useState(false)
-  const [employeeSearch, setEmployeeSearch] = useState('')
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const [patternOffset, setPatternOffset] = useState(0)
 
   const showCustomerBlock = formData.visitType === 'customer'
@@ -172,25 +173,10 @@ export default function CreateWalkInMobile() {
   const idProofRequired = isIdProofRequired(formData.visitType)
 
   const locationEmployees = employees.filter((e) => e.locationId === locationId)
-  const filteredEmployees = locationEmployees.filter(
-    (e) =>
-      e.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-      e.department.toLowerCase().includes(employeeSearch.toLowerCase())
-  )
   const selectedEmployee = employees.find((e) => e.id === formData.hostEmployeeId)
   const availableVisitTypes = formData.purpose
     ? (VISIT_TYPE_BY_PURPOSE[formData.purpose as Purpose] ?? [])
     : []
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowEmployeeDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
 
   function handleChange<K extends keyof FormData>(field: K, value: FormData[K]) {
     setFormData((prev) => {
@@ -284,31 +270,13 @@ export default function CreateWalkInMobile() {
       <div className="absolute inset-0 overflow-hidden flex flex-col">
 
         {/* ── App Bar — pinned at top of card ──────────────────────────────── */}
-        <header className="relative shrink-0 bg-white border-b border-border">
-          <div className="flex items-center justify-between px-4 py-3">
-            <button
-              type="button"
-              onClick={() => navigate('/front-desk/dashboard')}
-              className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors -ml-1 px-1 py-1 rounded-md"
-            >
-              <i className="ri-arrow-left-line text-lg" />
-              <span className="font-medium">New Walk-in</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/front-desk/dashboard')}
-              className="text-sm font-medium text-brand hover:opacity-75 transition-opacity px-1 py-1"
-            >
-              Cancel
-            </button>
-          </div>
-
-          {/* ── Stepper subheader ─────────────────────────────────────────── */}
-          <div className="border-t border-border flex justify-center px-4 py-3">
-            <HeaderStepper currentStep={currentStep} />
-          </div>
-        </header>
+        <MobilePageHeader
+          title="New Walk-in"
+          onBack={() => navigate('/front-desk/dashboard')}
+          onCancel={() => navigate('/front-desk/dashboard')}
+        >
+          <HeaderStepper currentStep={currentStep} />
+        </MobilePageHeader>
 
       {/* ── Preview Modal ─────────────────────────────────────────────────────── */}
       <Modal
@@ -421,7 +389,7 @@ export default function CreateWalkInMobile() {
 
             {/* Section header */}
             <div className="px-5 pt-5 pb-3">
-              <SectionHeader icon={STEPS[currentStep - 1].icon} title={STEPS[currentStep - 1].title} />
+              <SectionDivider icon={STEPS[currentStep - 1].icon} title={STEPS[currentStep - 1].title} />
             </div>
 
             {/* Form content */}
@@ -430,7 +398,11 @@ export default function CreateWalkInMobile() {
               {/* ── Step 1: Visitor Details ────────────────────────────────── */}
               {currentStep === 1 && (
                 <>
-                  <Field label="Mobile Number" required>
+                  <FormField
+                    label="Mobile Number"
+                    required
+                    error={mobileTouched && formData.mobile && !isMobileValid(formData.mobile) ? 'Enter a valid phone number' : undefined}
+                  >
                     <input
                       type="tel"
                       value={formData.mobile}
@@ -440,16 +412,10 @@ export default function CreateWalkInMobile() {
                       className={`form-input ${mobileTouched && formData.mobile && !isMobileValid(formData.mobile) ? 'border-rejected focus:ring-rejected/20' : ''}`}
                       autoFocus
                     />
-                    {mobileTouched && formData.mobile && !isMobileValid(formData.mobile) && (
-                      <p className="text-xs text-rejected mt-1 flex items-center gap-1">
-                        <i className="ri-error-warning-line" />
-                        Enter a valid phone number
-                      </p>
-                    )}
-                  </Field>
+                  </FormField>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="First Name" required>
+                    <FormField label="First Name" required>
                       <input
                         type="text"
                         value={formData.firstName}
@@ -457,8 +423,8 @@ export default function CreateWalkInMobile() {
                         placeholder="First name"
                         className="form-input"
                       />
-                    </Field>
-                    <Field label="Last Name">
+                    </FormField>
+                    <FormField label="Last Name">
                       <input
                         type="text"
                         value={formData.lastName}
@@ -466,10 +432,13 @@ export default function CreateWalkInMobile() {
                         placeholder="Last name"
                         className="form-input"
                       />
-                    </Field>
+                    </FormField>
                   </div>
 
-                  <Field label="Email">
+                  <FormField
+                    label="Email"
+                    error={emailTouched && formData.email && !isEmailValid(formData.email) ? 'Enter a valid email address' : undefined}
+                  >
                     <input
                       type="email"
                       value={formData.email}
@@ -478,15 +447,9 @@ export default function CreateWalkInMobile() {
                       placeholder="visitor@company.com"
                       className={`form-input ${emailTouched && formData.email && !isEmailValid(formData.email) ? 'border-rejected focus:ring-rejected/20' : ''}`}
                     />
-                    {emailTouched && formData.email && !isEmailValid(formData.email) && (
-                      <p className="text-xs text-rejected mt-1 flex items-center gap-1">
-                        <i className="ri-error-warning-line" />
-                        Enter a valid email address
-                      </p>
-                    )}
-                  </Field>
+                  </FormField>
 
-                  <Field label="Visitor Photo">
+                  <FormField label="Visitor Photo">
                     <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary hover:border-border transition-colors cursor-pointer py-7">
                       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white border border-border shadow-sm">
                         <i className="ri-camera-line text-xl text-brand" />
@@ -494,14 +457,14 @@ export default function CreateWalkInMobile() {
                       <p className="text-sm font-medium text-text-primary">Capture or upload photo</p>
                       <p className="text-xs text-text-tertiary">Camera · Gallery</p>
                     </div>
-                  </Field>
+                  </FormField>
                 </>
               )}
 
               {/* ── Step 2: Visit Details ──────────────────────────────────── */}
               {currentStep === 2 && (
                 <>
-                  <Field label="Purpose of Visit" required>
+                  <FormField label="Purpose of Visit" required>
                     <select
                       value={formData.purpose}
                       onChange={(e) => handleChange('purpose', e.target.value as Purpose)}
@@ -512,9 +475,9 @@ export default function CreateWalkInMobile() {
                         <option key={p} value={p}>{getPurposeLabel(p)}</option>
                       ))}
                     </select>
-                  </Field>
+                  </FormField>
 
-                  <Field label="Visitor Type" required>
+                  <FormField label="Visitor Type" required>
                     <select
                       value={formData.visitType}
                       onChange={(e) => handleChange('visitType', e.target.value as VisitType)}
@@ -528,9 +491,9 @@ export default function CreateWalkInMobile() {
                         <option key={vt} value={vt}>{getVisitTypeLabel(vt)}</option>
                       ))}
                     </select>
-                  </Field>
+                  </FormField>
 
-                  <Field label="Visitor Company" required={companyRequired}>
+                  <FormField label="Visitor Company" required={companyRequired}>
                     <input
                       type="text"
                       value={formData.company}
@@ -538,77 +501,34 @@ export default function CreateWalkInMobile() {
                       placeholder={companyRequired ? 'Required for this visitor type' : 'Organization name (optional)'}
                       className="form-input"
                     />
-                  </Field>
+                  </FormField>
 
-                  <Field label="Whom to Meet" required>
-                    <div className="relative" ref={dropdownRef}>
-                      <div className="relative">
-                        <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm" />
-                        <input
-                          type="text"
-                          value={selectedEmployee ? selectedEmployee.name : employeeSearch}
-                          onChange={(e) => {
-                            setEmployeeSearch(e.target.value)
-                            handleChange('hostEmployeeId', '')
-                            setShowEmployeeDropdown(true)
-                          }}
-                          onFocus={() => {
-                            if (!formData.hostEmployeeId) setShowEmployeeDropdown(true)
-                          }}
-                          placeholder="Search by name or department"
-                          className="form-input !pl-9"
-                        />
-                        {formData.hostEmployeeId && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleChange('hostEmployeeId', '')
-                              setEmployeeSearch('')
-                              setShowEmployeeDropdown(true)
-                            }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-tertiary hover:text-text-primary"
-                          >
-                            <i className="ri-close-line" />
-                          </button>
-                        )}
-                      </div>
+                  <FormField label="Whom to Meet" required>
+                    <SearchAutocomplete
+                      items={locationEmployees}
+                      selectedId={formData.hostEmployeeId}
+                      onSelect={(id) => handleChange('hostEmployeeId', id)}
+                      getLabel={(emp) => emp.name}
+                      getSubLabel={(emp) => emp.department}
+                      filterFn={(emp, search) =>
+                        emp.name.toLowerCase().includes(search.toLowerCase()) ||
+                        emp.department.toLowerCase().includes(search.toLowerCase())
+                      }
+                      placeholder="Search by name or department"
+                      emptyMessage="No employees found"
+                    />
+                  </FormField>
 
-                      {showEmployeeDropdown && !formData.hostEmployeeId && (
-                        <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-white border border-border shadow-lg">
-                          {filteredEmployees.length === 0 ? (
-                            <p className="px-3 py-2 text-sm text-text-tertiary">No employees found</p>
-                          ) : (
-                            filteredEmployees.map((emp) => (
-                              <button
-                                key={emp.id}
-                                type="button"
-                                onClick={() => {
-                                  handleChange('hostEmployeeId', emp.id)
-                                  setEmployeeSearch('')
-                                  setShowEmployeeDropdown(false)
-                                }}
-                                className="w-full text-left px-3 py-2 hover:bg-surface-secondary transition-colors"
-                              >
-                                <p className="text-sm font-medium text-text-primary">{emp.name}</p>
-                                <p className="text-xs text-text-secondary">{emp.department}</p>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </Field>
-
-                  <Field label="Department">
+                  <FormField label="Department">
                     <div className={`form-input flex items-center gap-2 ${formData.department ? 'bg-surface-secondary text-text-secondary' : 'text-text-tertiary'}`}>
                       {formData.department
                         ? <><i className="ri-check-line text-xs text-confirmed" /><span className="text-sm">{getDepartmentLabel(formData.department)}</span></>
                         : <span className="text-sm">Auto-filled from host selection</span>
                       }
                     </div>
-                  </Field>
+                  </FormField>
 
-                  <Field label="Duration">
+                  <FormField label="Duration">
                     <select
                       value={formData.duration}
                       onChange={(e) => handleChange('duration', e.target.value === '' ? '' : Number(e.target.value))}
@@ -623,7 +543,7 @@ export default function CreateWalkInMobile() {
                       <option value={240}>Half day (4 hrs)</option>
                       <option value={480}>Full day (8 hrs)</option>
                     </select>
-                  </Field>
+                  </FormField>
 
                   <div className="rounded-lg border border-border p-4 space-y-3">
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -696,7 +616,7 @@ export default function CreateWalkInMobile() {
                   <div className="space-y-3">
                     <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">ID Proof</p>
 
-                    <Field label="ID Proof Type" required={idProofRequired}>
+                    <FormField label="ID Proof Type" required={idProofRequired}>
                       <select
                         value={formData.idProofType}
                         onChange={(e) => handleChange('idProofType', e.target.value)}
@@ -710,9 +630,9 @@ export default function CreateWalkInMobile() {
                         <option value="voter-id">Voter ID</option>
                         <option value="other">Other</option>
                       </select>
-                    </Field>
+                    </FormField>
 
-                    <Field label="ID Number" required={idProofRequired}>
+                    <FormField label="ID Number" required={idProofRequired}>
                       <input
                         type="text"
                         value={formData.idProofNumber}
@@ -720,9 +640,9 @@ export default function CreateWalkInMobile() {
                         placeholder="e.g. XXXX XXXX XXXX"
                         className="form-input"
                       />
-                    </Field>
+                    </FormField>
 
-                    <Field label="ID Photo Capture">
+                    <FormField label="ID Photo Capture">
                       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary hover:border-border transition-colors cursor-pointer py-5">
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-border shadow-sm">
                           <i className="ri-image-line text-base text-brand" />
@@ -730,7 +650,7 @@ export default function CreateWalkInMobile() {
                         <p className="text-sm font-medium text-text-primary">Capture ID document</p>
                         <p className="text-xs text-text-tertiary">Optional · Camera · Gallery</p>
                       </div>
-                    </Field>
+                    </FormField>
                   </div>
 
                   {/* Customer Details */}
@@ -738,7 +658,7 @@ export default function CreateWalkInMobile() {
                     <div className="space-y-3">
                       <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Customer Details</p>
 
-                      <Field label="Business Segment">
+                      <FormField label="Business Segment">
                         <select
                           value={formData.businessSegment}
                           onChange={(e) => handleChange('businessSegment', e.target.value as BusinessSegment)}
@@ -749,9 +669,9 @@ export default function CreateWalkInMobile() {
                             <option key={s} value={s}>{getBusinessSegmentLabel(s)}</option>
                           ))}
                         </select>
-                      </Field>
+                      </FormField>
 
-                      <Field label="Priority">
+                      <FormField label="Priority">
                         <select
                           value={formData.priority}
                           onChange={(e) => handleChange('priority', e.target.value as VisitorPriority)}
@@ -762,9 +682,9 @@ export default function CreateWalkInMobile() {
                             <option key={p} value={p}>{getVisitorPriorityLabel(p)}</option>
                           ))}
                         </select>
-                      </Field>
+                      </FormField>
 
-                      <Field label="Model">
+                      <FormField label="Model">
                         <input
                           type="text"
                           value={formData.model}
@@ -772,9 +692,9 @@ export default function CreateWalkInMobile() {
                           placeholder="e.g. GCI - CAT EX - 336"
                           className="form-input"
                         />
-                      </Field>
+                      </FormField>
 
-                      <Field label="Business Segment Remarks">
+                      <FormField label="Business Segment Remarks">
                         <textarea
                           value={formData.businessSegmentRemarks}
                           onChange={(e) => handleChange('businessSegmentRemarks', e.target.value)}
@@ -782,7 +702,7 @@ export default function CreateWalkInMobile() {
                           rows={2}
                           className="form-input resize-none"
                         />
-                      </Field>
+                      </FormField>
                     </div>
                   )}
 
@@ -790,7 +710,7 @@ export default function CreateWalkInMobile() {
                   <div className="space-y-3">
                     <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Devices</p>
 
-                    <Field label="Laptop Details">
+                    <FormField label="Laptop Details">
                       <textarea
                         value={formData.laptopDetails}
                         onChange={(e) => handleChange('laptopDetails', e.target.value)}
@@ -798,9 +718,9 @@ export default function CreateWalkInMobile() {
                         rows={2}
                         className="form-input resize-none"
                       />
-                    </Field>
+                    </FormField>
 
-                    <Field label="Other Devices">
+                    <FormField label="Other Devices">
                       <textarea
                         value={formData.otherDeviceDetails}
                         onChange={(e) => handleChange('otherDeviceDetails', e.target.value)}
@@ -808,7 +728,7 @@ export default function CreateWalkInMobile() {
                         rows={2}
                         className="form-input resize-none"
                       />
-                    </Field>
+                    </FormField>
                   </div>
 
                   {/* Other */}
@@ -830,7 +750,7 @@ export default function CreateWalkInMobile() {
                       </label>
 
                       {formData.hasVehicle && (
-                        <Field label="Registration Number">
+                        <FormField label="Registration Number">
                           <input
                             type="text"
                             value={formData.vehicleRegistration}
@@ -838,11 +758,11 @@ export default function CreateWalkInMobile() {
                             placeholder="e.g. KA 01 AB 1234"
                             className="form-input uppercase"
                           />
-                        </Field>
+                        </FormField>
                       )}
                     </div>
 
-                    <Field label="Entry Temperature">
+                    <FormField label="Entry Temperature">
                       <input
                         type="text"
                         value={formData.visitorInTemperature}
@@ -850,9 +770,9 @@ export default function CreateWalkInMobile() {
                         placeholder="e.g. 98.4°F or 37.0°C (optional)"
                         className="form-input"
                       />
-                    </Field>
+                    </FormField>
 
-                    <Field label="Remarks">
+                    <FormField label="Remarks">
                       <textarea
                         value={formData.notes}
                         onChange={(e) => handleChange('notes', e.target.value)}
@@ -860,7 +780,7 @@ export default function CreateWalkInMobile() {
                         rows={2}
                         className="form-input resize-none"
                       />
-                    </Field>
+                    </FormField>
                   </div>
                 </div>
               )}
@@ -949,19 +869,6 @@ function HeaderStepper({ currentStep }: { currentStep: number }) {
   )
 }
 
-function SectionHeader({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="flex items-center gap-3 -mx-1">
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/10">
-          <i className={`${icon} text-brand text-sm`} />
-        </div>
-        <h2 className="text-sm font-semibold text-text-primary tracking-tight">{title}</h2>
-      </div>
-      <div className="flex-1 h-px bg-border" />
-    </div>
-  )
-}
 
 function PreviewSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -980,28 +887,5 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
       <span className="text-xs text-text-tertiary shrink-0">{label}</span>
       <span className="text-xs font-medium text-text-primary text-right break-words max-w-[60%]">{value}</span>
     </div>
-  )
-}
-
-function Field({
-  label,
-  required,
-  hint,
-  children,
-}: {
-  label: string
-  required?: boolean
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-text-primary">
-        {label}
-        {required && <span className="text-rejected ml-0.5">*</span>}
-      </span>
-      <div className="mt-1.5">{children}</div>
-      {hint && <p className="text-xs text-text-tertiary mt-1">{hint}</p>}
-    </label>
   )
 }
