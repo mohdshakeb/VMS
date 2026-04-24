@@ -36,11 +36,12 @@ interface KpiCardV2Props {
   alertLabel?: string
   alertColor?: 'red' | 'orange'
   onClick?: () => void
+  active?: boolean
 }
 
 export default function KpiCardV2({
   label, info, value, icon, color = 'blue',
-  trend, alertCount, alertLabel = '', alertColor = 'red', onClick,
+  trend, alertCount, alertLabel = '', alertColor = 'red', onClick, active,
 }: KpiCardV2Props) {
   const display = value < 10 ? String(value).padStart(2, '0') : String(value)
   const c = colorMap[color]
@@ -76,7 +77,7 @@ export default function KpiCardV2({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl bg-white border border-border-light px-4 py-4 md:px-6 md:pt-5 md:pb-5 flex flex-col justify-between transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`rounded-xl bg-white border px-4 py-4 md:px-6 md:pt-5 md:pb-5 flex flex-col justify-between transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''} ${active ? 'border-brand/40 ring-2 ring-brand/15 shadow-sm -translate-y-0.5' : 'border-border-light'}`}
     >
       {/* Top row: label + icon */}
       <div className="flex items-center justify-between gap-2 md:gap-4">

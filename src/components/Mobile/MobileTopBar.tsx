@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import logoBlackUrl from '@/assets/logoBlack.svg'
 
 interface MobileTopBarProps {
@@ -16,6 +16,7 @@ export default function MobileTopBar({
   onLocationPress,
   onProfilePress,
 }: MobileTopBarProps) {
+  const navigate = useNavigate()
   return (
     <header className="flex items-center gap-2 px-4 py-2 bg-white border-b border-border shrink-0">
       {/* Left: logo + location selector */}
@@ -32,8 +33,15 @@ export default function MobileTopBar({
         </button>
       </div>
 
-      {/* Right: notification + avatar */}
+      {/* Right: qr + notification + avatar */}
       <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={() => navigate('/front-desk/qr-code')}
+          className="p-2 text-text-secondary active:text-text-primary transition-colors"
+          aria-label="Visitor QR code"
+        >
+          <i className="ri-qr-code-line text-xl" />
+        </button>
         <NavLink to="/notifications" className="relative p-2">
           <i className="ri-notification-3-line text-xl text-text-secondary" />
           {unreadCount > 0 && (

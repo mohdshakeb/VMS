@@ -23,14 +23,17 @@ const roleLabels: Record<Role, string> = {
   'branch-admin': 'Branch Admin',
 }
 
-// Routes that take over the full screen (no sidebar, no nav bars)
-const FULL_SCREEN_ROUTES = ['/front-desk/walk-in']
+// Routes that take over the full screen on ALL viewports (no sidebar on desktop, no nav bars on mobile)
+const FULL_SCREEN_ROUTES = ['/front-desk/walk-in', '/front-desk/qr-code']
+// Route prefixes that suppress mobile chrome (top bar + bottom nav) but keep the desktop sidebar
+const MOBILE_INNER_PREFIXES = ['/front-desk/visit/']
 
 export default function AppLayout() {
   const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname)
+  const isMobileInner = MOBILE_INNER_PREFIXES.some((p) => location.pathname.startsWith(p))
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
   const { toastMessage, clearToast } = useVisitStore()
@@ -118,10 +121,10 @@ export default function AppLayout() {
       <div className="flex md:hidden flex-1 flex-col overflow-hidden bg-chrome-bg">
 
         {/* Main content area — 8px inset from top and sides, sits above bottom nav */}
-        <div className={`flex flex-col flex-1 overflow-hidden ${isFullScreen ? '' : 'mt-2 mx-2 rounded-xl'}`}>
+        <div className={`flex flex-col flex-1 overflow-hidden ${(isFullScreen || isMobileInner) ? 'bg-white' : 'mt-2 mx-2 rounded-xl'}`}>
 
           {/* Mobile top bar — inside content area with white background */}
-          {!isFullScreen && (
+          {!isFullScreen && !isMobileInner && (
             <MobileTopBar
               locationLabel={currentLocation ? currentLocation.name.split(' — ')[0] : '—'}
               initials={initials}
@@ -139,7 +142,7 @@ export default function AppLayout() {
 
         {/* Toast */}
         {toastMessage && (
-          <div className="fixed left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] bottom-16">
+          <div className={`fixed left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] ${(isFullScreen || isMobileInner) ? 'bottom-6' : 'bottom-16'}`}>
             <div className="rounded-xl bg-chrome-toast px-4 py-3 text-sm text-white shadow-lg">
               {toastMessage}
             </div>
@@ -147,7 +150,7 @@ export default function AppLayout() {
         )}
 
         {/* Mobile bottom nav — below the main content area, in the dark chrome zone */}
-        {!isFullScreen && <BottomNav role={currentRole} />}
+        {!isFullScreen && !isMobileInner && <BottomNav role={currentRole} />}
       </div>
 
       {/* Location bottom sheet — mobile only */}

@@ -102,6 +102,7 @@ export function getVisitTypeLabel(type: string): string {
     'employee-other-branch': 'Employee (Other Branch)',
     'employee-visitor': 'Employee Visitor',
     'general-visitor': 'General Visitor',
+    hospitality: 'Hospitality',
     visitor: 'Visitor',
     other: 'Other',
   }

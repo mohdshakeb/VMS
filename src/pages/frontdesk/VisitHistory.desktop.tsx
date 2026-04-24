@@ -69,7 +69,7 @@ export default function VisitHistoryDesktop() {
   ]
 
   return (
-    <div className="hidden md:flex flex-col h-full">
+    <div className="hidden md:flex flex-col h-full bg-surface-secondary">
       <PageHeader title="Visit History" />
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">

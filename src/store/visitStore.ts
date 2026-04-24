@@ -1,11 +1,25 @@
 import { create } from 'zustand'
-import type { Visit, VisitStatus, Purpose, VisitType, EntryPath, BusinessSegment, VisitorPriority, Delegate } from '@/types/visit'
+import type { Visit, VisitStatus, Purpose, VisitType, EntryPath, BusinessSegment, VisitorPriority } from '@/types/visit'
 import { visits as seedVisits } from '@/data/visits'
 import { useNotificationStore } from './notificationStore'
 import { generateId, getLocalDateString } from '@/utils/helpers'
 import { employees } from '@/data/employees'
 import { visitors as seedVisitors } from '@/data/visitors'
 import type { Visitor } from '@/types/user'
+
+const AVATAR_POOL = [
+  'https://randomuser.me/api/portraits/men/1.jpg',
+  'https://randomuser.me/api/portraits/women/2.jpg',
+  'https://randomuser.me/api/portraits/men/3.jpg',
+  'https://randomuser.me/api/portraits/women/4.jpg',
+  'https://randomuser.me/api/portraits/men/5.jpg',
+  'https://randomuser.me/api/portraits/women/6.jpg',
+  'https://randomuser.me/api/portraits/men/7.jpg',
+  'https://randomuser.me/api/portraits/women/8.jpg',
+]
+function pickAvatar() {
+  return AVATAR_POOL[Math.floor(Math.random() * AVATAR_POOL.length)]
+}
 
 interface VisitState {
   visits: Visit[]
@@ -26,15 +40,10 @@ interface VisitState {
     scheduledDate?: string
     scheduledTime?: string
     duration?: number
-    delegates?: Delegate[]
+    isMultiDay?: boolean
+    endDate?: string
+    guestWifi?: boolean
     badgeId?: string
-    idProofType?: string
-    idProofNumber?: string
-    laptopDetails?: string
-    otherDeviceDetails?: string
-    hasVehicle?: boolean
-    vehicleRegistration?: string
-    visitorInTemperature?: string
     businessSegment?: BusinessSegment
     priority?: VisitorPriority
     model?: string
@@ -42,11 +51,20 @@ interface VisitState {
     notes?: string
   }) => Visit
 
-  checkOutDelegate: (visitId: string, delegateIndex: number) => void
   approveWalkIn: (visitId: string) => void
   rejectWalkIn: (visitId: string, reason: string) => void
-  checkIn: (visitId: string, badgeNumber: string) => void
-  checkOut: (visitId: string, outTemperature?: string) => void
+  checkIn: (visitId: string, badgeNumber: string, data?: {
+    idProofType?: string
+    idProofNumber?: string
+    laptopDetails?: string
+    otherDeviceDetails?: string
+    hasVehicle?: boolean
+    vehicleRegistration?: string
+    visitorInTemperature?: string
+    issueAssets?: boolean
+    assetsIssued?: string
+  }) => void
+  checkOut: (visitId: string, outTemperature?: string, assetsReturned?: boolean) => void
   confirmVisit: (visitId: string) => void
   rejectVisit: (visitId: string, reason: string) => void
   cancelVisit: (visitId: string) => void
@@ -73,6 +91,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
         mobile: data.visitorMobile,
         email: data.visitorEmail,
         company: data.visitorCompany,
+        avatar: pickAvatar(),
       }
       set((state) => ({ visitors: [...state.visitors, visitor!] }))
     }
@@ -91,19 +110,14 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       scheduledDate: data.scheduledDate ?? getLocalDateString(now),
       scheduledTime: data.scheduledTime ?? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       duration: data.duration,
+      isMultiDay: data.isMultiDay,
+      endDate: data.endDate,
+      guestWifi: data.guestWifi,
       createdAt: now.toISOString(),
       createdBy: 'front-desk',
       notes: data.notes,
       department: data.department,
-      delegates: data.delegates && data.delegates.length > 0 ? data.delegates : undefined,
       badgeId: data.badgeId,
-      idProofType: data.idProofType,
-      idProofNumber: data.idProofNumber,
-      laptopDetails: data.laptopDetails,
-      otherDeviceDetails: data.otherDeviceDetails,
-      hasVehicle: data.hasVehicle,
-      vehicleRegistration: data.vehicleRegistration,
-      visitorInTemperature: data.visitorInTemperature,
       businessSegment: data.businessSegment,
       priority: data.priority,
       model: data.model,
@@ -129,19 +143,6 @@ export const useVisitStore = create<VisitState>((set, get) => ({
     })
 
     return visit
-  },
-
-  checkOutDelegate: (visitId, delegateIndex) => {
-    set((state) => ({
-      visits: state.visits.map((v) => {
-        if (v.id !== visitId || !v.delegates) return v
-        const delegates = v.delegates.map((d, i) =>
-          i === delegateIndex ? { ...d, checkOutTime: new Date().toISOString() } : d
-        )
-        return { ...v, delegates }
-      }),
-      toastMessage: 'Companion checked out',
-    }))
   },
 
   approveWalkIn: (visitId) => {
@@ -184,7 +185,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
     })
   },
 
-  checkIn: (visitId, badgeNumber) => {
+  checkIn: (visitId, badgeNumber, data) => {
     const visit = get().visits.find((v) => v.id === visitId)
     if (!visit) return
 
@@ -193,8 +194,16 @@ export const useVisitStore = create<VisitState>((set, get) => ({
         status: 'checked-in',
         checkInTime: new Date().toISOString(),
         badgeNumber,
+        ...(data?.idProofType !== undefined && { idProofType: data.idProofType }),
+        ...(data?.idProofNumber !== undefined && { idProofNumber: data.idProofNumber }),
+        ...(data?.laptopDetails !== undefined && { laptopDetails: data.laptopDetails }),
+        ...(data?.otherDeviceDetails !== undefined && { otherDeviceDetails: data.otherDeviceDetails }),
+        ...(data?.hasVehicle !== undefined && { hasVehicle: data.hasVehicle }),
+        ...(data?.vehicleRegistration !== undefined && { vehicleRegistration: data.vehicleRegistration }),
+        ...(data?.visitorInTemperature !== undefined && { visitorInTemperature: data.visitorInTemperature }),
+        ...(data?.issueAssets !== undefined && { issueAssets: data.issueAssets }),
+        ...(data?.assetsIssued !== undefined && { assetsIssued: data.assetsIssued }),
       }),
-      toastMessage: `Visitor checked in — Badge ${badgeNumber}`,
     }))
 
     const visitor = get().visitors.find((v) => v.id === visit.visitorId)
@@ -209,14 +218,14 @@ export const useVisitStore = create<VisitState>((set, get) => ({
     })
   },
 
-  checkOut: (visitId, outTemperature) => {
+  checkOut: (visitId, outTemperature, assetsReturned) => {
     set((state) => ({
       visits: updateVisitStatus(state.visits, visitId, {
         status: 'checked-out',
         checkOutTime: new Date().toISOString(),
         visitorOutTemperature: outTemperature,
+        ...(assetsReturned !== undefined && { assetsReturned }),
       }),
-      toastMessage: 'Visitor checked out',
     }))
   },
 

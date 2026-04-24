@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { Role } from '@/types/user'
 
 // Dummy credential map for prototype — email → role and employeeId
@@ -20,27 +21,40 @@ interface AuthState {
   logout: () => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: false,
-  currentRole: 'front-desk',
-  currentEmployeeId: 'emp-1',
-  currentLocationId: 'loc-1',
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      isAuthenticated: false,
+      currentRole: 'front-desk',
+      currentEmployeeId: 'emp-1',
+      currentLocationId: 'loc-1',
 
-  setRole: (role) => set({ currentRole: role }),
-  setCurrentEmployee: (id) => set({ currentEmployeeId: id }),
-  setCurrentLocation: (id) => set({ currentLocationId: id }),
+      setRole: (role) => set({ currentRole: role }),
+      setCurrentEmployee: (id) => set({ currentEmployeeId: id }),
+      setCurrentLocation: (id) => set({ currentLocationId: id }),
 
-  login: (email, password) => {
-    if (!email.trim() || !password.trim()) return false
-    const creds = CREDENTIAL_MAP[email.toLowerCase().trim()]
-    if (creds) {
-      set({ isAuthenticated: true, currentRole: creds.role, currentEmployeeId: creds.employeeId })
-    } else {
-      // Allow any non-empty email+password for easy demo access (defaults to front-desk)
-      set({ isAuthenticated: true })
+      login: (email, password) => {
+        if (!email.trim() || !password.trim()) return false
+        const creds = CREDENTIAL_MAP[email.toLowerCase().trim()]
+        if (creds) {
+          set({ isAuthenticated: true, currentRole: creds.role, currentEmployeeId: creds.employeeId })
+        } else {
+          // Allow any non-empty email+password for easy demo access (defaults to front-desk)
+          set({ isAuthenticated: true })
+        }
+        return true
+      },
+
+      logout: () => set({ isAuthenticated: false }),
+    }),
+    {
+      name: 'vms-auth',
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        currentRole: state.currentRole,
+        currentEmployeeId: state.currentEmployeeId,
+        currentLocationId: state.currentLocationId,
+      }),
     }
-    return true
-  },
-
-  logout: () => set({ isAuthenticated: false }),
-}))
+  )
+)

@@ -22,6 +22,7 @@ export type VisitType =
   | 'cat-officials'
   | 'employee-other-branch'
   | 'general-visitor'
+  | 'hospitality'
   | 'other'
 
 export type BusinessSegment =
@@ -35,12 +36,6 @@ export type VisitorPriority = 'immediate' | 'in-a-month' | 'exploring'
 
 export type Department = 'admin' | 'hr' | 'it' | 'accounts'
 
-export interface Delegate {
-  name: string
-  mobile: string
-  checkOutTime?: string   // ISO string — set when this companion departs independently
-}
-
 export interface Visit {
   id: string
   visitorId: string
@@ -52,7 +47,10 @@ export interface Visit {
   visitType: VisitType
   scheduledDate: string
   scheduledTime: string
+  isMultiDay?: boolean
+  endDate?: string
   duration?: number          // expected duration in minutes
+  guestWifi?: boolean
   checkInTime?: string
   checkOutTime?: string
   badgeNumber?: string
@@ -61,28 +59,32 @@ export interface Visit {
   createdAt: string
   createdBy: string
   notes?: string
-  // Extended fields
+  // Extended fields (walk-in)
   department?: string
-  delegates?: Delegate[]
+  businessSegment?: BusinessSegment
+  priority?: VisitorPriority
+  model?: string
+  businessSegmentRemarks?: string
+  // Check-in captured fields
   laptopDetails?: string
   otherDeviceDetails?: string
   idProofType?: string
   idProofNumber?: string
   idPhotoCapture?: string
-  businessSegment?: BusinessSegment
-  priority?: VisitorPriority
-  model?: string
-  businessSegmentRemarks?: string
   hasVehicle?: boolean
   vehicleRegistration?: string
   visitorInTemperature?: string
+  issueAssets?: boolean
+  assetsIssued?: string
+  // Check-out fields
+  assetsReturned?: boolean
   visitorOutTemperature?: string
 }
 
 /** Visit type options available per purpose (universal — applies to all locations) */
 export const VISIT_TYPE_BY_PURPOSE: Record<Purpose, VisitType[]> = {
-  official:  ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'employee-other-branch', 'general-visitor', 'other'],
-  personal:  ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'employee-other-branch', 'general-visitor', 'other'],
+  official:  ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'employee-other-branch', 'general-visitor', 'hospitality', 'other'],
+  personal:  ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'employee-other-branch', 'general-visitor', 'hospitality', 'other'],
   training:  ['contractor', 'customer', 'employee-other-branch', 'general-visitor', 'other'],
   interview: ['vendor', 'employee-other-branch', 'general-visitor', 'other'],
   delivery:  ['general-visitor', 'other'],

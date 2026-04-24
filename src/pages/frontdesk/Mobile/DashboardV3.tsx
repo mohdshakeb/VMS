@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
 import Button from '@/components/Button'
 import KpiCardV2 from '@/components/KpiCardV2'
 import VisitCard from '@/components/VisitCard'
@@ -17,18 +18,25 @@ import type { Visit } from '@/types/visit'
 import { getVisitTypeLabel, getLocalDateString } from '@/utils/helpers'
 import EmptyState from '@/components/common/EmptyState'
 import CountBadge from '@/components/common/CountBadge'
-import AvatarBadge, { getInitials } from '@/components/common/AvatarBadge'
+import AvatarBadge from '@/components/common/AvatarBadge'
 import Collapsible from '@/components/common/Collapsible'
 import MobileSearchInput from '@/components/Mobile/MobileSearchInput'
 
 type ActiveFilter = 'all' | 'ready' | 'pending'
+type KpiFilter = 'all' | 'ready' | 'pending' | 'on-premises'
+
+const KPI_LABELS: Record<KpiFilter, string> = {
+  all: 'Total Visitors',
+  ready: 'Expected Today',
+  pending: 'Pending Approval',
+  'on-premises': 'On Premises',
+}
 
 export default function DashboardV3Mobile() {
   const visits = useVisitStore((s) => s.visits)
-  const checkOut = useVisitStore((s) => s.checkOut)
-  const checkOutDelegate = useVisitStore((s) => s.checkOutDelegate)
   const storeVisitors = useVisitStore((s) => s.visitors)
   const { currentLocationId } = useAuthStore()
+  const openCheckOut = useUIStore((s) => s.openCheckOut)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -39,6 +47,12 @@ export default function DashboardV3Mobile() {
   const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [showAllOnPremises, setShowAllOnPremises] = useState(false)
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
+
+  function handleKpiClick(filter: KpiFilter) {
+    setKpiFilter((prev) => (prev === filter ? null : filter))
+    setSearchInput('')
+  }
 
   useEffect(() => {
     if (incomingVisitId) {
@@ -62,7 +76,11 @@ export default function DashboardV3Mobile() {
   )
 
   const kpiExpected = todaysVisits.filter((v) => v.status === 'confirmed' || v.status === 'scheduled')
+  const kpiExpectedByEmployee = kpiExpected.filter(
+    (v) => v.entryPath === 'employee-request' || v.entryPath === 'pre-scheduled',
+  )
   const kpiOnPremises = todaysVisits.filter((v) => v.status === 'checked-in')
+  const kpiTotalVisited = todaysVisits.filter((v) => v.status === 'checked-in' || v.status === 'checked-out')
   const pendingApproval = todaysVisits.filter((v) => v.status === 'pending-approval')
 
   const overdueCount = kpiOnPremises.filter((v) => OVERDUE_VISIT_IDS.has(v.id)).length
@@ -81,9 +99,23 @@ export default function DashboardV3Mobile() {
         )
       })
     }
+    const sortReady = (arr: Visit[]) =>
+      [...arr].sort((a, b) => {
+        const aWalkIn = a.entryPath === 'walk-in'
+        const bWalkIn = b.entryPath === 'walk-in'
+        if (aWalkIn !== bWalkIn) return aWalkIn ? -1 : 1
+        if (aWalkIn && bWalkIn) return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        return a.scheduledTime.localeCompare(b.scheduledTime)
+      })
+    const sortPending = (arr: Visit[]) =>
+      [...arr].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    if (kpiFilter === 'all') return [...kpiTotalVisited].sort((a, b) => (b.checkInTime ?? '').localeCompare(a.checkInTime ?? ''))
+    if (kpiFilter === 'ready') return sortReady(kpiExpectedByEmployee)
+    if (kpiFilter === 'pending') return sortPending(pendingApproval)
+    if (kpiFilter === 'on-premises') return [...kpiOnPremises].sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
     if (activeFilter === 'all') return todaysVisits.filter((v) => v.status !== 'checked-in')
-    if (activeFilter === 'ready') return kpiExpected
-    if (activeFilter === 'pending') return pendingApproval
+    if (activeFilter === 'ready') return sortReady(kpiExpected)
+    if (activeFilter === 'pending') return sortPending(pendingApproval)
     return []
   }
 
@@ -99,16 +131,26 @@ export default function DashboardV3Mobile() {
           {/* Search bar — scrolls with content */}
           <MobileSearchInput
             value={searchInput}
-            onChange={setSearchInput}
+            onChange={(v) => { setSearchInput(v); setKpiFilter(null) }}
             placeholder="Search visitor name or company..."
           />
 
-          {searchInput.trim() ? (
-            /* ── Search results ── */
+          {(searchInput.trim() || kpiFilter !== null) ? (
+            /* ── Search / KPI results ── */
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
-                <p className="text-sm font-semibold text-text-primary flex-1">Search results</p>
+                <p className="text-sm font-semibold text-text-primary flex-1">
+                  {kpiFilter && !searchInput.trim() ? KPI_LABELS[kpiFilter] : 'Search results'}
+                </p>
                 <CountBadge count={resultList.length} />
+                {kpiFilter && !searchInput.trim() && (
+                  <button
+                    onClick={() => setKpiFilter(null)}
+                    className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors ml-1"
+                  >
+                    <i className="ri-close-line text-base" />
+                  </button>
+                )}
               </div>
               <div className="p-3 space-y-2">
                 {resultList.length === 0 ? (
@@ -137,12 +179,13 @@ export default function DashboardV3Mobile() {
               <div className="grid grid-cols-2 gap-2">
                 <KpiCardV2
                   label="Total Visitors"
-                  info="Total checked-in"
-                  value={todaysVisits.length}
+                  info="Checked-in and checked-out"
+                  value={kpiTotalVisited.length}
                   icon="ri-group-fill"
                   color="blue"
                   trend={MOCK_TREND_TOTAL}
-                  onClick={() => handleFilterChange('all')}
+                  active={kpiFilter === 'all'}
+                  onClick={() => handleKpiClick('all')}
                 />
                 <KpiCardV2
                   label="Pending Approval"
@@ -153,7 +196,8 @@ export default function DashboardV3Mobile() {
                   alertCount={delayedCount}
                   alertLabel="need follow-up"
                   alertColor="orange"
-                  onClick={() => handleFilterChange('pending')}
+                  active={kpiFilter === 'pending'}
+                  onClick={() => handleKpiClick('pending')}
                 />
                 <KpiCardV2
                   label="On Premises"
@@ -164,16 +208,18 @@ export default function DashboardV3Mobile() {
                   alertCount={overdueCount}
                   alertLabel="overdue"
                   alertColor="red"
-                  onClick={() => navigate('/front-desk/check-out')}
+                  active={kpiFilter === 'on-premises'}
+                  onClick={() => handleKpiClick('on-premises')}
                 />
                 <KpiCardV2
                   label="Expected Today"
-                  info="Confirmed, awaiting arrival"
-                  value={kpiExpected.length}
+                  info="By employee, awaiting arrival"
+                  value={kpiExpectedByEmployee.length}
                   icon="ri-calendar-check-fill"
                   color="purple"
                   trend={MOCK_TREND_EXPECTED}
-                  onClick={() => handleFilterChange('ready')}
+                  active={kpiFilter === 'ready'}
+                  onClick={() => handleKpiClick('ready')}
                 />
               </div>
 
@@ -256,7 +302,6 @@ export default function DashboardV3Mobile() {
                         const visitor = visitorMap[visit.visitorId]
                         const name = visitor?.name ?? 'Unknown Visitor'
                         const host = employees.find((e) => e.id === visit.hostEmployeeId)
-                        const hasGroup = (visit.delegates?.length ?? 0) > 0
                         const expectedOutTime =
                           visit.checkInTime && visit.duration
                             ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60 * 1000)
@@ -272,18 +317,12 @@ export default function DashboardV3Mobile() {
                           if (!isOverdue || !expectedOutTime) return null
                           const diffMs = now.getTime() - expectedOutTime.getTime()
                           if (diffMs <= 0) return null
-                          const totalMin = Math.floor(diffMs / 60000)
+                          const totalMin = Math.min(Math.floor(diffMs / 60000), 180)
                           const h = Math.floor(totalMin / 60)
                           const m = totalMin % 60
                           return `+${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
                         })()
                         const isRowExpanded = expandedEntryKey === visit.id
-                        function handleCheckOutAll() {
-                          visit.delegates?.forEach((d, i) => {
-                            if (!d.checkOutTime) checkOutDelegate(visit.id, i)
-                          })
-                          checkOut(visit.id)
-                        }
                         return (
                           <div key={visit.id}>
                             {idx > 0 && <div className="h-px bg-surface-secondary mx-4" />}
@@ -298,7 +337,6 @@ export default function DashboardV3Mobile() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
                                   <p className="text-sm font-medium text-text-primary truncate">{name}</p>
-                                  {hasGroup && <span className="shrink-0 text-[11px] text-brand">+{visit.delegates!.length} others</span>}
                                 </div>
                                 <div className="flex items-center gap-1 mt-0.5 text-[11px] text-text-tertiary">
                                   {visit.badgeNumber && <span className="shrink-0">{visit.badgeNumber}</span>}
@@ -333,47 +371,14 @@ export default function DashboardV3Mobile() {
                                     </div>
                                   </div>
 
-                                  {hasGroup && (
-                                    <div>
-                                      <div className="h-px bg-border-light mb-2.5" />
-                                      <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">Members</p>
-                                      <div className="space-y-2">
-                                        {visit.delegates!.map((d, i) => {
-                                          const coTime = d.checkOutTime ? new Date(d.checkOutTime) : null
-                                          return (
-                                            <div key={i} className="flex items-center gap-2">
-                                              <div className="h-5 w-5 rounded-full bg-surface-secondary flex items-center justify-center text-[9px] font-semibold text-text-tertiary shrink-0">
-                                                {getInitials(d.name)}
-                                              </div>
-                                              <div className="min-w-0 flex-1">
-                                                <p className="text-xs text-text-primary truncate">{d.name}</p>
-                                                <p className="text-[11px] text-text-tertiary">{d.mobile}</p>
-                                              </div>
-                                              {coTime ? (
-                                                <span className="text-[11px] text-text-tertiary whitespace-nowrap shrink-0">
-                                                  Left {coTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                              ) : (
-                                                <Button size="sm" variant="secondary" icon="ri-logout-box-line"
-                                                  onClick={(e) => { e.stopPropagation(); checkOutDelegate(visit.id, i) }}>
-                                                  Check out
-                                                </Button>
-                                              )}
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                      <div className="h-px bg-border-light mt-2.5" />
-                                    </div>
-                                  )}
-
                                   <div className="flex gap-2">
                                     <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
-                                      onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/check-out/${visit.id}`) }}>
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/visit/${visit.id}`) }}>
                                       View Details
                                     </Button>
-                                    <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth onClick={handleCheckOutAll}>
-                                      {hasGroup ? 'Check out all' : 'Check out'}
+                                    <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth
+                                      onClick={(e) => { e.stopPropagation(); openCheckOut(visit.id) }}>
+                                      Check out
                                     </Button>
                                   </div>
                                 </div>

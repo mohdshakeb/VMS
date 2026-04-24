@@ -7,10 +7,7 @@ import type { Role } from '@/types/user'
 import logoUrl from '@/assets/Logo.svg'
 
 // Maps child route prefixes to their parent nav path so the correct item stays highlighted
-const childToParentNav: Record<string, string> = {
-  '/front-desk/check-in': '/front-desk/dashboard',
-  '/front-desk/check-out': '/front-desk/dashboard',
-}
+const childToParentNav: Record<string, string> = {}
 
 function getActiveNavPath(pathname: string): string {
   for (const [prefix, parent] of Object.entries(childToParentNav)) {

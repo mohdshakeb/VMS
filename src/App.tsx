@@ -4,12 +4,12 @@ import Login from '@/pages/shared/Login'
 import FrontDeskDashboardV3 from '@/pages/frontdesk/DashboardV3'
 import CreateWalkIn from '@/pages/frontdesk/CreateWalkIn'
 import VisitRequests from '@/pages/frontdesk/VisitRequests'
-import CheckIn from '@/pages/frontdesk/CheckIn'
-import CheckOut from '@/pages/frontdesk/CheckOut'
+import VisitDetail from '@/pages/frontdesk/VisitDetail'
 import MyVisits from '@/pages/employee/MyVisits'
 import ApproveWalkIn from '@/pages/employee/ApproveWalkIn'
 import Notifications from '@/pages/shared/Notifications'
 import VisitHistory from '@/pages/frontdesk/VisitHistory'
+import QRCodePage from '@/pages/frontdesk/QRCodePage'
 import { useAuthStore } from '@/store/authStore'
 
 function PrivateLayout() {
@@ -33,9 +33,9 @@ export default function App() {
         <Route path="/front-desk/dashboard" element={<FrontDeskDashboardV3 />} />
 <Route path="/front-desk/walk-in" element={<CreateWalkIn />} />
         <Route path="/front-desk/visit-requests" element={<VisitRequests />} />
-        <Route path="/front-desk/check-in/:visitId" element={<CheckIn />} />
-        <Route path="/front-desk/check-out/:visitId" element={<CheckOut />} />
+        <Route path="/front-desk/visit/:visitId" element={<VisitDetail />} />
         <Route path="/front-desk/visit-history" element={<VisitHistory />} />
+        <Route path="/front-desk/qr-code" element={<QRCodePage />} />
 
         {/* Employee */}
         <Route path="/employee/visits" element={<MyVisits />} />

@@ -1,11 +1,11 @@
-import { useState } from 'react'
 import type { Visit } from '@/types/visit'
 import type { Role } from '@/types/user'
 import Button from './Button'
 import { employees } from '@/data/employees'
-import { formatTime, addMinutesToTime } from '@/utils/helpers'
+import { OVERDUE_VISIT_IDS } from '@/data/visits'
+import { formatTime, addMinutesToTime, formatDate } from '@/utils/helpers'
 import { useNavigate } from 'react-router-dom'
-import { useVisitStore } from '@/store/visitStore'
+import { useUIStore } from '@/store/uiStore'
 
 interface VisitCardProps {
   visit: Visit
@@ -17,20 +17,42 @@ interface VisitCardProps {
 
 export default function VisitCard({ visit, visitorName, visitorPhone, visitorAvatar, role }: VisitCardProps) {
   const navigate = useNavigate()
-  const checkOut = useVisitStore((s) => s.checkOut)
-  const checkOutDelegate = useVisitStore((s) => s.checkOutDelegate)
+  const openCheckIn = useUIStore((s) => s.openCheckIn)
+  const openCheckOut = useUIStore((s) => s.openCheckOut)
   const host = employees.find((e) => e.id === visit.hostEmployeeId)
 
-  // Consolidated time/detail logic
-  const checkInDisplay = visit.checkInTime
-    ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : formatTime(visit.scheduledTime)
+  const isEmployeeInvited = visit.entryPath === 'employee-request' || visit.entryPath === 'pre-scheduled'
 
-  const expectedOut = (visit.checkInTime && visit.duration)
-    ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  // Checked-in → actual check-in time; employee-invited → scheduled time; walk-in → creation time
+  const timeDisplay = visit.checkInTime
+    ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : isEmployeeInvited
+      ? formatTime(visit.scheduledTime)
+      : new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  const timeIcon = visit.status === 'checked-in'
+    ? 'ri-login-box-line'
+    : isEmployeeInvited
+      ? 'ri-calendar-schedule-line'
+      : 'ri-time-line'
+
+  const expectedOutDate = (visit.checkInTime && visit.duration)
+    ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60000)
+    : null
+
+  const expectedOut = expectedOutDate
+    ? expectedOutDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : visit.duration
       ? formatTime(addMinutesToTime(visit.scheduledTime, visit.duration))
       : null
+
+  const isOvertime = visit.status === 'checked-in' && OVERDUE_VISIT_IDS.has(visit.id)
+  const overtimeMinutes = isOvertime && expectedOutDate
+    ? Math.min(Math.floor((Date.now() - expectedOutDate.getTime()) / 60000), 180)
+    : 0
+  const overtimeLabel = overtimeMinutes >= 60
+    ? `+${Math.floor(overtimeMinutes / 60)}h${overtimeMinutes % 60 > 0 ? ` ${overtimeMinutes % 60}m` : ''}`
+    : `+${overtimeMinutes}m`
 
   const checkOutDisplay = visit.checkOutTime
     ? new Date(visit.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -44,36 +66,11 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
   }
   const terminalBar = terminalStatus[visit.status] ?? null
 
-  const isClickable = role === 'front-desk'
-  const hasDelegate = visit.delegates && visit.delegates.length > 0
-  const [delegatesOpen, setDelegatesOpen] = useState(false)
-  const showCheckOut = visit.status === 'checked-in'
-
-  const delegateRows = hasDelegate
-    ? visit.delegates!.map((d, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <div className="h-5 w-5 rounded-full bg-surface-secondary flex items-center justify-center text-[9px] font-semibold text-text-tertiary shrink-0">
-            {d.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')}
-          </div>
-          <span className="text-xs text-text-primary flex-1 min-w-0 truncate">{d.name}</span>
-          {!showCheckOut && <span className="text-[11px] text-text-tertiary whitespace-nowrap shrink-0">{d.mobile}</span>}
-          {d.checkOutTime ? (
-            <span className="ml-auto text-[10px] text-text-tertiary bg-surface-secondary rounded px-1.5 py-0.5 shrink-0">
-              Left {new Date(d.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          ) : showCheckOut ? (
-            <Button size="sm" variant="secondary" icon="ri-logout-box-line"
-              onClick={(e) => { e.stopPropagation(); checkOutDelegate(visit.id, i) }}>
-              Check out
-            </Button>
-          ) : null}
-        </div>
-      ))
-    : null
-
   const hasAction =
     (role === 'front-desk' && ['pending-approval', 'confirmed', 'scheduled', 'checked-in'].includes(visit.status)) ||
     (role === 'employee' && visit.status === 'pending-approval')
+
+  const isTerminal = ['checked-out', 'cancelled', 'no-show', 'rejected'].includes(visit.status)
 
   const initials = visitorName
     .split(' ')
@@ -82,18 +79,36 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
     .map((w) => w[0].toUpperCase())
     .join('')
 
+  // Checked-in visits: prefer id-photo captured at check-in, fall back to form avatar.
+  // Walk-ins (not yet checked in): show avatar from the walk-in form.
+  const photoSrc = visit.status === 'checked-in'
+    ? (visit.idPhotoCapture ?? visitorAvatar ?? null)
+    : visit.entryPath === 'walk-in'
+      ? (visitorAvatar ?? null)
+      : null
+  const showPhoto = !!photoSrc
+
+  const entryBadge =
+    (visit.entryPath === 'employee-request' || visit.entryPath === 'pre-scheduled')
+      ? { label: 'By Employee', icon: 'ri-user-star-line' }
+      : null
+
+  function handleCardClick() {
+    navigate(`/front-desk/visit/${visit.id}`)
+  }
+
   return (
     <div
-      className={`rounded-xl bg-white border border-border-light shadow-sm transition-all duration-150 ${isClickable ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''}`}
-      onClick={isClickable ? () => navigate(`/front-desk/check-in/${visit.id}`) : undefined}
+      className="rounded-xl bg-white border border-border-light shadow-sm transition-all duration-150 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+      onClick={handleCardClick}
     >
       {/* ── Top body ─────────────────────────────────────── */}
       <div className="px-4 pt-4 pb-1.5 flex gap-3">
         {/* Avatar */}
         <div className="shrink-0 self-start">
-          {visitorAvatar ? (
+          {showPhoto ? (
             <img
-              src={visitorAvatar}
+              src={photoSrc!}
               alt={visitorName}
               className="h-10 w-10 rounded-full object-cover border border-border"
             />
@@ -108,14 +123,16 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="text-sm font-medium text-text-primary truncate">{visitorName}</p>
-            {hasDelegate && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setDelegatesOpen((v) => !v) }}
-                className="hidden md:inline-flex items-center cursor-pointer gap-0.5 text-xs text-brand hover:text-brand-hover transition-colors shrink-0"
-              >
-                +{visit.delegates!.length} others
-                <i className={`ri-arrow-down-s-line transition-transform duration-200 ${delegatesOpen ? 'rotate-180' : ''}`} />
-              </button>
+            {entryBadge && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-50 border border-violet-200 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 shrink-0">
+                <i className={`${entryBadge.icon} text-[10px]`} />
+                {entryBadge.label}
+              </span>
+            )}
+            {visit.isMultiDay && (
+              <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 shrink-0">
+                Multi-day
+              </span>
             )}
           </div>
           {visitorPhone && (
@@ -124,21 +141,26 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
         </div>
       </div>
 
-      {/* ── Footer: mobile — 2×2 grid + full-width button ── */}
-      <div className={`md:hidden pl-[4.25rem] pr-4 pt-1 ${hasAction ? 'pb-2' : 'pb-3'}`}>
+      {/* ── Footer: mobile ── */}
+      <div className={`md:hidden pl-[4.25rem] pr-4 pt-1 ${hasAction || isTerminal ? 'pb-2' : 'pb-3'}`}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-          <span className="inline-flex items-center gap-1 shrink-0">
-            <i className="ri-time-line shrink-0 text-text-tertiary/80" />
-            <span className="text-text-secondary font-medium">{checkInDisplay}</span>
-          </span>
+          {timeDisplay && (
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <i className={`${timeIcon} shrink-0 text-text-tertiary/80`} />
+              <span className="text-text-secondary font-medium">{timeDisplay}</span>
+            </span>
+          )}
           <span className="inline-flex items-center gap-1 shrink-0">
             <i className="ri-user-line shrink-0 text-text-tertiary/80" />
             <span className="text-text-secondary truncate">{host?.name ?? 'Unknown'}</span>
           </span>
-          {checkOutDisplay && visit.status !== 'pending-approval' && (
-            <span className="col-start-1 inline-flex items-center gap-1 shrink-0">
-              <i className="ri-logout-box-r-line shrink-0 text-text-tertiary/80" />
-              <span className="text-text-secondary">{checkOutDisplay}</span>
+          {checkOutDisplay && !!visit.checkInTime && (
+            <span className="col-start-1 inline-flex items-baseline gap-1 shrink-0">
+              <i className={`ri-logout-box-r-line shrink-0 ${isOvertime ? 'text-red-500' : 'text-text-tertiary/80'} self-center`} />
+              <span className={isOvertime ? 'text-red-500 font-medium' : 'text-text-secondary'}>{checkOutDisplay}</span>
+              {isOvertime && (
+                <span className="text-red-500 font-medium text-[10px]">{overtimeLabel}</span>
+              )}
             </span>
           )}
           {visit.badgeNumber && (
@@ -147,67 +169,55 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
               <span className="text-text-secondary font-medium">{visit.badgeNumber}</span>
             </span>
           )}
+          {visit.isMultiDay && visit.endDate && (
+            <span className="col-span-2 inline-flex items-center gap-1 shrink-0">
+              <i className="ri-calendar-line shrink-0 text-text-tertiary/80" />
+              <span className="text-text-secondary">Until {formatDate(visit.endDate)}</span>
+            </span>
+          )}
         </div>
       </div>
-      {/* ── Mobile: group members (after details, before action) ── */}
-      {hasDelegate && (
-        <div className="md:hidden px-4 pb-2" onClick={(e) => e.stopPropagation()}>
-          <div className="h-px bg-border-light mb-3" />
-          <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">Group members</p>
-          <div className="space-y-2">{delegateRows}</div>
-        </div>
-      )}
+      <div className="md:hidden px-4 pt-1.5 pb-3" onClick={(e) => e.stopPropagation()}>
+        <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} fullWidth />
+      </div>
 
-      {hasAction && (
-        <div className="md:hidden px-4 pt-2 pb-3" onClick={(e) => e.stopPropagation()}>
-          <VisitActions visit={visit} role={role} navigate={navigate} checkOut={checkOut} checkOutDelegate={checkOutDelegate} fullWidth />
-        </div>
-      )}
-
-      {/* ── Footer: desktop — unified inline bar ── */}
+      {/* ── Footer: desktop ── */}
       <div className="hidden md:flex pl-[4.25rem] pr-4 items-center flex-wrap gap-x-3 gap-y-1 text-xs text-text-tertiary pt-1 pb-3">
-        <span className="inline-flex items-center gap-1 shrink-0">
-          <i className="ri-time-line shrink-0 text-text-tertiary/80" />
-          <span className="text-text-secondary font-medium">{checkInDisplay}</span>
-        </span>
-
+        {timeDisplay && (
+          <span className="inline-flex items-center gap-1 shrink-0">
+            <i className={`${timeIcon} shrink-0 text-text-tertiary/80`} />
+            <span className="text-text-secondary font-medium">{timeDisplay}</span>
+          </span>
+        )}
         <span className="inline-flex items-center gap-1 shrink-0">
           <i className="ri-user-line shrink-0 text-text-tertiary/80" />
           <span className="text-text-secondary truncate max-w-[120px]">{host?.name ?? 'Unknown'}</span>
         </span>
-
-        {checkOutDisplay && visit.status !== 'pending-approval' && (
-          <span className="inline-flex items-center gap-1 shrink-0">
-            <i className="ri-logout-box-r-line shrink-0 text-text-tertiary/80" />
-            <span className="text-text-secondary">{checkOutDisplay}</span>
+        {checkOutDisplay && !!visit.checkInTime && (
+          <span className="inline-flex items-baseline gap-1 shrink-0">
+            <i className={`ri-logout-box-r-line shrink-0 ${isOvertime ? 'text-red-500' : 'text-text-tertiary/80'} self-center`} />
+            <span className={isOvertime ? 'text-red-500 font-medium' : 'text-text-secondary'}>{checkOutDisplay}</span>
+            {isOvertime && (
+              <span className="text-red-500 font-medium text-[10px]">{overtimeLabel}</span>
+            )}
           </span>
         )}
-
         {visit.badgeNumber && (
           <span className="inline-flex items-center gap-1 shrink-0">
             <i className="ri-id-card-line shrink-0 text-text-tertiary/80" />
             <span className="text-text-secondary font-medium">{visit.badgeNumber}</span>
           </span>
         )}
-        {hasAction && (
-          <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
-            <VisitActions visit={visit} role={role} navigate={navigate} checkOut={checkOut} checkOutDelegate={checkOutDelegate} />
-          </div>
+        {visit.isMultiDay && visit.endDate && (
+          <span className="inline-flex items-center gap-1 shrink-0">
+            <i className="ri-calendar-line shrink-0 text-text-tertiary/80" />
+            <span className="text-text-secondary">Until {formatDate(visit.endDate)}</span>
+          </span>
         )}
-      </div>
-
-      {/* ── Desktop: group members (collapsible, after inline bar) ── */}
-      {hasDelegate && (
-        <div className={`hidden md:grid transition-[grid-template-rows] duration-200 ease-in-out ${delegatesOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-          <div className="overflow-hidden min-h-0" onClick={(e) => e.stopPropagation()}>
-            <div className="px-4 pl-[4.25rem] pb-3">
-              <div className="h-px bg-border-light mb-3" />
-              <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">Group members</p>
-              <div className="space-y-2">{delegateRows}</div>
-            </div>
-          </div>
+        <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+          <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} />
         </div>
-      )}
+      </div>
 
       {/* ── Terminal status bar ── */}
       {terminalBar && (
@@ -221,52 +231,54 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
 }
 
 function VisitActions({
-  visit, role, navigate, checkOut, checkOutDelegate, fullWidth,
+  visit, role, openCheckIn, openCheckOut, navigate, fullWidth,
 }: {
   visit: Visit
   role: Role
+  openCheckIn: (id: string) => void
+  openCheckOut: (id: string) => void
   navigate: ReturnType<typeof useNavigate>
-  checkOut: (id: string) => void
-  checkOutDelegate: (id: string, idx: number) => void
   fullWidth?: boolean
 }) {
   if (role === 'front-desk') {
     switch (visit.status) {
       case 'pending-approval':
         return (
-          <Button size="sm" variant="secondary" icon="ri-login-box-line" fullWidth={fullWidth} onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/check-in/${visit.id}`) }}>
+          <Button
+            size="sm" variant="secondary" icon="ri-login-box-line" fullWidth={fullWidth}
+            onClick={() => openCheckIn(visit.id)}
+          >
             Manual Check-in
           </Button>
         )
       case 'confirmed':
       case 'scheduled':
         return (
-          <Button size="sm" variant="secondary" icon="ri-login-box-line" fullWidth={fullWidth} onClick={() => navigate(`/front-desk/check-in/${visit.id}`)}>
+          <Button
+            size="sm" variant="secondary" icon="ri-login-box-line" fullWidth={fullWidth}
+            onClick={() => openCheckIn(visit.id)}
+          >
             Check In
           </Button>
         )
-      case 'checked-in': {
-        const hasDelegate = (visit.delegates?.length ?? 0) > 0
-        if (hasDelegate) {
-          function handleCheckOutAll(e: React.MouseEvent) {
-            e.stopPropagation()
-            visit.delegates?.forEach((d, i) => { if (!d.checkOutTime) checkOutDelegate(visit.id, i) })
-            checkOut(visit.id)
-          }
-          return (
-            <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth={fullWidth} onClick={handleCheckOutAll}>
-              Check Out All
-            </Button>
-          )
-        }
+      case 'checked-in':
         return (
-          <Button size="sm" variant="secondary" icon="ri-logout-box-line" fullWidth={fullWidth} onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/check-out/${visit.id}`) }}>
+          <Button
+            size="sm" variant="secondary" icon="ri-logout-box-line" fullWidth={fullWidth}
+            onClick={() => openCheckOut(visit.id)}
+          >
             Check Out
           </Button>
         )
-      }
       default:
-        return null
+        return (
+          <Button
+            size="sm" variant="ghost" icon="ri-eye-line" fullWidth={fullWidth}
+            onClick={() => navigate(`/front-desk/visit/${visit.id}`)}
+          >
+            View Detail
+          </Button>
+        )
     }
   }
 

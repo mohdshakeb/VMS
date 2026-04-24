@@ -69,7 +69,7 @@ export default function VisitHistoryMobile() {
   ]
 
   return (
-    <div className="md:hidden h-full flex flex-col">
+    <div className="md:hidden h-full flex flex-col bg-surface-secondary">
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
 

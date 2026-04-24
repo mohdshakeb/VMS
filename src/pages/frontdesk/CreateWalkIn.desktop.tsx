@@ -9,9 +9,10 @@ import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { employees } from '@/data/employees'
 import { VISIT_TYPE_BY_PURPOSE } from '@/types/visit'
-import type { Purpose, VisitType, BusinessSegment, VisitorPriority, Delegate } from '@/types/visit'
+import type { Purpose, VisitType, BusinessSegment, VisitorPriority } from '@/types/visit'
 import Button from '@/components/Button'
 import Modal from '@/components/Modal'
+import SectionLabel from '@/components/common/SectionLabel'
 import visitorPictureUrl from '@/assets/visitorPicture.png'
 import logoBlackUrl from '@/assets/logoBlack.svg'
 import {
@@ -29,8 +30,7 @@ import {
 const ALL_PURPOSES: Purpose[] = ['official', 'personal', 'training', 'interview', 'delivery']
 const BUSINESS_SEGMENTS: BusinessSegment[] = ['machines', 'engines', 'parts-purchased', 'service-inquiry', 'other']
 const VISITOR_PRIORITIES: VisitorPriority[] = ['immediate', 'in-a-month', 'exploring']
-const COMPANY_REQUIRED_TYPES: VisitType[] = ['vendor', 'contractor', 'customer', 'government-official']
-const ID_PROOF_REQUIRED_TYPES: VisitType[] = ['cat-officials', 'vendor', 'contractor', 'customer', 'government-official', 'general-visitor', 'other']
+const COMPANY_REQUIRED_TYPES: VisitType[] = ['vendor', 'contractor']
 
 const STEPS = [
   { label: 'Visitor', icon: 'ri-user-3-line', title: 'Visitor Details' },
@@ -56,21 +56,15 @@ interface FormData {
   department: string
   scheduledDate: string
   scheduledTime: string
+  isMultiDay: boolean
+  endDate: string
   duration: number | ''
-  isDelegation: boolean
+  guestWifi: boolean
   photo: string
-  idProofType: string
-  idProofNumber: string
-  idPhotoCapture: string
   businessSegment: BusinessSegment | ''
   priority: VisitorPriority | ''
   model: string
   businessSegmentRemarks: string
-  laptopDetails: string
-  otherDeviceDetails: string
-  hasVehicle: boolean
-  vehicleRegistration: string
-  visitorInTemperature: string
   notes: string
 }
 
@@ -80,9 +74,6 @@ function isCompanyRequired(visitType: VisitType | ''): boolean {
   return COMPANY_REQUIRED_TYPES.includes(visitType as VisitType)
 }
 
-function isIdProofRequired(visitType: VisitType | ''): boolean {
-  return ID_PROOF_REQUIRED_TYPES.includes(visitType as VisitType)
-}
 
 const MOBILE_REGEX = /^\+?[\d\s\-(). ]{7,20}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -96,7 +87,7 @@ function isEmailValid(email: string): boolean {
 }
 
 function isStep1Valid(data: FormData): boolean {
-  if (!data.firstName.trim() || !data.mobile.trim()) return false
+  if (!data.firstName.trim() || !data.lastName.trim() || !data.mobile.trim()) return false
   if (!isMobileValid(data.mobile)) return false
   if (data.email.trim() && !isEmailValid(data.email)) return false
   return true
@@ -129,21 +120,15 @@ const defaultFormData: FormData = {
     const now = new Date()
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   })(),
+  isMultiDay: false,
+  endDate: '',
   duration: '',
-  isDelegation: false,
+  guestWifi: false,
   photo: '',
-  idProofType: '',
-  idProofNumber: '',
-  idPhotoCapture: '',
   businessSegment: '',
   priority: '',
   model: '',
   businessSegmentRemarks: '',
-  laptopDetails: '',
-  otherDeviceDetails: '',
-  hasVehicle: false,
-  vehicleRegistration: '',
-  visitorInTemperature: '',
   notes: '',
 }
 
@@ -155,7 +140,6 @@ export default function CreateWalkInDesktop() {
   const locationId = useAuthStore((s) => s.currentLocationId)
 
   const [formData, setFormData] = useState<FormData>(defaultFormData)
-  const [delegates, setDelegates] = useState<Delegate[]>([])
   const [visitId] = useState(() => generateVisitId())
   const [currentStep, setCurrentStep] = useState(1)
 
@@ -169,7 +153,6 @@ export default function CreateWalkInDesktop() {
 
   const showCustomerBlock = formData.visitType === 'customer'
   const companyRequired = isCompanyRequired(formData.visitType)
-  const idProofRequired = isIdProofRequired(formData.visitType)
 
   const locationEmployees = employees.filter((e) => e.locationId === locationId)
   const filteredEmployees = locationEmployees.filter(
@@ -204,18 +187,6 @@ export default function CreateWalkInDesktop() {
     })
   }
 
-  function handleAddDelegate() {
-    setDelegates((prev) => [...prev, { name: '', mobile: '' }])
-  }
-
-  function handleRemoveDelegate(index: number) {
-    setDelegates((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  function handleDelegateChange(index: number, field: keyof Delegate, value: string) {
-    setDelegates((prev) => prev.map((d, i) => (i === index ? { ...d, [field]: value } : d)))
-  }
-
   function handleNext() {
     if (currentStep === 1 && isStep1Valid(formData)) setCurrentStep(2)
     else if (currentStep === 2 && isStep2Valid(formData)) setCurrentStep(3)
@@ -242,15 +213,10 @@ export default function CreateWalkInDesktop() {
       department: formData.department || undefined,
       scheduledDate: formData.scheduledDate,
       scheduledTime: formData.scheduledTime,
+      isMultiDay: formData.isMultiDay || undefined,
+      endDate: formData.isMultiDay ? formData.endDate || undefined : undefined,
       duration: formData.duration !== '' ? formData.duration : undefined,
-      delegates: delegates.filter((d) => d.name.trim() && d.mobile.trim()),
-      idProofType: formData.idProofType || undefined,
-      idProofNumber: formData.idProofNumber.trim() || undefined,
-      laptopDetails: formData.laptopDetails.trim() || undefined,
-      otherDeviceDetails: formData.otherDeviceDetails.trim() || undefined,
-      hasVehicle: formData.hasVehicle || undefined,
-      vehicleRegistration: formData.vehicleRegistration.trim() || undefined,
-      visitorInTemperature: formData.visitorInTemperature.trim() || undefined,
+      guestWifi: formData.guestWifi || undefined,
       businessSegment: (formData.businessSegment as BusinessSegment) || undefined,
       priority: (formData.priority as VisitorPriority) || undefined,
       model: formData.model.trim() || undefined,
@@ -335,35 +301,16 @@ export default function CreateWalkInDesktop() {
             )}
           </PreviewSection>
 
-          {(formData.email.trim() ||
-            formData.idProofType ||
-            formData.hasVehicle ||
-            formData.laptopDetails.trim() ||
-            formData.otherDeviceDetails.trim() ||
-            formData.notes.trim() ||
-            (formData.isDelegation && delegates.some((d) => d.name.trim()))) && (
-              <PreviewSection title="Additional Info">
-                {formData.email.trim() && <PreviewRow label="Email" value={formData.email.trim()} />}
-                {formData.idProofType && (
-                  <PreviewRow
-                    label="ID Proof"
-                    value={[formData.idProofType, formData.idProofNumber.trim()].filter(Boolean).join(' · ')}
-                  />
-                )}
-                {formData.hasVehicle && formData.vehicleRegistration.trim() && (
-                  <PreviewRow label="Vehicle" value={formData.vehicleRegistration.trim()} />
-                )}
-                {formData.laptopDetails.trim() && <PreviewRow label="Laptop" value={formData.laptopDetails.trim()} />}
-                {formData.otherDeviceDetails.trim() && <PreviewRow label="Other Devices" value={formData.otherDeviceDetails.trim()} />}
-                {formData.isDelegation && delegates.filter((d) => d.name.trim()).length > 0 && (
-                  <PreviewRow
-                    label={`Group (+${delegates.filter((d) => d.name.trim()).length})`}
-                    value={delegates.filter((d) => d.name.trim()).map((d) => d.name.trim()).join(', ')}
-                  />
-                )}
-                {formData.notes.trim() && <PreviewRow label="Notes" value={formData.notes.trim()} />}
-              </PreviewSection>
-            )}
+          {(formData.email.trim() || formData.guestWifi || formData.isMultiDay || formData.notes.trim()) && (
+            <PreviewSection title="Additional Info">
+              {formData.email.trim() && <PreviewRow label="Email" value={formData.email.trim()} />}
+              {formData.guestWifi && <PreviewRow label="Guest WiFi" value="Requested" />}
+              {formData.isMultiDay && formData.endDate && (
+                <PreviewRow label="Multi-Day Until" value={formData.endDate} />
+              )}
+              {formData.notes.trim() && <PreviewRow label="Remarks" value={formData.notes.trim()} />}
+            </PreviewSection>
+          )}
         </div>
       </Modal>
 
@@ -423,7 +370,7 @@ export default function CreateWalkInDesktop() {
 
             {/* Section header */}
             <div className="px-[72px] pt-[72px] pb-4">
-              <SectionHeader icon={STEPS[currentStep - 1].icon} title={STEPS[currentStep - 1].title} />
+              <SectionLabel icon={STEPS[currentStep - 1].icon} title={STEPS[currentStep - 1].title} />
             </div>
 
             {/* Form content — no inner scroll */}
@@ -461,7 +408,7 @@ export default function CreateWalkInDesktop() {
                           className="form-input"
                         />
                       </Field>
-                      <Field label="Last Name">
+                      <Field label="Last Name" required>
                         <input
                           type="text"
                           value={formData.lastName}
@@ -611,6 +558,51 @@ export default function CreateWalkInDesktop() {
                       </div>
                     </Field>
 
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Date" required>
+                        <input
+                          type="date"
+                          value={formData.scheduledDate}
+                          onChange={(e) => handleChange('scheduledDate', e.target.value)}
+                          className="form-input"
+                        />
+                      </Field>
+                      <Field label="Time" required>
+                        <input
+                          type="time"
+                          value={formData.scheduledTime}
+                          onChange={(e) => handleChange('scheduledTime', e.target.value)}
+                          className="form-input"
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.isMultiDay}
+                          onChange={(e) => handleChange('isMultiDay', e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-brand"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-text-primary">Multi-day visit</span>
+                          <p className="text-xs text-text-secondary">Specify an end date for extended stays</p>
+                        </div>
+                      </label>
+                      {formData.isMultiDay && (
+                        <Field label="End Date">
+                          <input
+                            type="date"
+                            value={formData.endDate}
+                            min={formData.scheduledDate}
+                            onChange={(e) => handleChange('endDate', e.target.value)}
+                            className="form-input"
+                          />
+                        </Field>
+                      )}
+                    </div>
+
                     <Field label="Duration">
                       <select
                         value={formData.duration}
@@ -628,66 +620,21 @@ export default function CreateWalkInDesktop() {
                       </select>
                     </Field>
 
-                    <div className="rounded-lg border border-border p-4 space-y-3">
+                    <div className="rounded-lg border border-border p-3">
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={formData.isDelegation}
-                          onChange={(e) => {
-                            handleChange('isDelegation', e.target.checked)
-                            if (!e.target.checked) setDelegates([])
-                          }}
+                          checked={formData.guestWifi}
+                          onChange={(e) => handleChange('guestWifi', e.target.checked)}
                           className="w-4 h-4 rounded border-border accent-brand"
                         />
                         <div>
-                          <span className="text-sm font-medium text-text-primary">Group / Delegation Visit</span>
-                          <p className="text-xs text-text-secondary">Multiple visitors arriving together</p>
+                          <span className="text-sm font-medium text-text-primary">Guest WiFi Access</span>
+                          <p className="text-xs text-text-secondary">Visitor requires temporary WiFi credentials</p>
                         </div>
                       </label>
-
-                      {formData.isDelegation && (
-                        <div className="space-y-2 pt-1">
-                          <p className="text-xs text-text-tertiary">
-                            Primary visitor details are captured above. Add additional delegates below.
-                          </p>
-                          {delegates.map((delegate, index) => (
-                            <div key={index} className="flex gap-2 items-start">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <input
-                                  type="text"
-                                  value={delegate.name}
-                                  onChange={(e) => handleDelegateChange(index, 'name', e.target.value)}
-                                  placeholder="Name"
-                                  className="form-input text-sm"
-                                />
-                                <input
-                                  type="tel"
-                                  value={delegate.mobile}
-                                  onChange={(e) => handleDelegateChange(index, 'mobile', e.target.value)}
-                                  placeholder="Phone"
-                                  className="form-input text-sm"
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveDelegate(index)}
-                                className="mt-1 p-2 rounded-md text-text-tertiary hover:text-rejected hover:bg-rejected-light transition-colors"
-                              >
-                                <i className="ri-close-line text-sm" />
-                              </button>
-                            </div>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={handleAddDelegate}
-                            className="flex items-center gap-1.5 text-sm text-brand font-medium hover:opacity-80 transition-opacity"
-                          >
-                            <i className="ri-add-line" />
-                            Add Delegate
-                          </button>
-                        </div>
-                      )}
                     </div>
+
                   </>
                 )}
 
@@ -695,48 +642,7 @@ export default function CreateWalkInDesktop() {
                 {currentStep === 3 && (
                   <div className="flex flex-col gap-6">
 
-                    {/* ID Proof */}
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">ID Proof</p>
-
-                      <Field label="ID Proof Type" required={idProofRequired}>
-                        <select
-                          value={formData.idProofType}
-                          onChange={(e) => handleChange('idProofType', e.target.value)}
-                          className="form-input"
-                        >
-                          <option value="">Select ID type</option>
-                          <option value="aadhar">Aadhar Card</option>
-                          <option value="pan">PAN Card</option>
-                          <option value="passport">Passport</option>
-                          <option value="driving-license">Driving License</option>
-                          <option value="voter-id">Voter ID</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </Field>
-
-                      <Field label="ID Number" required={idProofRequired}>
-                        <input
-                          type="text"
-                          value={formData.idProofNumber}
-                          onChange={(e) => handleChange('idProofNumber', e.target.value)}
-                          placeholder="e.g. XXXX XXXX XXXX"
-                          className="form-input"
-                        />
-                      </Field>
-
-                      <Field label="ID Photo Capture">
-                        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary hover:border-border transition-colors cursor-pointer py-6">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-border shadow-sm">
-                            <i className="ri-image-line text-lg text-brand" />
-                          </div>
-                          <p className="text-sm font-medium text-text-primary">Capture ID document</p>
-                          <p className="text-xs text-text-tertiary">Optional · Camera · Gallery</p>
-                        </div>
-                      </Field>
-                    </div>
-
-                    {/* Customer Details */}
+                    {/* Customer Details — only for customer visitor type */}
                     {showCustomerBlock && (
                       <div className="space-y-3">
                         <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Customer Details</p>
@@ -789,82 +695,25 @@ export default function CreateWalkInDesktop() {
                       </div>
                     )}
 
-                    {/* Devices */}
+                    {/* Remarks */}
                     <div className="space-y-3">
-                      <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Devices</p>
-
-                      <Field label="Laptop Details">
-                        <textarea
-                          value={formData.laptopDetails}
-                          onChange={(e) => handleChange('laptopDetails', e.target.value)}
-                          placeholder="Brand, model, serial number (if any)"
-                          rows={2}
-                          className="form-input resize-none"
-                        />
-                      </Field>
-
-                      <Field label="Other Devices">
-                        <textarea
-                          value={formData.otherDeviceDetails}
-                          onChange={(e) => handleChange('otherDeviceDetails', e.target.value)}
-                          placeholder="Tablets, cameras, hard drives, etc."
-                          rows={2}
-                          className="form-input resize-none"
-                        />
-                      </Field>
-                    </div>
-
-                    {/* Other */}
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Other</p>
-
-                      <div className="rounded-lg border border-border p-4 space-y-3">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.hasVehicle}
-                            onChange={(e) => handleChange('hasVehicle', e.target.checked)}
-                            className="w-4 h-4 rounded border-border accent-brand"
-                          />
-                          <div>
-                            <span className="text-sm font-medium text-text-primary">Visitor has a vehicle</span>
-                            <p className="text-xs text-text-secondary">Record registration for security log</p>
-                          </div>
-                        </label>
-
-                        {formData.hasVehicle && (
-                          <Field label="Registration Number">
-                            <input
-                              type="text"
-                              value={formData.vehicleRegistration}
-                              onChange={(e) => handleChange('vehicleRegistration', e.target.value.toUpperCase())}
-                              placeholder="e.g. KA 01 AB 1234"
-                              className="form-input uppercase"
-                            />
-                          </Field>
-                        )}
-                      </div>
-
-                      <Field label="Entry Temperature">
-                        <input
-                          type="text"
-                          value={formData.visitorInTemperature}
-                          onChange={(e) => handleChange('visitorInTemperature', e.target.value)}
-                          placeholder="e.g. 98.4°F or 37.0°C (optional)"
-                          className="form-input"
-                        />
-                      </Field>
-
+                      <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Notes</p>
                       <Field label="Remarks">
                         <textarea
                           value={formData.notes}
                           onChange={(e) => handleChange('notes', e.target.value)}
                           placeholder="Any additional details (optional)"
-                          rows={2}
+                          rows={3}
                           className="form-input resize-none"
                         />
                       </Field>
                     </div>
+
+                    {!showCustomerBlock && (
+                      <p className="text-xs text-text-tertiary text-center py-4">
+                        ID proof, devices, and vehicle details will be captured at check-in.
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -949,20 +798,6 @@ function HeaderStepper({ currentStep }: { currentStep: number }) {
           </div>
         )
       })}
-    </div>
-  )
-}
-
-function SectionHeader({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="flex items-center gap-3 -mx-1">
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
-          <i className={`${icon} text-brand text-base`} />
-        </div>
-        <h2 className="text-base font-semibold text-text-primary tracking-tight">{title}</h2>
-      </div>
-      <div className="flex-1 h-px bg-border" />
     </div>
   )
 }
