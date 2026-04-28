@@ -5,17 +5,31 @@ import FrontDeskDashboardV3 from '@/pages/frontdesk/DashboardV3'
 import CreateWalkIn from '@/pages/frontdesk/CreateWalkIn'
 import VisitRequests from '@/pages/frontdesk/VisitRequests'
 import VisitDetail from '@/pages/frontdesk/VisitDetail'
+import EmployeeDashboard from '@/pages/employee/Dashboard'
+import CreateVisit from '@/pages/employee/CreateVisit'
 import MyVisits from '@/pages/employee/MyVisits'
 import ApproveWalkIn from '@/pages/employee/ApproveWalkIn'
 import Notifications from '@/pages/shared/Notifications'
 import VisitHistory from '@/pages/frontdesk/VisitHistory'
 import QRCodePage from '@/pages/frontdesk/QRCodePage'
 import { useAuthStore } from '@/store/authStore'
+import type { Role } from '@/types/user'
+
+const roleHomeRoutes: Record<Role, string> = {
+  'front-desk': '/front-desk/dashboard',
+  employee: '/employee/dashboard',
+  'branch-admin': '/manager/dashboard',
+}
 
 function PrivateLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <AppLayout />
+}
+
+function RoleHome() {
+  const currentRole = useAuthStore((s) => s.currentRole)
+  return <Navigate to={roleHomeRoutes[currentRole]} replace />
 }
 
 export default function App() {
@@ -26,18 +40,20 @@ export default function App() {
 
       {/* Protected — requires auth */}
       <Route element={<PrivateLayout />}>
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/front-desk/dashboard" replace />} />
+        {/* Default redirect — role-aware */}
+        <Route path="/" element={<RoleHome />} />
 
         {/* Front Desk */}
         <Route path="/front-desk/dashboard" element={<FrontDeskDashboardV3 />} />
-<Route path="/front-desk/walk-in" element={<CreateWalkIn />} />
+        <Route path="/front-desk/walk-in" element={<CreateWalkIn />} />
         <Route path="/front-desk/visit-requests" element={<VisitRequests />} />
         <Route path="/front-desk/visit/:visitId" element={<VisitDetail />} />
         <Route path="/front-desk/visit-history" element={<VisitHistory />} />
         <Route path="/front-desk/qr-code" element={<QRCodePage />} />
 
         {/* Employee */}
+        <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+        <Route path="/employee/create-visit" element={<CreateVisit />} />
         <Route path="/employee/visits" element={<MyVisits />} />
         <Route path="/employee/approve/:visitId" element={<ApproveWalkIn />} />
 

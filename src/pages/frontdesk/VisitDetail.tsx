@@ -17,6 +17,7 @@ import CheckOutSheet from '@/components/Mobile/CheckOutSheet'
 import {
   formatDate,
   formatTime,
+  getLocalDateString,
   getVisitTypeLabel,
   getPurposeLabel,
   getDepartmentLabel,
@@ -163,6 +164,39 @@ export default function VisitDetail() {
             </div>
           </Card>
 
+          {/* Multi-day progress */}
+          {visit.isMultiDay && visit.endDate && (() => {
+            const days = buildDayTimeline(visit.scheduledDate, visit.endDate)
+            const visitedCount = days.filter((d) => d.status === 'visited').length
+            const hasToday = days.some((d) => d.status === 'today')
+            const remainingCount = days.filter((d) => d.status === 'remaining').length
+            const dayLabel = hasToday
+              ? `Day ${visitedCount + 1} of ${days.length}`
+              : visitedCount === days.length
+                ? `All ${days.length} days completed`
+                : `${remainingCount} day${remainingCount !== 1 ? 's' : ''} remaining`
+
+            return (
+              <Card>
+                <SectionLabel icon="ri-calendar-event-line" title="Visit Progress" />
+                <div className="flex items-center gap-1.5 mt-3 mb-2">
+                  {days.map((day) => (
+                    <div
+                      key={day.date}
+                      className={[
+                        'h-2 flex-1 rounded-full',
+                        day.status === 'visited' && 'bg-green-500',
+                        day.status === 'today' && 'bg-brand-red-500',
+                        day.status === 'remaining' && 'bg-surface-tertiary',
+                      ].filter(Boolean).join(' ')}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-text-tertiary">{dayLabel}</p>
+              </Card>
+            )
+          })()}
+
           {/* Check-in info */}
           {visit.checkInTime && (
             <Card>
@@ -296,6 +330,25 @@ export default function VisitDetail() {
     )}
     </>
   )
+}
+
+function buildDayTimeline(startDate: string, endDate: string) {
+  const today = getLocalDateString()
+  const days: { date: string; status: 'visited' | 'today' | 'remaining' }[] = []
+  const current = new Date(startDate + 'T00:00:00')
+  const end = new Date(endDate + 'T00:00:00')
+  while (current <= end) {
+    const y = current.getFullYear()
+    const m = String(current.getMonth() + 1).padStart(2, '0')
+    const d = String(current.getDate()).padStart(2, '0')
+    const dateStr = `${y}-${m}-${d}`
+    days.push({
+      date: dateStr,
+      status: dateStr < today ? 'visited' : dateStr === today ? 'today' : 'remaining',
+    })
+    current.setDate(current.getDate() + 1)
+  }
+  return days
 }
 
 function formatDuration(minutes: number): string {

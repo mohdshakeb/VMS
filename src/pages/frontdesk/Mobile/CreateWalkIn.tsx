@@ -3,7 +3,7 @@
 // Branding block stacked above the form card. Less padding, less outer margin.
 // Parallax pattern background retained. No responsive prefixes.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
@@ -26,6 +26,8 @@ import {
   getDepartmentLabel,
   getLocalDateString,
   generateVisitId,
+  formatDate,
+  formatTime,
 } from '@/utils/helpers'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -147,8 +149,16 @@ export default function CreateWalkInMobile() {
   const [currentStep, setCurrentStep] = useState(1)
 
   const [showPreview, setShowPreview] = useState(false)
+  const [successData, setSuccessData] = useState<{ name: string; company?: string; date: string; time: string; visitId: string } | null>(null)
   const [mobileTouched, setMobileTouched] = useState(false)
   const [emailTouched, setEmailTouched] = useState(false)
+  const [firstNameTouched, setFirstNameTouched] = useState(false)
+  const [lastNameTouched, setLastNameTouched] = useState(false)
+  const [purposeTouched, setPurposeTouched] = useState(false)
+  const [visitTypeTouched, setVisitTypeTouched] = useState(false)
+  const [companyTouched, setCompanyTouched] = useState(false)
+  const [hostTouched, setHostTouched] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [patternOffset, setPatternOffset] = useState(0)
 
   const showCustomerBlock = formData.visitType === 'customer'
@@ -159,6 +169,14 @@ export default function CreateWalkInMobile() {
   const availableVisitTypes = formData.purpose
     ? (VISIT_TYPE_BY_PURPOSE[formData.purpose as Purpose] ?? [])
     : []
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => handleChange('photo', reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
   function handleChange<K extends keyof FormData>(field: K, value: FormData[K]) {
     setFormData((prev) => {
@@ -173,8 +191,24 @@ export default function CreateWalkInMobile() {
   }
 
   function handleNext() {
-    if (currentStep === 1 && isStep1Valid(formData)) setCurrentStep(2)
-    else if (currentStep === 2 && isStep2Valid(formData)) setCurrentStep(3)
+    if (currentStep === 1) {
+      if (isStep1Valid(formData)) {
+        setCurrentStep(2)
+      } else {
+        setMobileTouched(true)
+        setFirstNameTouched(true)
+        setLastNameTouched(true)
+      }
+    } else if (currentStep === 2) {
+      if (isStep2Valid(formData)) {
+        setCurrentStep(3)
+      } else {
+        setPurposeTouched(true)
+        setVisitTypeTouched(true)
+        setCompanyTouched(true)
+        setHostTouched(true)
+      }
+    }
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -207,10 +241,18 @@ export default function CreateWalkInMobile() {
       model: formData.model.trim() || undefined,
       businessSegmentRemarks: formData.businessSegmentRemarks.trim() || undefined,
       notes: formData.notes.trim() || undefined,
+      visitorAvatar: formData.photo || undefined,
     })
 
     useAuthStore.getState().setCurrentEmployee(formData.hostEmployeeId)
-    navigate('/front-desk/dashboard', { state: { newVisitId: newVisit.id } })
+    setShowPreview(false)
+    setSuccessData({
+      name: visitorName,
+      company: formData.company.trim() || undefined,
+      date: formatDate(formData.scheduledDate),
+      time: formatTime(formData.scheduledTime),
+      visitId: newVisit.id,
+    })
   }
 
   void visitId
@@ -243,6 +285,46 @@ export default function CreateWalkInMobile() {
           <HeaderStepper currentStep={currentStep} />
         </MobilePageHeader>
 
+      {/* ── Success Modal ─────────────────────────────────────────────────────── */}
+      {successData && (
+        <Modal open onClose={() => navigate('/front-desk/dashboard', { state: { newVisitId: successData.visitId } })} size="md">
+          <div className="animate-in py-4 flex flex-col items-center text-center gap-5">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-confirmed-surface)' }}
+            >
+              <i className="ri-checkbox-circle-fill text-4xl" style={{ color: 'var(--color-confirmed)' }} />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-text-primary">Visitor Walk-In Request Submitted Successfully</p>
+              <p className="text-sm text-text-secondary mt-1">{successData.name}</p>
+              {successData.company && (
+                <p className="text-xs text-text-tertiary mt-0.5">{successData.company}</p>
+              )}
+            </div>
+            <div className="w-full grid grid-cols-2 gap-3">
+              <div
+                className="rounded-xl p-3 text-left vms-stagger-item"
+                style={{ backgroundColor: 'var(--color-surface-secondary)', animationDelay: '60ms' }}
+              >
+                <p className="text-[10px] text-text-tertiary">Date</p>
+                <p className="text-sm font-semibold text-text-primary">{successData.date}</p>
+              </div>
+              <div
+                className="rounded-xl p-3 text-left vms-stagger-item"
+                style={{ backgroundColor: 'var(--color-surface-secondary)', animationDelay: '120ms' }}
+              >
+                <p className="text-[10px] text-text-tertiary">Time</p>
+                <p className="text-sm font-semibold text-text-primary">{successData.time}</p>
+              </div>
+            </div>
+            <Button fullWidth onClick={() => navigate('/front-desk/dashboard', { state: { newVisitId: successData.visitId } })}>
+              Done
+            </Button>
+          </div>
+        </Modal>
+      )}
+
       {/* ── Preview Modal ─────────────────────────────────────────────────────── */}
       <Modal
         open={showPreview}
@@ -260,16 +342,20 @@ export default function CreateWalkInMobile() {
         }
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand font-semibold text-base select-none">
-            {[formData.firstName[0], formData.lastName[0]].filter(Boolean).join('').toUpperCase() || '?'}
-          </div>
+          {formData.photo ? (
+            <img src={formData.photo} alt="Visitor" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand font-semibold text-base select-none">
+              {[formData.firstName[0], formData.lastName[0]].filter(Boolean).join('').toUpperCase() || '?'}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary truncate">
               {[formData.firstName.trim(), formData.lastName.trim()].filter(Boolean).join(' ')}
             </p>
             <p className="text-xs text-text-secondary truncate">{formData.mobile}</p>
           </div>
-          <span className="ml-auto shrink-0 rounded-full bg-pending-light px-2.5 py-0.5 text-[11px] font-medium text-pending">
+          <span className="ml-auto shrink-0 rounded-full bg-pending-surface px-2.5 py-0.5 text-[11px] font-medium text-pending">
             Pending Approval
           </span>
         </div>
@@ -281,6 +367,8 @@ export default function CreateWalkInMobile() {
             {formData.company.trim() && <PreviewRow label="Company" value={formData.company.trim()} />}
             <PreviewRow label="Host" value={selectedEmployee?.name ?? '—'} />
             {formData.department && <PreviewRow label="Department" value={getDepartmentLabel(formData.department)} />}
+            <PreviewRow label="Date" value={formatDate(formData.scheduledDate)} />
+            <PreviewRow label="Time" value={formatTime(formData.scheduledTime)} />
             {formData.duration !== '' && (
               <PreviewRow
                 label="Duration"
@@ -347,7 +435,13 @@ export default function CreateWalkInMobile() {
                   <FormField
                     label="Mobile Number"
                     required
-                    error={mobileTouched && formData.mobile && !isMobileValid(formData.mobile) ? 'Enter a valid phone number' : undefined}
+                    error={
+                      mobileTouched && !formData.mobile.trim()
+                        ? 'Mobile number is required'
+                        : mobileTouched && formData.mobile.trim() && !isMobileValid(formData.mobile)
+                        ? 'Enter a valid phone number'
+                        : undefined
+                    }
                   >
                     <input
                       type="tel"
@@ -355,28 +449,30 @@ export default function CreateWalkInMobile() {
                       onChange={(e) => handleChange('mobile', e.target.value)}
                       onBlur={() => setMobileTouched(true)}
                       placeholder="+91 98765 43210"
-                      className={`form-input ${mobileTouched && formData.mobile && !isMobileValid(formData.mobile) ? 'border-rejected focus:ring-rejected/20' : ''}`}
+                      className={`form-input ${mobileTouched && (!formData.mobile.trim() || !isMobileValid(formData.mobile)) ? 'border-rejected focus:ring-rejected/20' : ''}`}
                       autoFocus
                     />
                   </FormField>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="First Name" required>
+                    <FormField label="First Name" required error={firstNameTouched && !formData.firstName.trim() ? 'Enter first name' : undefined}>
                       <input
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => handleChange('firstName', e.target.value)}
+                        onBlur={() => setFirstNameTouched(true)}
                         placeholder="First name"
-                        className="form-input"
+                        className={`form-input ${firstNameTouched && !formData.firstName.trim() ? 'border-rejected focus:ring-rejected/20' : ''}`}
                       />
                     </FormField>
-                    <FormField label="Last Name" required>
+                    <FormField label="Last Name" required error={lastNameTouched && !formData.lastName.trim() ? 'Enter last name' : undefined}>
                       <input
                         type="text"
                         value={formData.lastName}
                         onChange={(e) => handleChange('lastName', e.target.value)}
+                        onBlur={() => setLastNameTouched(true)}
                         placeholder="Last name"
-                        className="form-input"
+                        className={`form-input ${lastNameTouched && !formData.lastName.trim() ? 'border-rejected focus:ring-rejected/20' : ''}`}
                       />
                     </FormField>
                   </div>
@@ -395,14 +491,34 @@ export default function CreateWalkInMobile() {
                     />
                   </FormField>
 
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoSelect}
+                  />
                   <FormField label="Visitor Photo">
-                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary hover:border-border transition-colors cursor-pointer py-7">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white border border-border shadow-sm">
-                        <i className="ri-camera-line text-xl text-brand" />
+                    {formData.photo ? (
+                      <div
+                        className="flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-surface cursor-pointer py-4"
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        <img src={formData.photo} alt="Visitor" className="h-20 w-20 rounded-full object-cover shadow-sm" />
+                        <p className="text-xs text-text-secondary">Tap to change</p>
                       </div>
-                      <p className="text-sm font-medium text-text-primary">Capture or upload photo</p>
-                      <p className="text-xs text-text-tertiary">Camera · Gallery</p>
-                    </div>
+                    ) : (
+                      <div
+                        className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface hover:bg-surface-secondary transition-colors cursor-pointer py-7"
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white border border-border shadow-sm">
+                          <i className="ri-camera-line text-xl text-brand" />
+                        </div>
+                        <p className="text-sm font-medium text-text-primary">Capture or upload photo</p>
+                        <p className="text-xs text-text-tertiary">Camera · Gallery</p>
+                      </div>
+                    )}
                   </FormField>
                 </>
               )}
@@ -410,11 +526,12 @@ export default function CreateWalkInMobile() {
               {/* ── Step 2: Visit Details ──────────────────────────────────── */}
               {currentStep === 2 && (
                 <>
-                  <FormField label="Purpose of Visit" required>
+                  <FormField label="Purpose of Visit" required error={purposeTouched && !formData.purpose ? 'Select a purpose' : undefined}>
                     <select
                       value={formData.purpose}
                       onChange={(e) => handleChange('purpose', e.target.value as Purpose)}
-                      className="form-input"
+                      onBlur={() => setPurposeTouched(true)}
+                      className={`form-input ${purposeTouched && !formData.purpose ? 'border-rejected focus:ring-rejected/20' : ''}`}
                     >
                       <option value="">Select purpose</option>
                       {ALL_PURPOSES.map((p) => (
@@ -423,12 +540,13 @@ export default function CreateWalkInMobile() {
                     </select>
                   </FormField>
 
-                  <FormField label="Visitor Type" required>
+                  <FormField label="Visitor Type" required error={visitTypeTouched && !formData.visitType ? 'Select a visitor type' : undefined}>
                     <select
                       value={formData.visitType}
                       onChange={(e) => handleChange('visitType', e.target.value as VisitType)}
+                      onBlur={() => setVisitTypeTouched(true)}
                       disabled={!formData.purpose}
-                      className="form-input disabled:opacity-50"
+                      className={`form-input disabled:opacity-50 ${visitTypeTouched && !formData.visitType ? 'border-rejected focus:ring-rejected/20' : ''}`}
                     >
                       <option value="">
                         {!formData.purpose ? 'Select purpose first' : 'Select visitor type'}
@@ -439,17 +557,23 @@ export default function CreateWalkInMobile() {
                     </select>
                   </FormField>
 
-                  <FormField label="Visitor Company" required={companyRequired}>
+                  <FormField label="Visitor Company" required={companyRequired} error={companyTouched && companyRequired && !formData.company.trim() ? 'Enter company name' : undefined}>
                     <input
                       type="text"
                       value={formData.company}
                       onChange={(e) => handleChange('company', e.target.value)}
+                      onBlur={() => setCompanyTouched(true)}
                       placeholder={companyRequired ? 'Required for this visitor type' : 'Organization name (optional)'}
-                      className="form-input"
+                      className={`form-input ${companyTouched && companyRequired && !formData.company.trim() ? 'border-rejected focus:ring-rejected/20' : ''}`}
                     />
                   </FormField>
 
-                  <FormField label="Whom to Meet" required>
+                  <FormField label="Whom to Meet" required error={hostTouched && !formData.hostEmployeeId ? 'Select a person to meet' : undefined}>
+                    <div
+                      onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) setHostTouched(true)
+                      }}
+                    >
                     <SearchAutocomplete
                       items={locationEmployees}
                       selectedId={formData.hostEmployeeId}
@@ -463,6 +587,7 @@ export default function CreateWalkInMobile() {
                       placeholder="Search by name or department"
                       emptyMessage="No employees found"
                     />
+                    </div>
                   </FormField>
 
                   <FormField label="Department">
@@ -649,7 +774,6 @@ export default function CreateWalkInMobile() {
                     type="button"
                     fullWidth
                     icon="ri-arrow-right-line"
-                    disabled={currentStep === 1 ? !isStep1Valid(formData) : !isStep2Valid(formData)}
                     onClick={handleNext}
                   >
                     Continue
@@ -732,7 +856,7 @@ function PreviewSection({ title, children }: { title: string; children: React.Re
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 px-3 py-2.5">
-      <span className="text-xs text-text-tertiary shrink-0">{label}</span>
+      <span className="text-xs text-text-secondary shrink-0">{label}</span>
       <span className="text-xs font-medium text-text-primary text-right break-words max-w-[60%]">{value}</span>
     </div>
   )

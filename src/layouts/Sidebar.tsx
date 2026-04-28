@@ -28,8 +28,8 @@ const navByRole: Record<Role, NavItem[]> = {
     { label: 'Visit History', path: '/front-desk/visit-history', icon: 'ri-calendar-schedule-line' },
   ],
   employee: [
+    { label: 'Dashboard', path: '/employee/dashboard', icon: 'ri-home-2-line' },
     { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line' },
-    { label: 'Approvals', path: '/employee/approve', icon: 'ri-checkbox-circle-line' },
   ],
   'branch-admin': [
     { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line' },

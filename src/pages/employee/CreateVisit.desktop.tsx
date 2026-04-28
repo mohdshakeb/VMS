@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Create Walk-in — Desktop (web dashboard)
-// Two-column layout: left branding + right floating form card.
-// Parallax GMMCO pattern background.
+// Create Visit — Desktop (Employee)
+// Host is always the logged-in employee. Visit goes straight to confirmed.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -21,7 +20,6 @@ import {
   getBusinessSegmentLabel,
   getVisitorPriorityLabel,
   getDepartmentLabel,
-  generateVisitId,
   formatDate,
   formatTime,
 } from '@/utils/helpers'
@@ -45,19 +43,22 @@ import {
   Field,
 } from '@/components/visit-form/VisitFormShared'
 
-// ── Main Component ────────────────────────────────────────────────────────────
-
-export default function CreateWalkInDesktop() {
+export default function CreateVisitDesktop() {
   const navigate = useNavigate()
-  const createWalkIn = useVisitStore((s) => s.createWalkIn)
-  const locationId = useAuthStore((s) => s.currentLocationId)
+  const createEmployeeVisit = useVisitStore((s) => s.createEmployeeVisit)
+  const { currentEmployeeId, currentLocationId } = useAuthStore()
 
-  const [formData, setFormData] = useState<FormData>(defaultFormData)
-  const [visitId] = useState(() => generateVisitId())
+  const currentEmployee = employees.find((e) => e.id === currentEmployeeId)
+
+  const [formData, setFormData] = useState<FormData>(() => ({
+    ...defaultFormData,
+    hostEmployeeId: currentEmployeeId,
+    department: currentEmployee?.department ?? '',
+  }))
   const [currentStep, setCurrentStep] = useState(1)
-
   const [showPreview, setShowPreview] = useState(false)
-  const [successData, setSuccessData] = useState<{ name: string; company?: string; date: string; time: string; visitId: string } | null>(null)
+  const [successData, setSuccessData] = useState<{ name: string; company?: string; date: string; time: string } | null>(null)
+
   const [mobileTouched, setMobileTouched] = useState(false)
   const [emailTouched, setEmailTouched] = useState(false)
   const [firstNameTouched, setFirstNameTouched] = useState(false)
@@ -65,36 +66,24 @@ export default function CreateWalkInDesktop() {
   const [purposeTouched, setPurposeTouched] = useState(false)
   const [visitTypeTouched, setVisitTypeTouched] = useState(false)
   const [companyTouched, setCompanyTouched] = useState(false)
-  const [hostTouched, setHostTouched] = useState(false)
-  const [employeeSearch, setEmployeeSearch] = useState('')
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [patternOffset, setPatternOffset] = useState(0)
 
   const showCustomerBlock = formData.visitType === 'customer'
   const companyRequired = isCompanyRequired(formData.visitType)
-
-  const locationEmployees = employees.filter((e) => e.locationId === locationId)
-  const filteredEmployees = locationEmployees.filter(
-    (e) =>
-      e.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-      e.department.toLowerCase().includes(employeeSearch.toLowerCase())
-  )
-  const selectedEmployee = employees.find((e) => e.id === formData.hostEmployeeId)
   const availableVisitTypes = formData.purpose
     ? (VISIT_TYPE_BY_PURPOSE[formData.purpose as Purpose] ?? [])
     : []
 
+  // Keep host/department locked to logged-in employee
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowEmployeeDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+    setFormData((prev) => ({
+      ...prev,
+      hostEmployeeId: currentEmployeeId,
+      department: currentEmployee?.department ?? prev.department,
+    }))
+  }, [currentEmployeeId, currentEmployee?.department])
 
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -108,10 +97,6 @@ export default function CreateWalkInDesktop() {
     setFormData((prev) => {
       const next = { ...prev, [field]: value }
       if (field === 'purpose') next.visitType = ''
-      if (field === 'hostEmployeeId') {
-        const emp = employees.find((e) => e.id === (value as string))
-        next.department = emp?.department ?? ''
-      }
       return next
     })
   }
@@ -132,7 +117,6 @@ export default function CreateWalkInDesktop() {
         setPurposeTouched(true)
         setVisitTypeTouched(true)
         setCompanyTouched(true)
-        setHostTouched(true)
       }
     }
   }
@@ -146,16 +130,16 @@ export default function CreateWalkInDesktop() {
   function handleConfirm() {
     const visitorName = [formData.firstName.trim(), formData.lastName.trim()].filter(Boolean).join(' ')
 
-    const newVisit = createWalkIn({
+    createEmployeeVisit({
       visitorName,
       visitorMobile: formData.mobile.trim(),
       visitorEmail: formData.email.trim() || undefined,
       visitorCompany: formData.company.trim() || undefined,
-      hostEmployeeId: formData.hostEmployeeId,
-      locationId,
+      hostEmployeeId: currentEmployeeId,
+      locationId: currentLocationId,
       purpose: formData.purpose as Purpose,
       visitType: formData.visitType as VisitType,
-      department: formData.department || undefined,
+      department: currentEmployee?.department || undefined,
       scheduledDate: formData.scheduledDate,
       scheduledTime: formData.scheduledTime,
       isMultiDay: formData.isMultiDay || undefined,
@@ -170,18 +154,14 @@ export default function CreateWalkInDesktop() {
       visitorAvatar: formData.photo || undefined,
     })
 
-    useAuthStore.getState().setCurrentEmployee(formData.hostEmployeeId)
     setShowPreview(false)
     setSuccessData({
       name: visitorName,
       company: formData.company.trim() || undefined,
       date: formatDate(formData.scheduledDate),
       time: formatTime(formData.scheduledTime),
-      visitId: newVisit.id,
     })
   }
-
-  void visitId
 
   return (
     <div className="hidden md:flex flex-col h-full">
@@ -190,18 +170,18 @@ export default function CreateWalkInDesktop() {
       <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white border-b border-border shrink-0">
         <button
           type="button"
-          onClick={() => navigate('/front-desk/dashboard')}
+          onClick={() => navigate('/employee/dashboard')}
           className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors -ml-1 px-1 py-1 rounded-md"
         >
           <i className="ri-arrow-left-line text-lg" />
-          <span className="font-medium">New Walk-in</span>
+          <span className="font-medium">Schedule a Visit</span>
         </button>
 
         <HeaderStepper currentStep={currentStep} />
 
         <button
           type="button"
-          onClick={() => navigate('/front-desk/dashboard')}
+          onClick={() => navigate('/employee/dashboard')}
           className="text-sm font-medium text-brand hover:opacity-75 transition-opacity px-1 py-1"
         >
           Cancel
@@ -210,7 +190,7 @@ export default function CreateWalkInDesktop() {
 
       {/* ── Success Modal ─────────────────────────────────────────────────────── */}
       {successData && (
-        <Modal open onClose={() => navigate('/front-desk/dashboard', { state: { newVisitId: successData.visitId } })} size="md">
+        <Modal open onClose={() => navigate('/employee/dashboard')} size="md">
           <div className="animate-in py-4 flex flex-col items-center text-center gap-5">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -219,7 +199,7 @@ export default function CreateWalkInDesktop() {
               <i className="ri-checkbox-circle-fill text-4xl" style={{ color: 'var(--color-confirmed)' }} />
             </div>
             <div>
-              <p className="text-base font-semibold text-text-primary">Visitor Walk-In Request Submitted Successfully</p>
+              <p className="text-base font-semibold text-text-primary">Visit Scheduled Successfully</p>
               <p className="text-sm text-text-secondary mt-1">{successData.name}</p>
               {successData.company && (
                 <p className="text-xs text-text-tertiary mt-0.5">{successData.company}</p>
@@ -241,7 +221,7 @@ export default function CreateWalkInDesktop() {
                 <p className="text-sm font-semibold text-text-primary">{successData.time}</p>
               </div>
             </div>
-            <Button fullWidth onClick={() => navigate('/front-desk/dashboard', { state: { newVisitId: successData.visitId } })}>
+            <Button fullWidth onClick={() => navigate('/employee/dashboard')}>
               Done
             </Button>
           </div>
@@ -252,14 +232,14 @@ export default function CreateWalkInDesktop() {
       <Modal
         open={showPreview}
         onClose={() => setShowPreview(false)}
-        title="Review Walk-in"
+        title="Review Visit"
         footer={
           <div className="flex gap-2">
             <Button variant="secondary" fullWidth onClick={() => setShowPreview(false)}>
               Edit
             </Button>
             <Button icon="ri-check-line" fullWidth onClick={handleConfirm}>
-              Confirm & Submit
+              Confirm &amp; Schedule
             </Button>
           </div>
         }
@@ -278,8 +258,8 @@ export default function CreateWalkInDesktop() {
             </p>
             <p className="text-xs text-text-secondary truncate">{formData.mobile}</p>
           </div>
-          <span className="ml-auto shrink-0 rounded-full bg-pending-surface px-2.5 py-0.5 text-[11px] font-medium text-pending">
-            Pending Approval
+          <span className="ml-auto shrink-0 rounded-full bg-confirmed-surface px-2.5 py-0.5 text-[11px] font-medium text-confirmed">
+            Confirmed
           </span>
         </div>
 
@@ -288,8 +268,8 @@ export default function CreateWalkInDesktop() {
             <PreviewRow label="Purpose" value={getPurposeLabel(formData.purpose as string)} />
             <PreviewRow label="Visitor Type" value={getVisitTypeLabel(formData.visitType as string)} />
             {formData.company.trim() && <PreviewRow label="Company" value={formData.company.trim()} />}
-            <PreviewRow label="Host" value={selectedEmployee?.name ?? '—'} />
-            {formData.department && <PreviewRow label="Department" value={getDepartmentLabel(formData.department)} />}
+            <PreviewRow label="Host" value={currentEmployee?.name ?? '—'} />
+            {currentEmployee?.department && <PreviewRow label="Department" value={getDepartmentLabel(currentEmployee.department)} />}
             <PreviewRow label="Date" value={formatDate(formData.scheduledDate)} />
             <PreviewRow label="Time" value={formatTime(formData.scheduledTime)} />
             {formData.duration !== '' && (
@@ -318,7 +298,6 @@ export default function CreateWalkInDesktop() {
         className="flex-1 flex overflow-hidden min-h-0 relative"
         style={{ backgroundColor: '#ffffff' }}
       >
-        {/* Tiled GMMCO mark across the full area */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -332,13 +311,9 @@ export default function CreateWalkInDesktop() {
 
         {/* ── Left branding content ────────────────────────────────────────── */}
         <div className="flex flex-col w-[42%] shrink-0 relative z-10">
-
-          {/* Logo — top-aligned with the form card (pt-12 matches card's top offset) */}
           <div className="pt-12 px-8">
             <img src={logoBlackUrl} alt="GMMCO — CKA Birla Group" className="h-7 w-auto" />
           </div>
-
-          {/* Welcome headline — 48px below the logo */}
           <div className="px-8 mt-3">
             <h2 className="font-black text-[2.6rem] leading-[1.28] tracking-tight text-gray-800 uppercase">
               WE WELCOME<br />
@@ -346,8 +321,6 @@ export default function CreateWalkInDesktop() {
               <span className="text-brand">GUESTS</span>
             </h2>
           </div>
-
-          {/* Visitor picture — anchored to bottom-left */}
           <div className="mt-auto">
             <img
               src={visitorPictureUrl}
@@ -363,16 +336,12 @@ export default function CreateWalkInDesktop() {
           className="flex-1 flex flex-col p-12 relative z-10 overflow-y-auto"
           onScroll={(e) => setPatternOffset(e.currentTarget.scrollTop * -0.35)}
         >
-
-          {/* White card with shadow — expands to content height */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200/80">
 
-            {/* Section header */}
             <div className="px-[72px] pt-[72px] pb-4">
               <SectionLabel icon={VISIT_FORM_STEPS[currentStep - 1].icon} title={VISIT_FORM_STEPS[currentStep - 1].title} />
             </div>
 
-            {/* Form content — no inner scroll */}
             <div>
               <form id="visit-form" onSubmit={handleSubmit} className="px-[72px] pb-[72px] space-y-4 w-full">
 
@@ -520,76 +489,18 @@ export default function CreateWalkInDesktop() {
                       />
                     </Field>
 
-                    <Field label="Whom to Meet" required error={hostTouched && !formData.hostEmployeeId ? 'Select a person to meet' : undefined}>
-                      <div className="relative" ref={dropdownRef}>
-                        <div className="relative">
-                          <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm" />
-                          <input
-                            type="text"
-                            value={selectedEmployee ? selectedEmployee.name : employeeSearch}
-                            onChange={(e) => {
-                              setEmployeeSearch(e.target.value)
-                              handleChange('hostEmployeeId', '')
-                              setShowEmployeeDropdown(true)
-                            }}
-                            onFocus={() => {
-                              if (!formData.hostEmployeeId) setShowEmployeeDropdown(true)
-                            }}
-                            onBlur={(e) => {
-                              if (!dropdownRef.current?.contains(e.relatedTarget as Node)) {
-                                setHostTouched(true)
-                              }
-                            }}
-                            placeholder="Search by name or department"
-                            className={`form-input !pl-9 ${hostTouched && !formData.hostEmployeeId ? 'border-rejected focus:ring-rejected/20' : ''}`}
-                          />
-                          {formData.hostEmployeeId && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleChange('hostEmployeeId', '')
-                                setEmployeeSearch('')
-                                setShowEmployeeDropdown(true)
-                              }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-tertiary hover:text-text-primary"
-                            >
-                              <i className="ri-close-line" />
-                            </button>
-                          )}
-                        </div>
-
-                        {showEmployeeDropdown && !formData.hostEmployeeId && (
-                          <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-white border border-border shadow-lg">
-                            {filteredEmployees.length === 0 ? (
-                              <p className="px-3 py-2 text-sm text-text-tertiary">No employees found</p>
-                            ) : (
-                              filteredEmployees.map((emp) => (
-                                <button
-                                  key={emp.id}
-                                  type="button"
-                                  onClick={() => {
-                                    handleChange('hostEmployeeId', emp.id)
-                                    setEmployeeSearch('')
-                                    setShowEmployeeDropdown(false)
-                                  }}
-                                  className="w-full text-left px-3 py-2 hover:bg-surface-secondary transition-colors"
-                                >
-                                  <p className="text-sm font-medium text-text-primary">{emp.name}</p>
-                                  <p className="text-xs text-text-secondary">{emp.department}</p>
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        )}
+                    {/* Host is always the logged-in employee — read-only */}
+                    <Field label="Host (You)">
+                      <div className="form-input flex items-center gap-2 bg-surface-secondary text-text-secondary pointer-events-none">
+                        <i className="ri-check-line text-xs text-confirmed" />
+                        <span className="text-sm">{currentEmployee?.name ?? '—'}</span>
                       </div>
                     </Field>
 
                     <Field label="Department">
-                      <div className={`form-input flex items-center gap-2 ${formData.department ? 'bg-surface-secondary text-text-secondary' : 'text-text-tertiary'}`}>
-                        {formData.department
-                          ? <><i className="ri-check-line text-xs text-confirmed" /><span className="text-sm">{getDepartmentLabel(formData.department)}</span></>
-                          : <span className="text-sm">Auto-filled from host selection</span>
-                        }
+                      <div className="form-input flex items-center gap-2 bg-surface-secondary text-text-secondary pointer-events-none">
+                        <i className="ri-check-line text-xs text-confirmed" />
+                        <span className="text-sm">{getDepartmentLabel(currentEmployee?.department ?? '')}</span>
                       </div>
                     </Field>
 
@@ -669,15 +580,12 @@ export default function CreateWalkInDesktop() {
                         </div>
                       </label>
                     </div>
-
                   </>
                 )}
 
                 {/* ── Step 3: Additional Info ──────────────────────────────── */}
                 {currentStep === 3 && (
                   <div className="flex flex-col gap-6">
-
-                    {/* Customer Details — only for customer visitor type */}
                     {showCustomerBlock && (
                       <div className="space-y-3">
                         <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Customer Details</p>
@@ -730,7 +638,6 @@ export default function CreateWalkInDesktop() {
                       </div>
                     )}
 
-                    {/* Remarks */}
                     <div className="space-y-3">
                       <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">Notes</p>
                       <Field label="Remarks">
@@ -777,22 +684,21 @@ export default function CreateWalkInDesktop() {
                     <Button
                       form="visit-form"
                       type="submit"
-                      icon="ri-user-add-line"
+                      icon="ri-calendar-check-line"
                       fullWidth
                       disabled={!isFormValid(formData)}
                     >
-                      Submit Walk-In
+                      Schedule Visit
                     </Button>
                   )}
                 </div>
 
               </form>
-            </div>{/* /form content */}
-          </div>{/* /white card */}
-        </div>{/* /right column */}
+            </div>
+          </div>
+        </div>
 
-      </div>{/* /patterned background */}
+      </div>
     </div>
   )
 }
-

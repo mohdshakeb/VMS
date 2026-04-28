@@ -109,12 +109,12 @@ export default function CheckInModal({ visitId, onClose }: Props) {
         <div className="animate-in py-4 flex flex-col items-center text-center gap-5">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'var(--color-badge-green-light)' }}
+            style={{ backgroundColor: 'var(--color-confirmed-surface)' }}
           >
-            <i className="ri-checkbox-circle-fill text-4xl" style={{ color: 'var(--color-badge-green-dark)' }} />
+            <i className="ri-checkbox-circle-fill text-4xl" style={{ color: 'var(--color-confirmed)' }} />
           </div>
           <div>
-            <p className="text-base font-semibold text-text-primary">Visitor Checked In</p>
+            <p className="text-base font-semibold text-text-primary">Visitor Checked In Successfully</p>
             <p className="text-sm text-text-secondary mt-1">{successData.name}</p>
             {successData.company && (
               <p className="text-xs text-text-tertiary mt-0.5">{successData.company}</p>
@@ -265,7 +265,7 @@ export default function CheckInModal({ visitId, onClose }: Props) {
 
         {/* Assets / PPE */}
         <div>
-          <SectionLabel icon="ri-shield-check-line" title="Issue Assets to Visitor?" required />
+          <SectionLabel icon="ri-shield-check-line" title="Issue Items to Visitor?" required />
           <div className="mt-3 grid grid-cols-2 gap-2">
             {([true, false] as const).map((val) => (
               <button

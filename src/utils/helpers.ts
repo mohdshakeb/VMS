@@ -79,14 +79,14 @@ export function getStatusLabel(status: VisitStatus): string {
 
 export function getStatusColor(status: VisitStatus): { bg: string; text: string } {
   const colors: Record<VisitStatus, { bg: string; text: string }> = {
-    'pending-approval': { bg: 'bg-pending-light', text: 'text-pending' },
-    scheduled: { bg: 'bg-confirmed-light', text: 'text-confirmed' },
-    confirmed: { bg: 'bg-confirmed-light', text: 'text-confirmed' },
-    'checked-in': { bg: 'bg-on-premises-light', text: 'text-on-premises' },
-    'checked-out': { bg: 'bg-completed-light', text: 'text-completed' },
-    rejected: { bg: 'bg-rejected-light', text: 'text-rejected' },
-    cancelled: { bg: 'bg-completed-light', text: 'text-completed' },
-    'no-show': { bg: 'bg-rejected-light', text: 'text-rejected' },
+    'pending-approval': { bg: 'bg-pending-surface', text: 'text-pending' },
+    scheduled: { bg: 'bg-confirmed-surface', text: 'text-confirmed' },
+    confirmed: { bg: 'bg-confirmed-surface', text: 'text-confirmed' },
+    'checked-in': { bg: 'bg-on-premises-surface', text: 'text-on-premises' },
+    'checked-out': { bg: 'bg-completed-surface', text: 'text-completed' },
+    rejected: { bg: 'bg-rejected-surface', text: 'text-rejected' },
+    cancelled: { bg: 'bg-completed-surface', text: 'text-completed' },
+    'no-show': { bg: 'bg-rejected-surface', text: 'text-rejected' },
   }
   return colors[status]
 }

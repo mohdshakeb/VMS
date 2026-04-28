@@ -2,24 +2,24 @@ type Color = 'blue' | 'purple' | 'green' | 'yellow'
 
 const colorMap: Record<Color, { iconBg: string; iconBorder: string; iconColor: string }> = {
   blue: {
-    iconBg: 'bg-badge-blue-light',
-    iconBorder: 'border border-badge-blue-subtle',
-    iconColor: 'text-badge-blue-dark',
+    iconBg: 'bg-blue-surface',
+    iconBorder: 'border border-blue-border',
+    iconColor: 'text-blue-fg',
   },
   purple: {
-    iconBg: 'bg-badge-purple-light',
-    iconBorder: 'border border-badge-purple-subtle',
-    iconColor: 'text-badge-purple-dark',
+    iconBg: 'bg-purple-surface',
+    iconBorder: 'border border-purple-border',
+    iconColor: 'text-purple-fg',
   },
   green: {
-    iconBg: 'bg-badge-green-light',
-    iconBorder: 'border border-badge-green-subtle',
-    iconColor: 'text-badge-green-dark',
+    iconBg: 'bg-green-surface',
+    iconBorder: 'border border-green-border',
+    iconColor: 'text-green-fg',
   },
   yellow: {
-    iconBg: 'bg-badge-yellow-light',
-    iconBorder: 'border border-badge-yellow-subtle',
-    iconColor: 'text-badge-yellow-dark',
+    iconBg: 'bg-yellow-surface',
+    iconBorder: 'border border-yellow-border',
+    iconColor: 'text-yellow-fg',
   },
 }
 

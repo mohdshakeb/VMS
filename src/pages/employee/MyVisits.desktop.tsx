@@ -1,0 +1,204 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// My Visits — Desktop (employee)
+// Scoped to the current employee's visits only.
+// ─────────────────────────────────────────────────────────────────────────────
+import { useState, useMemo, useEffect } from 'react'
+import { useVisitStore } from '@/store/visitStore'
+import { useAuthStore } from '@/store/authStore'
+import PageHeader from '@/components/PageHeader'
+import { formatDate, formatTime, getStatusColor, getStatusLabel, getVisitTypeLabel } from '@/utils/helpers'
+import EmptyState from '@/components/common/EmptyState'
+import AvatarBadge from '@/components/common/AvatarBadge'
+import TabPills from '@/components/common/TabPills'
+import type { VisitStatus } from '@/types/visit'
+
+type FilterTab = 'all' | 'open' | 'completed' | 'cancelled-rejected'
+
+const OPEN_STATUSES: VisitStatus[] = ['pending-approval', 'confirmed', 'scheduled', 'checked-in']
+const COMPLETED_STATUSES: VisitStatus[] = ['checked-out']
+const CLOSED_STATUSES: VisitStatus[] = ['cancelled', 'rejected']
+const ITEMS_PER_PAGE = 10
+
+function extractTime(iso: string): string {
+  return iso.split('T')[1]?.slice(0, 5) ?? ''
+}
+
+export default function MyVisitsDesktop() {
+  const visits = useVisitStore((s) => s.visits)
+  const storeVisitors = useVisitStore((s) => s.visitors)
+  const employeeId = useAuthStore((s) => s.currentEmployeeId)
+  const [activeTab, setActiveTab] = useState<FilterTab>('all')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  const myVisits = useMemo(
+    () => visits.filter((v) => v.hostEmployeeId === employeeId),
+    [visits, employeeId],
+  )
+
+  const visitorMap = useMemo(
+    () => Object.fromEntries(storeVisitors.map((v) => [v.id, v])),
+    [storeVisitors],
+  )
+
+  const filtered = useMemo(() => {
+    let result = [...myVisits]
+    if (activeTab === 'open') result = result.filter((v) => (OPEN_STATUSES as string[]).includes(v.status))
+    else if (activeTab === 'completed') result = result.filter((v) => (COMPLETED_STATUSES as string[]).includes(v.status))
+    else if (activeTab === 'cancelled-rejected') result = result.filter((v) => (CLOSED_STATUSES as string[]).includes(v.status))
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter((v) => {
+        const vis = visitorMap[v.visitorId]
+        return vis?.name.toLowerCase().includes(q) || vis?.company?.toLowerCase().includes(q)
+      })
+    }
+    result.sort((a, b) => {
+      const da = `${a.scheduledDate}T${a.scheduledTime}`
+      const db = `${b.scheduledDate}T${b.scheduledTime}`
+      return db.localeCompare(da)
+    })
+    return result
+  }, [myVisits, activeTab, search, visitorMap])
+
+  useEffect(() => { setPage(1) }, [activeTab, search])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
+  const start = (page - 1) * ITEMS_PER_PAGE
+  const paginatedRows = filtered.slice(start, start + ITEMS_PER_PAGE)
+
+  const tabs: { label: string; value: FilterTab; count: number }[] = [
+    { label: 'All', value: 'all', count: myVisits.length },
+    { label: 'Open', value: 'open', count: myVisits.filter((v) => (OPEN_STATUSES as string[]).includes(v.status)).length },
+    { label: 'Completed', value: 'completed', count: myVisits.filter((v) => (COMPLETED_STATUSES as string[]).includes(v.status)).length },
+    { label: 'Cancelled / Rejected', value: 'cancelled-rejected', count: myVisits.filter((v) => (CLOSED_STATUSES as string[]).includes(v.status)).length },
+  ]
+
+  return (
+    <div className="hidden md:flex flex-col h-full bg-surface-secondary">
+      <PageHeader title="My Visits" />
+
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+        {/* Controls row */}
+        <div className="flex items-center justify-between gap-3">
+          <TabPills tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+          <div className="relative">
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search visitor or company..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-60 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
+            />
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead>
+                <tr className="border-b border-border-light bg-surface/60">
+                  <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 w-10">#</th>
+                  <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3">Visitor</th>
+                  <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3">Date & Time</th>
+                  <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3">Check In / Out</th>
+                  <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3">Visit Type</th>
+                  <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <EmptyState icon="ri-search-line" title="No visits found" className="py-16" titleClassName="text-sm" />
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedRows.map((visit, idx) => {
+                    const visitor = visitorMap[visit.visitorId]
+                    const rowNum = start + idx + 1
+                    const statusColors = getStatusColor(visit.status)
+                    const checkIn = visit.checkInTime ? formatTime(extractTime(visit.checkInTime)) : null
+                    const checkOut = visit.checkOutTime ? formatTime(extractTime(visit.checkOutTime)) : null
+
+                    return (
+                      <tr key={visit.id} className="border-b border-border-light last:border-0 hover:bg-surface/70 transition-colors">
+                        <td className="px-4 py-3.5 text-sm text-text-tertiary tabular-nums">
+                          {String(rowNum).padStart(2, '0')}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <AvatarBadge name={visitor?.name ?? '?'} avatar={visitor?.avatar} />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-text-primary truncate leading-tight">{visitor?.name ?? 'Unknown'}</p>
+                              {visitor?.company && (
+                                <p className="text-xs text-text-tertiary truncate leading-tight mt-0.5">{visitor.company}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <p className="text-sm text-text-primary leading-tight">{formatDate(visit.scheduledDate)}</p>
+                          <p className="text-xs text-text-tertiary leading-tight mt-0.5">{formatTime(visit.scheduledTime)}</p>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {checkIn ? (
+                            <>
+                              <p className="text-sm text-text-primary leading-tight">{checkIn}</p>
+                              {checkOut && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{checkOut}</p>}
+                            </>
+                          ) : (
+                            <span className="text-sm text-text-tertiary">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-sm text-text-secondary">
+                          {getVisitTypeLabel(visit.visitType)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors.bg} ${statusColors.text}`}>
+                            {getStatusLabel(visit.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-text-secondary">
+              {start + 1}–{Math.min(start + ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <i className="ri-arrow-left-s-line text-base leading-none" />
+              </button>
+              <span className="text-sm text-text-secondary tabular-nums">{page} / {totalPages}</span>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <i className="ri-arrow-right-s-line text-base leading-none" />
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}

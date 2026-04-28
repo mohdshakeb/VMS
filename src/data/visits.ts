@@ -221,7 +221,7 @@ export const visits: Visit[] = [
     createdBy: 'emp-5',
     // Scenario: assets + vehicle + temperature (full heavy checkout)
     issueAssets: true,
-    assetsIssued: 'Safety Helmet, Hi-Vis Vest',
+    assetsIssued: 'Safety Helmet, Reflective Jacket',
     hasVehicle: true,
     vehicleRegistration: 'DL 01 CA 2847',
     visitorInTemperature: '36.8°C',
@@ -244,7 +244,7 @@ export const visits: Visit[] = [
     createdBy: 'front-desk',
     // Scenario: assets + laptop declared + temperature
     issueAssets: true,
-    assetsIssued: 'Safety Helmet, Safety Glasses, Hi-Vis Vest',
+    assetsIssued: 'Safety Helmet, Safety Glasses, Reflective Jacket',
     laptopDetails: 'Dell Latitude 5530 — SN: DL882941',
     visitorInTemperature: '37.0°C',
   },
@@ -353,7 +353,7 @@ export const visits: Visit[] = [
     createdBy: 'front-desk',
     // Scenario: assets + vehicle
     issueAssets: true,
-    assetsIssued: 'Safety Helmet, Hi-Vis Vest',
+    assetsIssued: 'Safety Helmet, Reflective Jacket',
     hasVehicle: true,
     vehicleRegistration: 'GJ 01 AX 9934',
   },
@@ -644,7 +644,7 @@ export const visits: Visit[] = [
     createdBy: 'front-desk',
     // Scenario: assets only
     issueAssets: true,
-    assetsIssued: 'Safety Helmet, Hi-Vis Vest, Safety Glasses',
+    assetsIssued: 'Safety Helmet, Reflective Jacket, Safety Glasses',
     hasVehicle: false,
   },
   {
@@ -686,7 +686,7 @@ export const visits: Visit[] = [
     createdBy: 'front-desk',
     // Scenario: everything — assets + vehicle + devices + temperature (maximal demo)
     issueAssets: true,
-    assetsIssued: 'Safety Helmet, Safety Glasses, Hi-Vis Vest, Gloves',
+    assetsIssued: 'Safety Helmet, Safety Glasses, Reflective Jacket, Gloves',
     hasVehicle: true,
     vehicleRegistration: 'TN 22 BE 8841',
     laptopDetails: 'MacBook Pro 14" — SN: MBP441823',

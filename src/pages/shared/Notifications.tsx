@@ -17,12 +17,12 @@ const typeIcons: Record<string, string> = {
 }
 
 const typeColors: Record<string, string> = {
-  'walk-in-approval': 'text-pending bg-pending-light',
-  'visit-confirmed': 'text-confirmed bg-confirmed-light',
-  'visit-rejected': 'text-rejected bg-rejected-light',
-  'visitor-arrived': 'text-on-premises bg-on-premises-light',
-  'visitor-checked-out': 'text-completed bg-completed-light',
-  'new-pending-request': 'text-active bg-active-light',
+  'walk-in-approval': 'text-pending bg-pending-surface',
+  'visit-confirmed': 'text-confirmed bg-confirmed-surface',
+  'visit-rejected': 'text-rejected bg-rejected-surface',
+  'visitor-arrived': 'text-on-premises bg-on-premises-surface',
+  'visitor-checked-out': 'text-completed bg-completed-surface',
+  'new-pending-request': 'text-active bg-active-surface',
 }
 
 export default function Notifications() {

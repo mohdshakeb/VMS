@@ -1,9 +1,9 @@
-import type { Visit } from '@/types/visit'
+import type { Visit, VisitStatus } from '@/types/visit'
 import type { Role } from '@/types/user'
 import Button from './Button'
 import { employees } from '@/data/employees'
 import { OVERDUE_VISIT_IDS } from '@/data/visits'
-import { formatTime, addMinutesToTime, formatDate } from '@/utils/helpers'
+import { formatTime, addMinutesToTime, formatDate, getStatusColor } from '@/utils/helpers'
 import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '@/store/uiStore'
 
@@ -58,13 +58,14 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
     ? new Date(visit.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : expectedOut
 
-  const terminalStatus: Record<string, { label: string; icon: string; bg: string; text: string }> = {
-    'checked-out': { label: 'Checked Out', icon: 'ri-checkbox-circle-line', bg: 'bg-badge-green-light',  text: 'text-badge-green-dark'  },
-    'cancelled':   { label: 'Cancelled',   icon: 'ri-close-circle-line',    bg: 'bg-badge-red-light',    text: 'text-badge-red-dark'    },
-    'no-show':     { label: 'No Show',     icon: 'ri-error-warning-line',   bg: 'bg-badge-yellow-light', text: 'text-badge-yellow-dark' },
-    'rejected':    { label: 'Rejected',    icon: 'ri-forbid-line',          bg: 'bg-badge-red-light',    text: 'text-badge-red-dark'    },
+  const terminalMeta: Record<string, { label: string; icon: string }> = {
+    'checked-out': { label: 'Checked Out', icon: 'ri-checkbox-circle-line' },
+    'cancelled':   { label: 'Cancelled',   icon: 'ri-close-circle-line'    },
+    'no-show':     { label: 'No Show',     icon: 'ri-error-warning-line'   },
+    'rejected':    { label: 'Rejected',    icon: 'ri-forbid-line'          },
   }
-  const terminalBar = terminalStatus[visit.status] ?? null
+  const terminalBar = terminalMeta[visit.status] ?? null
+  const terminalColors = terminalBar ? getStatusColor(visit.status as VisitStatus) : null
 
   const hasAction =
     (role === 'front-desk' && ['pending-approval', 'confirmed', 'scheduled', 'checked-in'].includes(visit.status)) ||
@@ -124,13 +125,13 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="text-sm font-medium text-text-primary truncate">{visitorName}</p>
             {entryBadge && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-50 border border-violet-200 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 shrink-0">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-surface border border-violet-border px-1.5 py-0.5 text-[10px] font-medium text-violet-fg shrink-0">
                 <i className={`${entryBadge.icon} text-[10px]`} />
                 {entryBadge.label}
               </span>
             )}
             {visit.isMultiDay && (
-              <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 shrink-0">
+              <span className="inline-flex items-center rounded-full bg-blue-surface border border-blue-border px-1.5 py-0.5 text-[10px] font-medium text-blue-fg shrink-0">
                 Multi-day
               </span>
             )}
@@ -221,7 +222,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
 
       {/* ── Terminal status bar ── */}
       {terminalBar && (
-        <div className={`flex items-center gap-1.5 px-4 py-2 rounded-b-xl text-xs font-medium ${terminalBar.bg} ${terminalBar.text}`}>
+        <div className={`flex items-center gap-1.5 px-4 py-2 rounded-b-xl text-xs font-medium ${terminalColors!.bg} ${terminalColors!.text}`}>
           <i className={`${terminalBar.icon} text-sm shrink-0`} />
           {terminalBar.label}
         </div>

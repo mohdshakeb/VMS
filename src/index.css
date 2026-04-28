@@ -63,8 +63,7 @@
    --color-zinc-950: #0B0909;
 
    /* ----------------------------------------------------------
-     STATUS PALETTES
-     Used only via semantic status aliases and badge triads below.
+     STATUS PALETTES — primitives used by status aliases below
      ---------------------------------------------------------- */
 
    /* Green — approved, confirmed, success */
@@ -83,36 +82,42 @@
    --color-blue-500: #00A6F4;
 
    /* ----------------------------------------------------------
-     SEMANTIC BADGE BACKGROUNDS
-     Triads: light (bg) / subtle (border or icon) / dark (text)
+     ACCENT PALETTE — 7 hues × 3 roles (surface / border / fg)
+     Universal. Use directly for label badges, icons, KPI cards.
+     Domain-specific status aliases below point into these.
+
+     surface — soft background fill
+     border  — subtle ring / border
+     fg      — foreground text or icon
      ---------------------------------------------------------- */
-   --color-badge-yellow-light: #FDF4E7;
-   --color-badge-yellow-subtle: #F6D6AB;
-   --color-badge-yellow-dark: #E89221;
+   --color-yellow-surface: #FDF4E7;
+   --color-yellow-border:  #F6D6AB;
+   --color-yellow-fg:      #E89221;
 
-   --color-badge-blue-light: #E8F0FD;
-   --color-badge-blue-subtle: #A7C7F5;
-   --color-badge-blue-dark: #4B8DEC;
+   --color-blue-surface:   #E8F0FD;
+   --color-blue-border:    #A7C7F5;
+   --color-blue-fg:        #4B8DEC;
 
-   --color-badge-red-light: #FDE8EC;
-   --color-badge-red-subtle: #F7B5C0;
-   --color-badge-red-dark: #EE6179;
+   --color-red-surface:    #FDE8EC;
+   --color-red-border:     #F7B5C0;
+   --color-red-fg:         #EE6179;
 
-   --color-badge-green-light: #E4FBE9;
-   --color-badge-green-subtle: #9DF0AF;
-   --color-badge-green-dark: #19A938;
+   --color-green-surface:  #E4FBE9;
+   --color-green-border:   #9DF0AF;
+   --color-green-fg:       #19A938;
 
-   --color-badge-pink-light: #FDE8F4;
-   --color-badge-pink-subtle: #F5A7D6;
-   --color-badge-pink-dark: #EA34A1;
+   --color-purple-surface: #FAE7FD;
+   --color-purple-border:  #EBABF6;
+   --color-purple-fg:      #CA21E8;
 
-   --color-badge-purple-light: #FAE7FD;
-   --color-badge-purple-subtle: #EBABF6;
-   --color-badge-purple-dark: #CA21E8;
+   --color-pink-surface:   #FDE8F4;
+   --color-pink-border:    #F5A7D6;
+   --color-pink-fg:        #EA34A1;
 
-   --color-badge-violet-light: #EBE8FD;
-   --color-badge-violet-subtle: #C4B7F9;
-   --color-badge-violet-dark: #7558F2;
+   --color-violet-surface: #EBE8FD;
+   --color-violet-border:  #C4B7F9;
+   --color-violet-fg:      #7558F2;
+
 
    /* ----------------------------------------------------------
      SEMANTIC ALIASES — use these in all components
@@ -142,19 +147,19 @@
    --color-text-disabled: var(--color-zinc-400);
    --color-border-disabled: var(--color-zinc-100);
 
-   /* Visit status — maps domain statuses to palette */
-   --color-pending: var(--color-orange-500);
-   --color-pending-light: var(--color-badge-yellow-light);
-   --color-confirmed: var(--color-green-500);
-   --color-confirmed-light: var(--color-badge-green-light);
-   --color-active: var(--color-blue-500);
-   --color-active-light: var(--color-badge-blue-light);
-   --color-rejected: var(--color-red-500);
-   --color-rejected-light: var(--color-badge-red-light);
-   --color-on-premises: var(--color-badge-violet-dark);
-   --color-on-premises-light: var(--color-badge-violet-light);
-   --color-completed: var(--color-zinc-500);
-   --color-completed-light: var(--color-zinc-100);
+   /* Visit status — domain aliases pointing into the accent palette */
+   --color-pending:             var(--color-orange-500);
+   --color-pending-surface:     var(--color-yellow-surface);
+   --color-confirmed:           var(--color-green-500);
+   --color-confirmed-surface:   var(--color-green-surface);
+   --color-active:              var(--color-blue-500);
+   --color-active-surface:      var(--color-blue-surface);
+   --color-rejected:            var(--color-red-500);
+   --color-rejected-surface:    var(--color-red-surface);
+   --color-on-premises:         var(--color-violet-fg);
+   --color-on-premises-surface: var(--color-violet-surface);
+   --color-completed:           var(--color-zinc-500);
+   --color-completed-surface:   var(--color-zinc-100);
 
    /* ----------------------------------------------------------
      DARK CHROME — sidebar, mobile header, app frame, toasts

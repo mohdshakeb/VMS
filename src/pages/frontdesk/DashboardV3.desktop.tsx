@@ -284,13 +284,13 @@ export default function DashboardV3Desktop() {
                       </button>
                       <button
                         onClick={() => handleFilterChange('ready')}
-                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'ready' ? 'bg-badge-blue-light text-badge-blue-dark' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
+                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'ready' ? 'bg-blue-surface text-blue-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
                       >
                         Pending Check-In
                       </button>
                       <button
                         onClick={() => handleFilterChange('pending')}
-                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'pending' ? 'bg-badge-yellow-light text-badge-yellow-dark' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
+                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${activeFilter === 'pending' ? 'bg-yellow-surface text-yellow-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
                       >
                         Pending Approval
                       </button>

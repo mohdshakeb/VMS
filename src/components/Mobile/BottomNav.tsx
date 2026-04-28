@@ -14,8 +14,8 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'History', path: '/front-desk/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
   ],
   employee: [
+    { label: 'Home', path: '/employee/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
     { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
-    { label: 'Approvals', path: '/employee/approve', icon: 'ri-checkbox-circle-line', activeIcon: 'ri-checkbox-circle-fill' },
   ],
   'branch-admin': [
     { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },

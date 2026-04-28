@@ -49,6 +49,31 @@ interface VisitState {
     model?: string
     businessSegmentRemarks?: string
     notes?: string
+    visitorAvatar?: string
+  }) => Visit
+
+  createEmployeeVisit: (data: {
+    visitorName: string
+    visitorMobile: string
+    visitorEmail?: string
+    visitorCompany?: string
+    hostEmployeeId: string
+    locationId: string
+    purpose: Purpose
+    visitType: VisitType
+    department?: string
+    scheduledDate?: string
+    scheduledTime?: string
+    duration?: number
+    isMultiDay?: boolean
+    endDate?: string
+    guestWifi?: boolean
+    businessSegment?: BusinessSegment
+    priority?: VisitorPriority
+    model?: string
+    businessSegmentRemarks?: string
+    notes?: string
+    visitorAvatar?: string
   }) => Visit
 
   approveWalkIn: (visitId: string) => void
@@ -91,7 +116,7 @@ export const useVisitStore = create<VisitState>((set, get) => ({
         mobile: data.visitorMobile,
         email: data.visitorEmail,
         company: data.visitorCompany,
-        avatar: pickAvatar(),
+        avatar: data.visitorAvatar || pickAvatar(),
       }
       set((state) => ({ visitors: [...state.visitors, visitor!] }))
     }
@@ -141,6 +166,55 @@ export const useVisitStore = create<VisitState>((set, get) => ({
       recipientId: data.hostEmployeeId,
       actionRequired: true,
     })
+
+    return visit
+  },
+
+  createEmployeeVisit: (data) => {
+    let visitor = get().visitors.find((v) => v.mobile === data.visitorMobile)
+    if (!visitor) {
+      visitor = {
+        id: generateId(),
+        name: data.visitorName,
+        mobile: data.visitorMobile,
+        email: data.visitorEmail,
+        company: data.visitorCompany,
+        avatar: data.visitorAvatar || pickAvatar(),
+      }
+      set((state) => ({ visitors: [...state.visitors, visitor!] }))
+    }
+
+    const now = new Date()
+
+    const visit: Visit = {
+      id: generateId(),
+      visitorId: visitor.id,
+      hostEmployeeId: data.hostEmployeeId,
+      locationId: data.locationId,
+      status: 'confirmed',
+      entryPath: 'employee-request' as EntryPath,
+      purpose: data.purpose,
+      visitType: data.visitType,
+      scheduledDate: data.scheduledDate ?? getLocalDateString(now),
+      scheduledTime: data.scheduledTime ?? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      duration: data.duration,
+      isMultiDay: data.isMultiDay,
+      endDate: data.endDate,
+      guestWifi: data.guestWifi,
+      createdAt: now.toISOString(),
+      createdBy: data.hostEmployeeId,
+      notes: data.notes,
+      department: data.department,
+      businessSegment: data.businessSegment,
+      priority: data.priority,
+      model: data.model,
+      businessSegmentRemarks: data.businessSegmentRemarks,
+    }
+
+    set((state) => ({
+      visits: [visit, ...state.visits],
+      toastMessage: `Visit scheduled for ${data.visitorName}`,
+    }))
 
     return visit
   },

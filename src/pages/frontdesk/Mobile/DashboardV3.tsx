@@ -237,8 +237,8 @@ export default function DashboardV3Mobile() {
                     const labels = { all: 'All', ready: 'Pending Check-In', pending: 'Pending Approval' }
                     const activeClasses = {
                       all: 'bg-surface-tertiary text-text-primary',
-                      ready: 'bg-badge-blue-light text-badge-blue-dark',
-                      pending: 'bg-badge-yellow-light text-badge-yellow-dark',
+                      ready: 'bg-blue-surface text-blue-fg',
+                      pending: 'bg-yellow-surface text-yellow-fg',
                     }
                     const isActive = activeFilter === filter
                     return (
