@@ -1,6 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import type { Role } from '@/types/user'
 
+const ctaByRole: Partial<Record<Role, { label: string; path: string; icon: string }>> = {
+  'front-desk': { label: 'Walk-in', path: '/front-desk/walk-in', icon: 'ri-user-add-line' },
+  employee: { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
+}
+
 interface MobileNavItem {
   label: string
   path: string
@@ -46,14 +51,13 @@ export default function BottomNav({ role }: BottomNavProps) {
           </NavLink>
         ))}
 
-        {/* Walk-in CTA — front-desk role only */}
-        {role === 'front-desk' && (
+        {ctaByRole[role] && (
           <NavLink
-            to="/front-desk/walk-in"
+            to={ctaByRole[role]!.path}
             className="ml-auto flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover rounded-xl px-5 py-3 text-sm font-medium text-white transition-colors duration-150"
           >
-            <i className="ri-user-add-line text-base leading-none" />
-            Walk-in
+            <i className={`${ctaByRole[role]!.icon} text-base leading-none`} />
+            {ctaByRole[role]!.label}
           </NavLink>
         )}
       </div>

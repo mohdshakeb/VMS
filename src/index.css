@@ -271,3 +271,8 @@ select.form-input {
 .animate-sonar {
    animation: sonar-ring 1.8s cubic-bezier(0.2, 0, 0.6, 1) infinite;
 }
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}

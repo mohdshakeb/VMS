@@ -24,6 +24,7 @@ import MobileSearchInput from '@/components/Mobile/MobileSearchInput'
 
 type ActiveFilter = 'all' | 'ready' | 'pending'
 type KpiFilter = 'all' | 'ready' | 'pending' | 'on-premises'
+type ActiveTab = 'checkin' | 'premises'
 
 const KPI_LABELS: Record<KpiFilter, string> = {
   all: 'Total Visitors',
@@ -48,6 +49,7 @@ export default function DashboardV3Mobile() {
   const [searchInput, setSearchInput] = useState('')
   const [showAllOnPremises, setShowAllOnPremises] = useState(false)
   const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('checkin')
 
   function handleKpiClick(filter: KpiFilter) {
     setKpiFilter((prev) => (prev === filter ? null : filter))
@@ -175,231 +177,267 @@ export default function DashboardV3Mobile() {
             </div>
           ) : (
             <>
-              {/* ── KPI grid — 2×2 ── */}
-              <div className="grid grid-cols-2 gap-2">
-                <KpiCardV2
-                  label="Total Visitors"
-                  info="Checked-in and checked-out"
-                  value={kpiTotalVisited.length}
-                  icon="ri-group-fill"
-                  color="blue"
-                  trend={MOCK_TREND_TOTAL}
-                  active={kpiFilter === 'all'}
-                  onClick={() => handleKpiClick('all')}
-                />
-                <KpiCardV2
-                  label="Pending Approval"
-                  info="Awaiting employee response"
-                  value={pendingApproval.length}
-                  icon="ri-time-fill"
-                  color="yellow"
-                  alertCount={delayedCount}
-                  alertLabel="need follow-up"
-                  alertColor="orange"
-                  active={kpiFilter === 'pending'}
-                  onClick={() => handleKpiClick('pending')}
-                />
-                <KpiCardV2
-                  label="On Premises"
-                  info="Currently inside the facility"
-                  value={kpiOnPremises.length}
-                  icon="ri-building-2-fill"
-                  color="green"
-                  alertCount={overdueCount}
-                  alertLabel="overdue"
-                  alertColor="red"
-                  active={kpiFilter === 'on-premises'}
-                  onClick={() => handleKpiClick('on-premises')}
-                />
-                <KpiCardV2
-                  label="Expected Today"
-                  info="By employee, awaiting arrival"
-                  value={kpiExpectedByEmployee.length}
-                  icon="ri-calendar-check-fill"
-                  color="purple"
-                  trend={MOCK_TREND_EXPECTED}
-                  active={kpiFilter === 'ready'}
-                  onClick={() => handleKpiClick('ready')}
-                />
+              {/* ── KPI cards — horizontal scroll ── */}
+              <div className="-mx-4 px-4 flex items-stretch gap-2.5 overflow-x-auto scrollbar-none">
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Total Visitors"
+                    info="Checked-in and checked-out"
+                    value={kpiTotalVisited.length}
+                    icon="ri-group-fill"
+                    color="blue"
+                    trend={MOCK_TREND_TOTAL}
+                    active={kpiFilter === 'all'}
+                    onClick={() => handleKpiClick('all')}
+                  />
+                </div>
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Pending Approval"
+                    info="Awaiting employee response"
+                    value={pendingApproval.length}
+                    icon="ri-time-fill"
+                    color="yellow"
+                    alertCount={delayedCount}
+                    alertLabel="need follow-up"
+                    alertColor="orange"
+                    active={kpiFilter === 'pending'}
+                    onClick={() => handleKpiClick('pending')}
+                  />
+                </div>
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="On Premises"
+                    info="Currently inside the facility"
+                    value={kpiOnPremises.length}
+                    icon="ri-building-2-fill"
+                    color="green"
+                    alertCount={overdueCount}
+                    alertLabel="overdue"
+                    alertColor="red"
+                    active={kpiFilter === 'on-premises'}
+                    onClick={() => handleKpiClick('on-premises')}
+                  />
+                </div>
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Expected Today"
+                    info="By employee, awaiting arrival"
+                    value={kpiExpectedByEmployee.length}
+                    icon="ri-calendar-check-fill"
+                    color="purple"
+                    trend={MOCK_TREND_EXPECTED}
+                    active={kpiFilter === 'ready'}
+                    onClick={() => handleKpiClick('ready')}
+                  />
+                </div>
+                <div className="w-4 shrink-0" />
               </div>
 
-              {/* ── Today's Visits — no card, full-width ── */}
-              <div className="-mx-4">
-                <div className="flex items-center gap-2 px-4 pt-3.5 pb-1">
-                  <p className="text-sm font-semibold text-text-primary">Today's Visits</p>
-                  <p className="text-sm font-medium text-text-tertiary">Check-In</p>
-                  <CountBadge count={resultList.length} />
-                </div>
+              {/* ── Segmented control ── */}
+              <div className="flex p-1 bg-white rounded-full mt-4">
+                {([
+                  { id: 'checkin', label: "Today's Visits", count: resultList.length },
+                  { id: 'premises', label: 'On Premises', count: kpiOnPremises.length },
+                ] as const).map(({ id, label, count }) => {
+                  const isActive = activeTab === id
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id)}
+                      className={`flex flex-1 items-center justify-center gap-2 py-2 text-sm font-medium rounded-full ${isActive ? 'text-brand' : 'text-text-tertiary'}`}
+                      style={{
+                        backgroundColor: isActive ? 'var(--color-brand-red-50)' : 'transparent',
+                        boxShadow: isActive ? '0 1px 4px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.08)' : 'none',
+                        transition: 'background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1), color 150ms cubic-bezier(0.23, 1, 0.32, 1)',
+                      }}
+                    >
+                      {label}
+                      <CountBadge
+                        count={count}
+                        className={isActive ? 'text-brand' : undefined}
+                        style={{
+                          backgroundColor: isActive ? 'var(--color-brand-red-100)' : undefined,
+                          transition: 'background-color 150ms cubic-bezier(0.23, 1, 0.32, 1)',
+                        }}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
 
-                {/* Filter pills */}
-                <div className="flex items-center gap-2 px-4 py-2.5">
-                  {(['all', 'ready', 'pending'] as const).map((filter) => {
-                    const labels = { all: 'All', ready: 'Pending Check-In', pending: 'Pending Approval' }
-                    const activeClasses = {
-                      all: 'bg-surface-tertiary text-text-primary',
-                      ready: 'bg-blue-surface text-blue-fg',
-                      pending: 'bg-yellow-surface text-yellow-fg',
-                    }
-                    const isActive = activeFilter === filter
-                    return (
-                      <button
-                        key={filter}
-                        onClick={() => handleFilterChange(filter)}
-                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
-                          isActive ? activeClasses[filter] : 'bg-surface text-text-secondary hover:bg-surface-secondary'
-                        }`}
-                      >
-                        {labels[filter]}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {/* Visit list */}
-                <div className="px-4 space-y-2">
-                  {resultList.length === 0 ? (
-                    <EmptyState icon="ri-inbox-2-line" title="No visits found" />
-                  ) : (
-                    resultList.map((visit, idx) => {
-                      const visitor = visitorMap[visit.visitorId]
-                      const isHighlighted = visit.id === highlightedVisitId
+              {/* ── Today's Visits tab ── */}
+              {activeTab === 'checkin' && (
+                <>
+                  {/* Filter pills */}
+                  <div className="flex items-center gap-2 py-1">
+                    {(['all', 'ready', 'pending'] as const).map((filter) => {
+                      const labels = { all: 'All', ready: 'Pending Check-In', pending: 'Pending Approval' }
+                      const activeClasses = {
+                        all: 'bg-surface-tertiary text-text-primary',
+                        ready: 'bg-blue-surface text-blue-fg',
+                        pending: 'bg-yellow-surface text-yellow-fg',
+                      }
+                      const isActive = activeFilter === filter
                       return (
-                        <div
-                          key={visit.id}
-                          className={`vms-stagger-item rounded-xl transition-shadow duration-300 ${isHighlighted ? 'ring-2 ring-brand/50 ring-offset-1 shadow-sm' : ''}`}
-                          style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}
+                        <button
+                          key={filter}
+                          onClick={() => handleFilterChange(filter)}
+                          className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                            isActive ? activeClasses[filter] : 'bg-surface text-text-secondary hover:bg-surface-secondary'
+                          }`}
                         >
-                          <VisitCard
-                            visit={visit}
-                            visitorName={visitor?.name ?? 'Unknown Visitor'}
-                            visitorPhone={visitor?.mobile}
-                            visitorAvatar={visitor?.avatar}
-                            role="front-desk"
-                          />
-                        </div>
+                          {labels[filter]}
+                        </button>
                       )
-                    })
-                  )}
-                </div>
-              </div>
+                    })}
+                  </div>
 
-              {/* ── On Premises ── */}
-              <div className="bg-white rounded-xl border border-border overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light shrink-0">
-                  <p className="text-sm font-semibold text-text-primary">On Premises</p>
-                  <p className="text-sm font-medium text-text-tertiary">Check-Out</p>
-                  <CountBadge count={kpiOnPremises.length} />
-                </div>
-
-                <div>
-                  {kpiOnPremises.length === 0 ? (
-                    <EmptyState icon="ri-building-2-line" title="No visitors on premises" />
-                  ) : (
-                    [...kpiOnPremises]
-                      .sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
-                      .slice(0, showAllOnPremises ? undefined : 5)
-                      .map((visit, idx) => {
+                  {/* Visit list */}
+                  <div className="space-y-2">
+                    {resultList.length === 0 ? (
+                      <EmptyState icon="ri-inbox-2-line" title="No visits found" className="py-8" iconClassName="text-2xl" titleClassName="text-sm" />
+                    ) : (
+                      resultList.map((visit, idx) => {
                         const visitor = visitorMap[visit.visitorId]
-                        const name = visitor?.name ?? 'Unknown Visitor'
-                        const host = employees.find((e) => e.id === visit.hostEmployeeId)
-                        const expectedOutTime =
-                          visit.checkInTime && visit.duration
-                            ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60 * 1000)
-                            : null
-                        const checkInDisplay = visit.checkInTime
-                          ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : '—'
-                        const outTimeDisplay = expectedOutTime
-                          ? expectedOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : null
-                        const isOverdue = OVERDUE_VISIT_IDS.has(visit.id)
-                        const overdueDisplay = (() => {
-                          if (!isOverdue || !expectedOutTime) return null
-                          const diffMs = now.getTime() - expectedOutTime.getTime()
-                          if (diffMs <= 0) return null
-                          const totalMin = Math.min(Math.floor(diffMs / 60000), 180)
-                          const h = Math.floor(totalMin / 60)
-                          const m = totalMin % 60
-                          return `+${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-                        })()
-                        const isRowExpanded = expandedEntryKey === visit.id
+                        const isHighlighted = visit.id === highlightedVisitId
                         return (
-                          <div key={visit.id}>
-                            {idx > 0 && <div className="h-px bg-surface-secondary mx-4" />}
-                            <button
-                              onClick={() => setExpandedEntryKey(isRowExpanded ? null : visit.id)}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors ${isRowExpanded ? '' : 'hover:bg-surface'}`}
-                            >
-                              <div className={`relative shrink-0 rounded-full${isOverdue ? ' ring-[3px] ring-offset-0 ring-red-400/40' : ''}`}>
-                                {isOverdue && <span className="animate-sonar absolute inset-0 rounded-full border-2 pointer-events-none" />}
-                                <AvatarBadge name={name} avatar={visitor?.avatar} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-sm font-medium text-text-primary truncate">{name}</p>
-                                </div>
-                                <div className="flex items-center gap-1 mt-0.5 text-[11px] text-text-tertiary">
-                                  {visit.badgeNumber && <span className="shrink-0">{visit.badgeNumber}</span>}
-                                  {visit.badgeNumber && visitor?.mobile && <span className="shrink-0">·</span>}
-                                  {visitor?.mobile && <span className="truncate">{visitor.mobile}</span>}
-                                  {(overdueDisplay || outTimeDisplay) && (visitor?.mobile || visit.badgeNumber) && <span className="shrink-0 mx-0.5">·</span>}
-                                  {overdueDisplay
-                                    ? <span className="shrink-0 font-semibold text-red-500">{overdueDisplay}</span>
-                                    : outTimeDisplay
-                                      ? <span className="shrink-0">Out {outTimeDisplay}</span>
-                                      : null}
-                                </div>
-                              </div>
-                              <i className={`shrink-0 text-text-tertiary transition-transform duration-200 ${isRowExpanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}`} />
-                            </button>
-
-                            <Collapsible open={isRowExpanded}>
-                                <div className="px-4 pb-4 space-y-3">
-                                  <div className="h-px bg-border-light" />
-                                  <div className="grid grid-cols-3 gap-x-3 gap-y-2">
-                                    <div>
-                                      <p className="text-[10px] text-text-tertiary leading-none">Check-in</p>
-                                      <p className="text-xs font-medium text-text-primary mt-1">{checkInDisplay}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] text-text-tertiary leading-none">Meeting</p>
-                                      <p className="text-xs font-medium text-text-primary mt-1 truncate">{host?.name ?? '—'}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] text-text-tertiary leading-none">Pass type</p>
-                                      <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex gap-2">
-                                    <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
-                                      onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/visit/${visit.id}`) }}>
-                                      View Details
-                                    </Button>
-                                    <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth
-                                      onClick={(e) => { e.stopPropagation(); openCheckOut(visit.id) }}>
-                                      Check out
-                                    </Button>
-                                  </div>
-                                </div>
-                            </Collapsible>
+                          <div
+                            key={visit.id}
+                            className={`vms-stagger-item rounded-xl transition-shadow duration-300 ${isHighlighted ? 'ring-2 ring-brand/50 ring-offset-1 shadow-sm' : ''}`}
+                            style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}
+                          >
+                            <VisitCard
+                              visit={visit}
+                              visitorName={visitor?.name ?? 'Unknown Visitor'}
+                              visitorPhone={visitor?.mobile}
+                              visitorAvatar={visitor?.avatar}
+                              role="front-desk"
+                            />
                           </div>
                         )
                       })
-                  )}
-                </div>
+                    )}
+                  </div>
+                </>
+              )}
 
-                {kpiOnPremises.length >= 6 && (
-                  <div className="shrink-0 border-t border-border-light px-4 py-2.5">
-                    <button
-                      onClick={() => setShowAllOnPremises((v) => !v)}
-                      className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors py-1"
-                    >
-                      {showAllOnPremises ? <>Show less <i className="ri-arrow-up-s-line text-sm" /></> : <>View all <i className="ri-arrow-down-s-line text-sm" /></>}
-                    </button>
+              {/* ── On Premises tab ── */}
+              {activeTab === 'premises' && (
+                  <div className="bg-white rounded-xl border border-border overflow-hidden mt-1">
+                    {kpiOnPremises.length === 0 ? (
+                      <div className="p-3">
+                        <EmptyState icon="ri-building-2-line" title="No visitors on premises" className="py-8" iconClassName="text-2xl" titleClassName="text-sm" />
+                      </div>
+                    ) : (
+                      <>
+                        {[...kpiOnPremises]
+                          .sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
+                          .slice(0, showAllOnPremises ? undefined : 5)
+                          .map((visit, idx) => {
+                            const visitor = visitorMap[visit.visitorId]
+                            const name = visitor?.name ?? 'Unknown Visitor'
+                            const host = employees.find((e) => e.id === visit.hostEmployeeId)
+                            const expectedOutTime =
+                              visit.checkInTime && visit.duration
+                                ? new Date(new Date(visit.checkInTime).getTime() + visit.duration * 60 * 1000)
+                                : null
+                            const checkInDisplay = visit.checkInTime
+                              ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : '—'
+                            const outTimeDisplay = expectedOutTime
+                              ? expectedOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : null
+                            const isOverdue = OVERDUE_VISIT_IDS.has(visit.id)
+                            const overdueDisplay = (() => {
+                              if (!isOverdue || !expectedOutTime) return null
+                              const diffMs = now.getTime() - expectedOutTime.getTime()
+                              if (diffMs <= 0) return null
+                              const totalMin = Math.min(Math.floor(diffMs / 60000), 180)
+                              const h = Math.floor(totalMin / 60)
+                              const m = totalMin % 60
+                              return `+${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+                            })()
+                            const isRowExpanded = expandedEntryKey === visit.id
+                            return (
+                              <div key={visit.id}>
+                                {idx > 0 && <div className="h-px bg-surface-secondary mx-4" />}
+                                <button
+                                  onClick={() => setExpandedEntryKey(isRowExpanded ? null : visit.id)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors ${isRowExpanded ? '' : 'hover:bg-surface'}`}
+                                >
+                                  <div className={`relative shrink-0 rounded-full${isOverdue ? ' ring-[3px] ring-offset-0 ring-red-400/40' : ''}`}>
+                                    {isOverdue && <span className="animate-sonar absolute inset-0 rounded-full border-2 pointer-events-none" />}
+                                    <AvatarBadge name={name} avatar={visitor?.avatar} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <p className="text-sm font-medium text-text-primary truncate">{name}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-0.5 text-[11px] text-text-tertiary">
+                                      {visit.badgeNumber && <span className="shrink-0">{visit.badgeNumber}</span>}
+                                      {visit.badgeNumber && visitor?.mobile && <span className="shrink-0">·</span>}
+                                      {visitor?.mobile && <span className="truncate">{visitor.mobile}</span>}
+                                      {(overdueDisplay || outTimeDisplay) && (visitor?.mobile || visit.badgeNumber) && <span className="shrink-0 mx-0.5">·</span>}
+                                      {overdueDisplay
+                                        ? <span className="shrink-0 font-semibold text-red-500">{overdueDisplay}</span>
+                                        : outTimeDisplay
+                                          ? <span className="shrink-0">Out {outTimeDisplay}</span>
+                                          : null}
+                                    </div>
+                                  </div>
+                                  <i className={`shrink-0 text-text-tertiary transition-transform duration-200 ${isRowExpanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line'}`} />
+                                </button>
+
+                                <Collapsible open={isRowExpanded}>
+                                  <div className="px-4 pb-4 space-y-3">
+                                    <div className="h-px bg-border-light" />
+                                    <div className="grid grid-cols-3 gap-x-3 gap-y-2">
+                                      <div>
+                                        <p className="text-[10px] text-text-tertiary leading-none">Check-in</p>
+                                        <p className="text-xs font-medium text-text-primary mt-1">{checkInDisplay}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-[10px] text-text-tertiary leading-none">Meeting</p>
+                                        <p className="text-xs font-medium text-text-primary mt-1 truncate">{host?.name ?? '—'}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-[10px] text-text-tertiary leading-none">Pass type</p>
+                                        <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                      <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
+                                        onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/visit/${visit.id}`) }}>
+                                        View Details
+                                      </Button>
+                                      <Button size="sm" variant="primary" icon="ri-logout-box-line" fullWidth
+                                        onClick={(e) => { e.stopPropagation(); openCheckOut(visit.id) }}>
+                                        Check out
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </Collapsible>
+                              </div>
+                            )
+                          })}
+
+                        {kpiOnPremises.length >= 6 && (
+                          <div className="border-t border-border-light px-4 py-2.5">
+                            <button
+                              onClick={() => setShowAllOnPremises((v) => !v)}
+                              className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors py-1"
+                            >
+                              {showAllOnPremises ? <>Show less <i className="ri-arrow-up-s-line text-sm" /></> : <>View all <i className="ri-arrow-down-s-line text-sm" /></>}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
-              </div>
+
             </>
           )}
 

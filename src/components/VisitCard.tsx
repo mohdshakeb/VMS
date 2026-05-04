@@ -13,9 +13,12 @@ interface VisitCardProps {
   visitorPhone?: string
   visitorAvatar?: string
   role: Role
+  viewerIsHost?: boolean
+  onApprove?: () => void
+  onReject?: () => void
 }
 
-export default function VisitCard({ visit, visitorName, visitorPhone, visitorAvatar, role }: VisitCardProps) {
+export default function VisitCard({ visit, visitorName, visitorPhone, visitorAvatar, role, viewerIsHost, onApprove, onReject }: VisitCardProps) {
   const navigate = useNavigate()
   const openCheckIn = useUIStore((s) => s.openCheckIn)
   const openCheckOut = useUIStore((s) => s.openCheckOut)
@@ -91,7 +94,9 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
 
   const entryBadge =
     (visit.entryPath === 'employee-request' || visit.entryPath === 'pre-scheduled')
-      ? { label: 'By Employee', icon: 'ri-user-star-line' }
+      ? viewerIsHost
+        ? { label: 'By You', icon: null }
+        : { label: 'By Employee', icon: 'ri-user-star-line' }
       : null
 
   function handleCardClick() {
@@ -126,7 +131,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
             <p className="text-sm font-medium text-text-primary truncate">{visitorName}</p>
             {entryBadge && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-surface border border-violet-border px-1.5 py-0.5 text-[10px] font-medium text-violet-fg shrink-0">
-                <i className={`${entryBadge.icon} text-[10px]`} />
+                {entryBadge.icon && <i className={`${entryBadge.icon} text-[10px]`} />}
                 {entryBadge.label}
               </span>
             )}
@@ -179,7 +184,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
         </div>
       </div>
       <div className="md:hidden px-4 pt-1.5 pb-3" onClick={(e) => e.stopPropagation()}>
-        <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} fullWidth />
+        <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} fullWidth onApprove={onApprove} onReject={onReject} />
       </div>
 
       {/* ── Footer: desktop ── */}
@@ -216,7 +221,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
           </span>
         )}
         <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
-          <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} />
+          <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} onApprove={onApprove} onReject={onReject} />
         </div>
       </div>
 
@@ -232,7 +237,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
 }
 
 function VisitActions({
-  visit, role, openCheckIn, openCheckOut, navigate, fullWidth,
+  visit, role, openCheckIn, openCheckOut, navigate, fullWidth, onApprove, onReject,
 }: {
   visit: Visit
   role: Role
@@ -240,6 +245,8 @@ function VisitActions({
   openCheckOut: (id: string) => void
   navigate: ReturnType<typeof useNavigate>
   fullWidth?: boolean
+  onApprove?: () => void
+  onReject?: () => void
 }) {
   if (role === 'front-desk') {
     switch (visit.status) {
@@ -285,6 +292,14 @@ function VisitActions({
 
   if (role === 'employee') {
     if (visit.status === 'pending-approval') {
+      if (onApprove && onReject) {
+        return (
+          <div className="flex items-center gap-1.5 w-full">
+            <Button size="sm" variant="primary" icon="ri-check-line" fullWidth={fullWidth} onClick={onApprove}>Approve</Button>
+            <Button size="sm" variant="secondary" icon="ri-close-line" fullWidth={fullWidth} onClick={onReject}>Reject</Button>
+          </div>
+        )
+      }
       return (
         <Button size="sm" variant="primary" fullWidth={fullWidth} onClick={() => navigate(`/employee/approve/${visit.id}`)}>
           Review
