@@ -1,5 +1,11 @@
 import CreateVisitDesktop from './CreateVisit.desktop'
+import CreateVisitMobile from './Mobile/CreateVisit'
 
 export default function CreateVisit() {
-  return <CreateVisitDesktop />
+  return (
+    <>
+      <CreateVisitMobile />
+      <CreateVisitDesktop />
+    </>
+  )
 }

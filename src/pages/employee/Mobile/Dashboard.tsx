@@ -117,12 +117,23 @@ export default function EmployeeDashboardMobile() {
     : todayFilter === 'pending' ? pendingApprovals
     : upcomingToday
 
-  const activeList = searchInput.trim()
+  const searchQuery = searchInput.trim().toLowerCase()
+
+  const activeList = searchQuery
     ? baseList.filter((v) => {
         const visitor = visitorMap[v.visitorId]
-        return (visitor?.name?.toLowerCase() ?? '').includes(searchInput.trim().toLowerCase())
+        return (visitor?.name?.toLowerCase() ?? '').includes(searchQuery)
+          || (visitor?.company?.toLowerCase() ?? '').includes(searchQuery)
       })
     : baseList
+
+  const checkedInList = searchQuery
+    ? checkedIn.filter((v) => {
+        const visitor = visitorMap[v.visitorId]
+        return (visitor?.name?.toLowerCase() ?? '').includes(searchQuery)
+          || (visitor?.company?.toLowerCase() ?? '').includes(searchQuery)
+      })
+    : checkedIn
 
   function handleApprove(visitId: string) {
     setApproveTargetId(visitId)
@@ -333,10 +344,10 @@ export default function EmployeeDashboardMobile() {
           {/* Checked In tab — matches desktop right panel */}
           {activeTab === 'checkedin' && (
             <div className="bg-white rounded-xl border border-border overflow-hidden mt-1">
-              {checkedIn.length === 0 ? (
-                <EmptyState icon="ri-user-location-line" title="No visitors checked in" className="py-10" iconClassName="text-2xl" titleClassName="text-sm" />
+              {checkedInList.length === 0 ? (
+                <EmptyState icon="ri-user-location-line" title={searchQuery ? 'No results found' : 'No visitors checked in'} className="py-10" iconClassName="text-2xl" titleClassName="text-sm" />
               ) : (
-                checkedIn
+                checkedInList
                   .sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
                   .map((visit, idx) => {
                     const visitor = visitorMap[visit.visitorId]
