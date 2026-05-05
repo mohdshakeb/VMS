@@ -131,6 +131,7 @@ export default function AppLayout() {
               unreadCount={unreadCount}
               onLocationPress={openLocationSheet}
               onProfilePress={openProfileSheet}
+              hideLocationAndQr={currentRole === 'employee'}
             />
           )}
 

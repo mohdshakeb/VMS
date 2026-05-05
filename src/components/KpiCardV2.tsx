@@ -1,4 +1,4 @@
-type Color = 'blue' | 'purple' | 'green' | 'yellow'
+type Color = 'blue' | 'purple' | 'green' | 'yellow' | 'red'
 
 const colorMap: Record<Color, { iconBg: string; iconBorder: string; iconColor: string }> = {
   blue: {
@@ -15,6 +15,11 @@ const colorMap: Record<Color, { iconBg: string; iconBorder: string; iconColor: s
     iconBg: 'bg-green-surface',
     iconBorder: 'border border-green-border',
     iconColor: 'text-green-fg',
+  },
+  red: {
+    iconBg: 'bg-red-surface',
+    iconBorder: 'border border-red-border',
+    iconColor: 'text-red-fg',
   },
   yellow: {
     iconBg: 'bg-yellow-surface',

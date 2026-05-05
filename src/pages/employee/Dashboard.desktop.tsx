@@ -17,12 +17,12 @@ import EmptyState from '@/components/common/EmptyState'
 import CountBadge from '@/components/common/CountBadge'
 import AvatarBadge from '@/components/common/AvatarBadge'
 import Collapsible from '@/components/common/Collapsible'
-import { getLocalDateString, getVisitTypeLabel } from '@/utils/helpers'
+import { getLocalDateString, getVisitTypeLabel, getPurposeLabel } from '@/utils/helpers'
 
 export default function EmployeeDashboardDesktop() {
   const visits = useVisitStore((s) => s.visits)
   const storeVisitors = useVisitStore((s) => s.visitors)
-  const { approveWalkIn, rejectWalkIn } = useVisitStore()
+  const { approveWalkIn, rejectWalkIn, cancelVisit } = useVisitStore()
 
   const { currentEmployeeId, currentRole } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
@@ -39,6 +39,7 @@ export default function EmployeeDashboardDesktop() {
   const [approveSuccessName, setApproveSuccessName] = useState<string | null>(null)
   const [rejectSuccessName, setRejectSuccessName] = useState<string | null>(null)
   const [successVisitorName, setSuccessVisitorName] = useState<string | null>(null)
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
 
   const now = new Date()
   const today = getLocalDateString()
@@ -50,6 +51,7 @@ export default function EmployeeDashboardDesktop() {
   const pendingApprovals = getPendingApprovals(visits, currentEmployeeId).filter((v) => v.scheduledDate === today)
   const upcomingToday = myVisits.filter((v) => ['confirmed', 'scheduled'].includes(v.status) && v.scheduledDate === today)
   const allToday = myVisits.filter((v) => ['pending-approval', 'scheduled', 'confirmed'].includes(v.status) && v.scheduledDate === today)
+  const cancelledRejected = myVisits.filter((v) => ['cancelled', 'rejected'].includes(v.status))
 
   // Checked-in visitors (all dates)
   const checkedIn = myVisits.filter((v) => v.status === 'checked-in' && !finishedIds.has(v.id))
@@ -99,6 +101,12 @@ export default function EmployeeDashboardDesktop() {
     setFinishedIds((prev) => new Set([...prev, finishTargetId]))
     setFinishTargetId(null)
     setSuccessVisitorName(visitor?.name ?? 'Visitor')
+  }
+
+  function handleCancelConfirm() {
+    if (!cancelTargetId) return
+    cancelVisit(cancelTargetId)
+    setCancelTargetId(null)
   }
 
   return (
@@ -160,7 +168,17 @@ export default function EmployeeDashboardDesktop() {
                     const visitor = visitorMap[visit.visitorId]
                     return (
                       <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
-                        <VisitCard visit={visit} visitorName={visitor?.name ?? 'Unknown'} visitorPhone={visitor?.mobile} visitorAvatar={visitor?.avatar} role="employee" viewerIsHost />
+                        <VisitCard
+                          visit={visit}
+                          visitorName={visitor?.name ?? 'Unknown'}
+                          visitorPhone={visitor?.mobile}
+                          visitorAvatar={visitor?.avatar}
+                          role="employee"
+                          viewerIsHost
+                          onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
+                          onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                          onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
+                        />
                       </div>
                     )
                   })
@@ -198,11 +216,11 @@ export default function EmployeeDashboardDesktop() {
                   color="green"
                 />
                 <KpiCardV2
-                  label="Upcoming Today"
-                  info="Confirmed for today, not yet arrived"
-                  value={upcomingToday.length}
-                  icon="ri-calendar-schedule-fill"
-                  color="purple"
+                  label="Cancelled & Rejected"
+                  info="Visits that were cancelled or rejected"
+                  value={cancelledRejected.length}
+                  icon="ri-close-circle-fill"
+                  color="red"
                 />
               </div>
 
@@ -233,7 +251,7 @@ export default function EmployeeDashboardDesktop() {
                         onClick={() => setTodayFilter('upcoming')}
                         className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'upcoming' ? 'bg-blue-surface text-blue-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
                       >
-                        Upcoming
+                        Confirmed
                       </button>
                     </div>
                     <div className="p-3 space-y-2">
@@ -256,6 +274,7 @@ export default function EmployeeDashboardDesktop() {
                                 viewerIsHost
                                 onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
                                 onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                                onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
                               />
                             </div>
                           )
@@ -270,7 +289,6 @@ export default function EmployeeDashboardDesktop() {
                   <div className="bg-white rounded-xl border border-border overflow-hidden">
                     <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light shrink-0">
                       <p className="text-sm font-semibold text-text-primary">Checked-In</p>
-                      <p className="text-sm font-medium text-text-tertiary">Finish</p>
                       <CountBadge count={checkedIn.length} />
                     </div>
                     <div>
@@ -334,14 +352,18 @@ export default function EmployeeDashboardDesktop() {
                                 <Collapsible open={isRowExpanded}>
                                   <div className="px-4 pb-4 space-y-3">
                                     <div className="h-px bg-border-light" />
-                                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                                    <div className="grid grid-cols-3 gap-x-3">
                                       <div>
                                         <p className="text-[10px] text-text-tertiary leading-none">Check-in</p>
                                         <p className="text-xs font-medium text-text-primary mt-1">{checkInDisplay}</p>
                                       </div>
                                       <div>
-                                        <p className="text-[10px] text-text-tertiary leading-none">Pass type</p>
+                                        <p className="text-[10px] text-text-tertiary leading-none">Visit type</p>
                                         <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-[10px] text-text-tertiary leading-none">Purpose</p>
+                                        <p className="text-xs font-medium text-text-primary mt-1">{getPurposeLabel(visit.purpose)}</p>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -487,6 +509,30 @@ export default function EmployeeDashboardDesktop() {
           </div>
         </Modal>
       )}
+
+      {/* Cancel confirmation modal */}
+      {cancelTargetId && (() => {
+        const v = visits.find((x) => x.id === cancelTargetId)
+        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+        return (
+          <Modal
+            open
+            title="Cancel Visit"
+            onClose={() => setCancelTargetId(null)}
+            size="md"
+            footer={
+              <div className="flex gap-2">
+                <Button variant="danger" fullWidth onClick={handleCancelConfirm}>Cancel Visit</Button>
+                <Button variant="secondary" fullWidth onClick={() => setCancelTargetId(null)}>Keep It</Button>
+              </div>
+            }
+          >
+            <div className="py-2">
+              <p className="text-sm text-text-secondary">Cancel the upcoming visit from <span className="font-medium text-text-primary">{name}</span>? This cannot be undone.</p>
+            </div>
+          </Modal>
+        )
+      })()}
 
       {/* Finish success modal */}
       {successVisitorName && (

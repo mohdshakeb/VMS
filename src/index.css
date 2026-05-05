@@ -72,8 +72,10 @@
    --color-green-600: #16A34A;
 
    /* Red — rejected, danger, overdue */
+   --color-red-50:  #FEF2F4;
    --color-red-400: #EF4444;
    --color-red-500: #DC2626;
+   --color-red-600: #B91C1C;
 
    /* Orange — pending, awaiting */
    --color-orange-500: #F97316;
@@ -160,6 +162,13 @@
    --color-on-premises-surface: var(--color-violet-surface);
    --color-completed:           var(--color-zinc-500);
    --color-completed-surface:   var(--color-zinc-100);
+
+   /* Terminal status bar — visit card footer only. Lighter surfaces + darker text.
+      Do not use for badges, chips, or action buttons — use the base status tokens above. */
+   --color-terminal-green:         var(--color-green-fg);
+   --color-terminal-green-surface: var(--color-green-50);
+   --color-terminal-red:           var(--color-red-600);
+   --color-terminal-red-surface:   var(--color-red-50);
 
    /* ----------------------------------------------------------
      DARK CHROME — sidebar, mobile header, app frame, toasts

@@ -3,7 +3,7 @@ import type { Role } from '@/types/user'
 import Button from './Button'
 import { employees } from '@/data/employees'
 import { OVERDUE_VISIT_IDS } from '@/data/visits'
-import { formatTime, addMinutesToTime, formatDate, getStatusColor } from '@/utils/helpers'
+import { formatTime, addMinutesToTime, formatDate, getStatusColor, getVisitTypeLabel, getPurposeLabel } from '@/utils/helpers'
 import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '@/store/uiStore'
 
@@ -16,9 +16,10 @@ interface VisitCardProps {
   viewerIsHost?: boolean
   onApprove?: () => void
   onReject?: () => void
+  onCancel?: () => void
 }
 
-export default function VisitCard({ visit, visitorName, visitorPhone, visitorAvatar, role, viewerIsHost, onApprove, onReject }: VisitCardProps) {
+export default function VisitCard({ visit, visitorName, visitorPhone, visitorAvatar, role, viewerIsHost, onApprove, onReject, onCancel }: VisitCardProps) {
   const navigate = useNavigate()
   const openCheckIn = useUIStore((s) => s.openCheckIn)
   const openCheckOut = useUIStore((s) => s.openCheckOut)
@@ -93,11 +94,13 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
   const showPhoto = !!photoSrc
 
   const entryBadge =
-    (visit.entryPath === 'employee-request' || visit.entryPath === 'pre-scheduled')
-      ? viewerIsHost
-        ? { label: 'By You', icon: null }
-        : { label: 'By Employee', icon: 'ri-user-star-line' }
-      : null
+    visit.entryPath === 'self-register'
+      ? { label: 'Self' }
+      : (visit.entryPath === 'employee-request' || visit.entryPath === 'pre-scheduled')
+        ? viewerIsHost
+          ? { label: 'By You' }
+          : { label: 'By Host' }
+        : null
 
   function handleCardClick() {
     navigate(`/front-desk/visit/${visit.id}`)
@@ -130,8 +133,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="text-sm font-medium text-text-primary truncate">{visitorName}</p>
             {entryBadge && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-surface border border-violet-border px-1.5 py-0.5 text-[10px] font-medium text-violet-fg shrink-0">
-                {entryBadge.icon && <i className={`${entryBadge.icon} text-[10px]`} />}
+              <span className="inline-flex items-center rounded-full bg-violet-surface border border-violet-border px-1.5 py-0.5 text-[10px] font-medium text-violet-fg shrink-0">
                 {entryBadge.label}
               </span>
             )}
@@ -156,10 +158,12 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
               <span className="text-text-secondary font-medium">{timeDisplay}</span>
             </span>
           )}
-          <span className="inline-flex items-center gap-1 shrink-0">
-            <i className="ri-user-line shrink-0 text-text-tertiary/80" />
-            <span className="text-text-secondary truncate">{host?.name ?? 'Unknown'}</span>
-          </span>
+          {!viewerIsHost && (
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <i className="ri-user-line shrink-0 text-text-tertiary/80" />
+              <span className="text-text-secondary truncate">{host?.name ?? 'Unknown'}</span>
+            </span>
+          )}
           {checkOutDisplay && !!visit.checkInTime && (
             <span className="col-start-1 inline-flex items-baseline gap-1 shrink-0">
               <i className={`ri-logout-box-r-line shrink-0 ${isOvertime ? 'text-red-500' : 'text-text-tertiary/80'} self-center`} />
@@ -181,10 +185,22 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
               <span className="text-text-secondary">Until {formatDate(visit.endDate)}</span>
             </span>
           )}
+          {role !== 'front-desk' && (
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <i className="ri-user-3-line shrink-0 text-text-tertiary/80" />
+              <span className="text-text-secondary">{getVisitTypeLabel(visit.visitType)}</span>
+            </span>
+          )}
+          {role !== 'front-desk' && (
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <i className="ri-briefcase-line shrink-0 text-text-tertiary/80" />
+              <span className="text-text-secondary">{getPurposeLabel(visit.purpose)}</span>
+            </span>
+          )}
         </div>
       </div>
       <div className="md:hidden px-4 pt-1.5 pb-3" onClick={(e) => e.stopPropagation()}>
-        <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} fullWidth onApprove={onApprove} onReject={onReject} />
+        <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} fullWidth onApprove={onApprove} onReject={onReject} onCancel={onCancel} />
       </div>
 
       {/* ── Footer: desktop ── */}
@@ -195,10 +211,12 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
             <span className="text-text-secondary font-medium">{timeDisplay}</span>
           </span>
         )}
-        <span className="inline-flex items-center gap-1 shrink-0">
-          <i className="ri-user-line shrink-0 text-text-tertiary/80" />
-          <span className="text-text-secondary truncate max-w-[120px]">{host?.name ?? 'Unknown'}</span>
-        </span>
+        {!viewerIsHost && (
+          <span className="inline-flex items-center gap-1 shrink-0">
+            <i className="ri-user-line shrink-0 text-text-tertiary/80" />
+            <span className="text-text-secondary truncate max-w-[120px]">{host?.name ?? 'Unknown'}</span>
+          </span>
+        )}
         {checkOutDisplay && !!visit.checkInTime && (
           <span className="inline-flex items-baseline gap-1 shrink-0">
             <i className={`ri-logout-box-r-line shrink-0 ${isOvertime ? 'text-red-500' : 'text-text-tertiary/80'} self-center`} />
@@ -220,33 +238,53 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
             <span className="text-text-secondary">Until {formatDate(visit.endDate)}</span>
           </span>
         )}
+        {role !== 'front-desk' && (
+          <span className="inline-flex items-center gap-1 shrink-0">
+            <i className="ri-user-3-line shrink-0 text-text-tertiary/80" />
+            <span className="text-text-secondary">{getVisitTypeLabel(visit.visitType)}</span>
+          </span>
+        )}
+        {role !== 'front-desk' && (
+          <span className="inline-flex items-center gap-1 shrink-0">
+            <i className="ri-briefcase-line shrink-0 text-text-tertiary/80" />
+            <span className="text-text-secondary">{getPurposeLabel(visit.purpose)}</span>
+          </span>
+        )}
         <div className="ml-auto shrink-0" onClick={(e) => e.stopPropagation()}>
-          <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} navigate={navigate} onApprove={onApprove} onReject={onReject} />
+          <VisitActions visit={visit} role={role} openCheckIn={openCheckIn} openCheckOut={openCheckOut} onApprove={onApprove} onReject={onReject} onCancel={onCancel} />
         </div>
       </div>
 
       {/* ── Terminal status bar ── */}
-      {terminalBar && (
-        <div className={`flex items-center gap-1.5 px-4 py-2 rounded-b-xl text-xs font-medium ${terminalColors!.bg} ${terminalColors!.text}`}>
-          <i className={`${terminalBar.icon} text-sm shrink-0`} />
-          {terminalBar.label}
-        </div>
-      )}
+      {terminalBar && (() => {
+        const showReason = visit.status === 'rejected' && !!visit.rejectionReason
+        return (
+          <div className={`flex ${showReason ? 'items-start' : 'items-center'} gap-1.5 px-4 py-2 rounded-b-xl text-xs font-medium ${terminalColors!.bg} ${terminalColors!.text}`}>
+            <i className={`${terminalBar.icon} text-sm leading-none shrink-0`} />
+            <div>
+              {terminalBar.label}
+              {showReason && (
+                <p className="font-normal opacity-75 mt-0.5">{visit.rejectionReason}</p>
+              )}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
 
 function VisitActions({
-  visit, role, openCheckIn, openCheckOut, navigate, fullWidth, onApprove, onReject,
+  visit, role, openCheckIn, openCheckOut, fullWidth, onApprove, onReject, onCancel,
 }: {
   visit: Visit
   role: Role
   openCheckIn: (id: string) => void
   openCheckOut: (id: string) => void
-  navigate: ReturnType<typeof useNavigate>
   fullWidth?: boolean
   onApprove?: () => void
   onReject?: () => void
+  onCancel?: () => void
 }) {
   if (role === 'front-desk') {
     switch (visit.status) {
@@ -279,30 +317,23 @@ function VisitActions({
           </Button>
         )
       default:
-        return (
-          <Button
-            size="sm" variant="ghost" icon="ri-eye-line" fullWidth={fullWidth}
-            onClick={() => navigate(`/front-desk/visit/${visit.id}`)}
-          >
-            View Detail
-          </Button>
-        )
+        return null
     }
   }
 
   if (role === 'employee') {
-    if (visit.status === 'pending-approval') {
-      if (onApprove && onReject) {
-        return (
-          <div className="flex items-center gap-1.5 w-full">
-            <Button size="sm" variant="primary" icon="ri-check-line" fullWidth={fullWidth} onClick={onApprove}>Approve</Button>
-            <Button size="sm" variant="secondary" icon="ri-close-line" fullWidth={fullWidth} onClick={onReject}>Reject</Button>
-          </div>
-        )
-      }
+    if (visit.status === 'pending-approval' && onApprove && onReject) {
       return (
-        <Button size="sm" variant="primary" fullWidth={fullWidth} onClick={() => navigate(`/employee/approve/${visit.id}`)}>
-          Review
+        <div className="flex items-center gap-1.5 w-full">
+          <Button size="sm" variant="primary" icon="ri-check-line" fullWidth={fullWidth} onClick={onApprove}>Approve</Button>
+          <Button size="sm" variant="secondary" icon="ri-close-line" fullWidth={fullWidth} onClick={onReject}>Reject</Button>
+        </div>
+      )
+    }
+    if (['confirmed', 'scheduled'].includes(visit.status) && onCancel) {
+      return (
+        <Button size="sm" variant="secondary" icon="ri-close-circle-line" fullWidth={fullWidth} onClick={onCancel}>
+          Cancel Visit
         </Button>
       )
     }

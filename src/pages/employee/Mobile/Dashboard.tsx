@@ -18,7 +18,7 @@ import Collapsible from '@/components/common/Collapsible'
 import Button from '@/components/Button'
 import MobileSearchInput from '@/components/Mobile/MobileSearchInput'
 import BottomSheet from '@/components/Mobile/BottomSheet'
-import { getLocalDateString, getVisitTypeLabel } from '@/utils/helpers'
+import { getLocalDateString, getVisitTypeLabel, getPurposeLabel } from '@/utils/helpers'
 
 type ActiveTab = 'today' | 'checkedin'
 type TodayFilter = 'all' | 'pending' | 'upcoming'
@@ -26,7 +26,7 @@ type TodayFilter = 'all' | 'pending' | 'upcoming'
 export default function EmployeeDashboardMobile() {
   const visits = useVisitStore((s) => s.visits)
   const storeVisitors = useVisitStore((s) => s.visitors)
-  const { approveWalkIn, rejectWalkIn } = useVisitStore()
+  const { approveWalkIn, rejectWalkIn, cancelVisit } = useVisitStore()
   const { currentEmployeeId } = useAuthStore()
   const navigate = useNavigate()
 
@@ -48,6 +48,8 @@ export default function EmployeeDashboardMobile() {
   const [finishConfirmSheetVisible, setFinishConfirmSheetVisible] = useState(false)
   const [successVisitorName, setSuccessVisitorName] = useState<string | null>(null)
   const [successSheetVisible, setSuccessSheetVisible] = useState(false)
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
+  const [cancelSheetVisible, setCancelSheetVisible] = useState(false)
 
   useEffect(() => {
     if (approveTargetId) {
@@ -97,6 +99,14 @@ export default function EmployeeDashboardMobile() {
     }
   }, [successVisitorName])
 
+  useEffect(() => {
+    if (cancelTargetId) {
+      requestAnimationFrame(() => { requestAnimationFrame(() => setCancelSheetVisible(true)) })
+    } else {
+      setCancelSheetVisible(false)
+    }
+  }, [cancelTargetId])
+
   const now = new Date()
   const today = getLocalDateString()
   const myVisits = visits.filter((v) => v.hostEmployeeId === currentEmployeeId)
@@ -111,6 +121,7 @@ export default function EmployeeDashboardMobile() {
     ['confirmed', 'scheduled'].includes(v.status) && v.scheduledDate === today,
   )
   const checkedIn = myVisits.filter((v) => v.status === 'checked-in' && !finishedIds.has(v.id))
+  const cancelledRejected = myVisits.filter((v) => ['cancelled', 'rejected'].includes(v.status))
 
   const baseList =
     todayFilter === 'all' ? allToday
@@ -119,21 +130,16 @@ export default function EmployeeDashboardMobile() {
 
   const searchQuery = searchInput.trim().toLowerCase()
 
-  const activeList = searchQuery
-    ? baseList.filter((v) => {
-        const visitor = visitorMap[v.visitorId]
-        return (visitor?.name?.toLowerCase() ?? '').includes(searchQuery)
-          || (visitor?.company?.toLowerCase() ?? '').includes(searchQuery)
-      })
-    : baseList
+  const activeList = baseList
+  const checkedInList = checkedIn
 
-  const checkedInList = searchQuery
-    ? checkedIn.filter((v) => {
+  const searchResults = searchQuery
+    ? myVisits.filter((v) => {
         const visitor = visitorMap[v.visitorId]
         return (visitor?.name?.toLowerCase() ?? '').includes(searchQuery)
           || (visitor?.company?.toLowerCase() ?? '').includes(searchQuery)
       })
-    : checkedIn
+    : []
 
   function handleApprove(visitId: string) {
     setApproveTargetId(visitId)
@@ -200,6 +206,17 @@ export default function EmployeeDashboardMobile() {
     setTimeout(() => setSuccessVisitorName(null), 260)
   }
 
+  function handleCancelSheetClose() {
+    setCancelSheetVisible(false)
+    setTimeout(() => setCancelTargetId(null), 260)
+  }
+
+  function handleCancelConfirm() {
+    if (!cancelTargetId) return
+    cancelVisit(cancelTargetId)
+    handleCancelSheetClose()
+  }
+
   return (
     <div className="md:hidden h-full flex flex-col bg-surface-secondary">
       <div className="flex-1 overflow-y-auto">
@@ -212,137 +229,172 @@ export default function EmployeeDashboardMobile() {
             placeholder="Search visitor name..."
           />
 
-          {/* KPI cards — horizontal scroll, 3rd card always partially visible */}
-          <div className="-mx-4 px-4 flex items-stretch gap-2.5 overflow-x-auto scrollbar-none">
-            <div className="w-[40vw] shrink-0">
-              <KpiCardV2
-                label="Today's Visit"
-                info="All visits for today not yet checked in"
-                value={allToday.length}
-                icon="ri-calendar-check-fill"
-                color="blue"
-              />
-            </div>
-            <div className="w-[40vw] shrink-0">
-              <KpiCardV2
-                label="Pending Approval"
-                info="Walk-ins awaiting your approval"
-                value={pendingApprovals.length}
-                icon="ri-time-fill"
-                color="yellow"
-                alertCount={pendingApprovals.length}
-                alertLabel="need action"
-                alertColor="orange"
-              />
-            </div>
-            <div className="w-[40vw] shrink-0">
-              <KpiCardV2
-                label="Checked In"
-                info="Your visitors currently inside"
-                value={checkedIn.length}
-                icon="ri-user-location-fill"
-                color="green"
-              />
-            </div>
-            <div className="w-[40vw] shrink-0">
-              <KpiCardV2
-                label="Upcoming Today"
-                info="Confirmed for today, not yet arrived"
-                value={upcomingToday.length}
-                icon="ri-calendar-schedule-fill"
-                color="purple"
-              />
-            </div>
-            <div className="w-4 shrink-0" />
-          </div>
-
-          {/* Segmented control */}
-          <div className="flex p-1 bg-white rounded-full mt-4">
-            {(['today', 'checkedin'] as const).map((tab) => {
-              const isActive = activeTab === tab
-              const count = tab === 'today' ? allToday.length : checkedIn.length
-              const label = tab === 'today' ? "Today's Visits" : 'Checked In'
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex flex-1 items-center justify-center gap-2 py-2 text-sm font-medium rounded-full ${isActive ? 'text-brand' : 'text-text-tertiary'}`}
-                  style={{
-                    backgroundColor: isActive ? 'var(--color-brand-red-50)' : 'transparent',
-                    boxShadow: isActive ? '0 1px 4px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.08)' : 'none',
-                    transition: 'background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1), color 150ms cubic-bezier(0.23, 1, 0.32, 1)',
-                  }}
-                >
-                  {label}
-                  <CountBadge
-                    count={count}
-                    className={isActive ? 'text-brand' : undefined}
-                    style={{
-                      backgroundColor: isActive ? 'var(--color-brand-red-100)' : undefined,
-                      transition: 'background-color 150ms cubic-bezier(0.23, 1, 0.32, 1)',
-                    }}
-                  />
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Today's Visits tab */}
-          {activeTab === 'today' && (
-            <>
-              {/* Filter pills — matches desktop */}
-              <div className="flex items-center gap-2 py-1">
-                <button
-                  onClick={() => setTodayFilter('all')}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'all' ? 'bg-surface-tertiary text-text-primary' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setTodayFilter('pending')}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'pending' ? 'bg-yellow-surface text-yellow-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => setTodayFilter('upcoming')}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'upcoming' ? 'bg-blue-surface text-blue-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
-                >
-                  Upcoming
-                </button>
+          {searchQuery ? (
+            /* ── Search results panel (mirrors frontdesk behaviour) ── */
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
+                <p className="text-sm font-semibold text-text-primary flex-1">Search results</p>
+                <CountBadge count={searchResults.length} />
               </div>
-
-              <div className="space-y-2">
-                {activeList.length === 0 ? (
-                  <EmptyState
-                    icon={todayFilter === 'pending' ? 'ri-time-line' : todayFilter === 'upcoming' ? 'ri-calendar-schedule-line' : 'ri-calendar-line'}
-                    title={todayFilter === 'pending' ? 'No pending approvals' : todayFilter === 'upcoming' ? 'No confirmed visits for today' : 'No visits for today'}
-                    className="py-8" iconClassName="text-2xl" titleClassName="text-sm"
-                  />
+              <div className="p-3 space-y-2">
+                {searchResults.length === 0 ? (
+                  <EmptyState icon="ri-search-2-line" title="No visits match your search" className="py-16" />
                 ) : (
-                  activeList.map((visit) => {
+                  searchResults.map((visit, idx) => {
                     const visitor = visitorMap[visit.visitorId]
                     return (
-                      <VisitCard
-                        key={visit.id}
-                        visit={visit}
-                        visitorName={visitor?.name ?? 'Unknown'}
-                        visitorPhone={visitor?.mobile}
-                        visitorAvatar={visitor?.avatar}
-                        role="employee"
-                        viewerIsHost
-                        onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
-                        onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
-                      />
+                      <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
+                        <VisitCard
+                          visit={visit}
+                          visitorName={visitor?.name ?? 'Unknown Visitor'}
+                          visitorPhone={visitor?.mobile}
+                          visitorAvatar={visitor?.avatar}
+                          role="employee"
+                          viewerIsHost
+                          onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
+                          onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                          onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
+                        />
+                      </div>
                     )
                   })
                 )}
               </div>
-            </>
-          )}
+            </div>
+          ) : (
+            <>
+              {/* KPI cards — horizontal scroll, 3rd card always partially visible */}
+              <div className="-mx-4 px-4 flex items-stretch gap-2.5 overflow-x-auto scrollbar-none">
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Today's Visit"
+                    info="All visits for today not yet checked in"
+                    value={allToday.length}
+                    icon="ri-calendar-check-fill"
+                    color="blue"
+                  />
+                </div>
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Pending Approval"
+                    info="Walk-ins awaiting your approval"
+                    value={pendingApprovals.length}
+                    icon="ri-time-fill"
+                    color="yellow"
+                    alertCount={pendingApprovals.length}
+                    alertLabel="need action"
+                    alertColor="orange"
+                  />
+                </div>
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Checked In"
+                    info="Your visitors currently inside"
+                    value={checkedIn.length}
+                    icon="ri-user-location-fill"
+                    color="green"
+                  />
+                </div>
+                <div className="w-[40vw] shrink-0">
+                  <KpiCardV2
+                    label="Cancelled & Rejected"
+                    info="Visits that were cancelled or rejected"
+                    value={cancelledRejected.length}
+                    icon="ri-close-circle-fill"
+                    color="red"
+                  />
+                </div>
+                <div className="w-4 shrink-0" />
+              </div>
 
-          {/* Checked In tab — matches desktop right panel */}
-          {activeTab === 'checkedin' && (
+              {/* Segmented control */}
+              <div className="flex p-1 bg-white rounded-full mt-4">
+                {(['today', 'checkedin'] as const).map((tab) => {
+                  const isActive = activeTab === tab
+                  const count = tab === 'today' ? allToday.length : checkedIn.length
+                  const label = tab === 'today' ? "Today's Visits" : 'Checked In'
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex flex-1 items-center justify-center gap-2 py-2 text-sm font-medium rounded-full ${isActive ? 'text-brand' : 'text-text-tertiary'}`}
+                      style={{
+                        backgroundColor: isActive ? 'var(--color-brand-red-50)' : 'transparent',
+                        boxShadow: isActive ? '0 1px 4px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.08)' : 'none',
+                        transition: 'background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1), color 150ms cubic-bezier(0.23, 1, 0.32, 1)',
+                      }}
+                    >
+                      {label}
+                      <CountBadge
+                        count={count}
+                        className={isActive ? 'text-brand' : undefined}
+                        style={{
+                          backgroundColor: isActive ? 'var(--color-brand-red-100)' : undefined,
+                          transition: 'background-color 150ms cubic-bezier(0.23, 1, 0.32, 1)',
+                        }}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Today's Visits tab */}
+              {activeTab === 'today' && (
+                <>
+                  {/* Filter pills — matches desktop */}
+                  <div className="flex items-center gap-2 py-1">
+                    <button
+                      onClick={() => setTodayFilter('all')}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'all' ? 'bg-surface-tertiary text-text-primary' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setTodayFilter('pending')}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'pending' ? 'bg-yellow-surface text-yellow-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
+                    >
+                      Pending
+                    </button>
+                    <button
+                      onClick={() => setTodayFilter('upcoming')}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${todayFilter === 'upcoming' ? 'bg-blue-surface text-blue-fg' : 'bg-surface text-text-secondary hover:bg-surface-secondary'}`}
+                    >
+                      Confirmed
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {activeList.length === 0 ? (
+                      <EmptyState
+                        icon={todayFilter === 'pending' ? 'ri-time-line' : todayFilter === 'upcoming' ? 'ri-calendar-schedule-line' : 'ri-calendar-line'}
+                        title={todayFilter === 'pending' ? 'No pending approvals' : todayFilter === 'upcoming' ? 'No confirmed visits for today' : 'No visits for today'}
+                        className="py-8" iconClassName="text-2xl" titleClassName="text-sm"
+                      />
+                    ) : (
+                      activeList.map((visit) => {
+                        const visitor = visitorMap[visit.visitorId]
+                        return (
+                          <VisitCard
+                            key={visit.id}
+                            visit={visit}
+                            visitorName={visitor?.name ?? 'Unknown'}
+                            visitorPhone={visitor?.mobile}
+                            visitorAvatar={visitor?.avatar}
+                            role="employee"
+                            viewerIsHost
+                            onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
+                            onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                            onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
+                          />
+                        )
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Checked In tab — matches desktop right panel */}
+              {activeTab === 'checkedin' && (
             <div className="bg-white rounded-xl border border-border overflow-hidden mt-1">
               {checkedInList.length === 0 ? (
                 <EmptyState icon="ri-user-location-line" title={searchQuery ? 'No results found' : 'No visitors checked in'} className="py-10" iconClassName="text-2xl" titleClassName="text-sm" />
@@ -404,14 +456,18 @@ export default function EmployeeDashboardMobile() {
                         <Collapsible open={isRowExpanded}>
                           <div className="px-4 pb-4 space-y-3">
                             <div className="h-px bg-border-light" />
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                            <div className="grid grid-cols-3 gap-x-3">
                               <div>
                                 <p className="text-[10px] text-text-tertiary leading-none">Check-in</p>
                                 <p className="text-xs font-medium text-text-primary mt-1">{checkInDisplay}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-text-tertiary leading-none">Pass type</p>
+                                <p className="text-[10px] text-text-tertiary leading-none">Visit type</p>
                                 <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-text-tertiary leading-none">Purpose</p>
+                                <p className="text-xs font-medium text-text-primary mt-1">{getPurposeLabel(visit.purpose)}</p>
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -431,6 +487,8 @@ export default function EmployeeDashboardMobile() {
                   })
               )}
             </div>
+            )}
+          </>
           )}
 
         </div>
@@ -557,6 +615,30 @@ export default function EmployeeDashboardMobile() {
           >
             <div className="px-5 py-4">
               <p className="text-sm text-text-secondary">Mark <span className="font-medium text-text-primary">{name}</span>'s visit as complete?</p>
+            </div>
+          </BottomSheet>
+        )
+      })()}
+
+      {/* Cancel confirmation bottom sheet */}
+      {cancelTargetId && (() => {
+        const v = visits.find((x) => x.id === cancelTargetId)
+        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+        return (
+          <BottomSheet
+            mounted={!!cancelTargetId}
+            visible={cancelSheetVisible}
+            onClose={handleCancelSheetClose}
+            title="Cancel Visit"
+            footer={
+              <div className="flex gap-2">
+                <Button variant="danger" fullWidth onClick={handleCancelConfirm}>Cancel Visit</Button>
+                <Button variant="secondary" fullWidth onClick={handleCancelSheetClose}>Keep It</Button>
+              </div>
+            }
+          >
+            <div className="px-5 py-4">
+              <p className="text-sm text-text-secondary">Cancel the upcoming visit from <span className="font-medium text-text-primary">{name}</span>? This cannot be undone.</p>
             </div>
           </BottomSheet>
         )

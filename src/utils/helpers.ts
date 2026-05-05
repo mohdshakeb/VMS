@@ -83,10 +83,10 @@ export function getStatusColor(status: VisitStatus): { bg: string; text: string 
     scheduled: { bg: 'bg-confirmed-surface', text: 'text-confirmed' },
     confirmed: { bg: 'bg-confirmed-surface', text: 'text-confirmed' },
     'checked-in': { bg: 'bg-on-premises-surface', text: 'text-on-premises' },
-    'checked-out': { bg: 'bg-completed-surface', text: 'text-completed' },
-    rejected: { bg: 'bg-rejected-surface', text: 'text-rejected' },
-    cancelled: { bg: 'bg-completed-surface', text: 'text-completed' },
-    'no-show': { bg: 'bg-rejected-surface', text: 'text-rejected' },
+    'checked-out': { bg: 'bg-terminal-green-surface', text: 'text-terminal-green' },
+    rejected:      { bg: 'bg-terminal-red-surface',   text: 'text-terminal-red' },
+    cancelled:     { bg: 'bg-terminal-red-surface',   text: 'text-terminal-red' },
+    'no-show':     { bg: 'bg-completed-surface',      text: 'text-completed' },
   }
   return colors[status]
 }

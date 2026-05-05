@@ -402,7 +402,7 @@ export default function DashboardV3Mobile() {
                                         <p className="text-xs font-medium text-text-primary mt-1 truncate">{host?.name ?? '—'}</p>
                                       </div>
                                       <div>
-                                        <p className="text-[10px] text-text-tertiary leading-none">Pass type</p>
+                                        <p className="text-[10px] text-text-tertiary leading-none">Visit type</p>
                                         <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
                                       </div>
                                     </div>

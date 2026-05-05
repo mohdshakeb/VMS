@@ -7,6 +7,7 @@ interface MobileTopBarProps {
   unreadCount: number
   onLocationPress: () => void
   onProfilePress: () => void
+  hideLocationAndQr?: boolean
 }
 
 export default function MobileTopBar({
@@ -15,6 +16,7 @@ export default function MobileTopBar({
   unreadCount,
   onLocationPress,
   onProfilePress,
+  hideLocationAndQr = false,
 }: MobileTopBarProps) {
   const navigate = useNavigate()
   return (
@@ -23,25 +25,29 @@ export default function MobileTopBar({
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <img src={logoBlackUrl} alt="GMMCO — CKA Birla Group" className="h-9 w-auto shrink-0" />
 
-        <button
-          onClick={onLocationPress}
-          className="flex items-center gap-1 bg-surface-secondary hover:bg-surface-tertiary active:bg-surface-tertiary rounded-lg px-2.5 h-8 transition-colors duration-150 min-w-0"
-        >
-          <i className="ri-map-pin-2-fill text-[11px] text-text-tertiary shrink-0" />
-          <span className="text-xs font-medium text-text-primary truncate max-w-24">{locationLabel}</span>
-          <i className="ri-arrow-down-s-line text-xs text-text-tertiary shrink-0" />
-        </button>
+        {!hideLocationAndQr && (
+          <button
+            onClick={onLocationPress}
+            className="flex items-center gap-1 bg-surface-secondary hover:bg-surface-tertiary active:bg-surface-tertiary rounded-lg px-2.5 h-8 transition-colors duration-150 min-w-0"
+          >
+            <i className="ri-map-pin-2-fill text-[11px] text-text-tertiary shrink-0" />
+            <span className="text-xs font-medium text-text-primary truncate max-w-24">{locationLabel}</span>
+            <i className="ri-arrow-down-s-line text-xs text-text-tertiary shrink-0" />
+          </button>
+        )}
       </div>
 
       {/* Right: qr + notification + avatar */}
       <div className="flex items-center gap-1 shrink-0">
-        <button
-          onClick={() => navigate('/front-desk/qr-code')}
-          className="p-2 text-text-secondary active:text-text-primary transition-colors"
-          aria-label="Visitor QR code"
-        >
-          <i className="ri-qr-code-line text-xl" />
-        </button>
+        {!hideLocationAndQr && (
+          <button
+            onClick={() => navigate('/front-desk/qr-code')}
+            className="p-2 text-text-secondary active:text-text-primary transition-colors"
+            aria-label="Visitor QR code"
+          >
+            <i className="ri-qr-code-line text-xl" />
+          </button>
+        )}
         <NavLink to="/notifications" className="relative p-2">
           <i className="ri-notification-3-line text-xl text-text-secondary" />
           {unreadCount > 0 && (

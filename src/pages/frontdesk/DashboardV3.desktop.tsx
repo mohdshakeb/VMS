@@ -116,7 +116,7 @@ export default function DashboardV3Desktop() {
     if (kpiFilter === 'ready') return sortReady(kpiExpectedByEmployee)
     if (kpiFilter === 'pending') return sortPending(pendingApproval)
     if (kpiFilter === 'on-premises') return [...kpiOnPremises].sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
-    if (activeFilter === 'all') return todaysVisits
+    if (activeFilter === 'all') return todaysVisits.filter((v) => v.status !== 'checked-in')
     if (activeFilter === 'ready') return sortReady(kpiExpected)
     if (activeFilter === 'pending') return sortPending(pendingApproval)
     return []
@@ -408,7 +408,7 @@ export default function DashboardV3Desktop() {
                                           <p className="text-xs font-medium text-text-primary mt-1 truncate">{host?.name ?? '—'}</p>
                                         </div>
                                         <div>
-                                          <p className="text-[10px] text-text-tertiary leading-none">Pass type</p>
+                                          <p className="text-[10px] text-text-tertiary leading-none">Visit type</p>
                                           <p className="text-xs font-medium text-text-primary mt-1">{getVisitTypeLabel(visit.visitType)}</p>
                                         </div>
                                       </div>
