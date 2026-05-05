@@ -78,8 +78,8 @@ export default function Sidebar() {
         <img src={logoUrl} alt="GMMCO — CKA Birla Group" className="h-10 w-auto" />
       </div>
 
-      {/* Location card */}
-      <div ref={locationRef} className="shrink-0 px-3 pb-3 relative">
+      {/* Location card — hidden for employees (they don't switch locations) */}
+      {currentRole !== 'employee' && <div ref={locationRef} className="shrink-0 px-3 pb-3 relative">
         <button
           onClick={() => setLocationOpen((o) => !o)}
           className="w-full flex items-center gap-2.5 bg-chrome-surface border border-chrome-border-subtle rounded-lg px-2 py-2 hover:border-chrome-border transition-colors text-left"
@@ -117,7 +117,7 @@ export default function Sidebar() {
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Nav items */}
       <nav className="flex-1 px-3 mt-3 flex flex-col gap-1">

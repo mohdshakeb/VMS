@@ -18,10 +18,20 @@ import Collapsible from '@/components/common/Collapsible'
 import Button from '@/components/Button'
 import MobileSearchInput from '@/components/Mobile/MobileSearchInput'
 import BottomSheet from '@/components/Mobile/BottomSheet'
-import { getLocalDateString, getVisitTypeLabel, getPurposeLabel } from '@/utils/helpers'
+import { employees } from '@/data/employees'
+import { locations } from '@/data/locations'
+import { getLocalDateString, getVisitTypeLabel, getPurposeLabel, formatTime, formatDate, getBusinessSegmentLabel } from '@/utils/helpers'
 
 type ActiveTab = 'today' | 'checkedin'
 type TodayFilter = 'all' | 'pending' | 'upcoming'
+type KpiFilter = 'today' | 'pending' | 'checkedin' | 'declined'
+
+const KPI_LABELS: Record<KpiFilter, string> = {
+  today: "Today's Visits",
+  pending: 'Pending Approval',
+  checkedin: 'Checked In',
+  declined: 'Declined Visits',
+}
 
 export default function EmployeeDashboardMobile() {
   const visits = useVisitStore((s) => s.visits)
@@ -33,7 +43,8 @@ export default function EmployeeDashboardMobile() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('today')
   const [todayFilter, setTodayFilter] = useState<TodayFilter>('all')
   const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
-  const [finishedIds, setFinishedIds] = useState<Set<string>>(new Set())
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
+  const [showAllCheckedIn, setShowAllCheckedIn] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [approveTargetId, setApproveTargetId] = useState<string | null>(null)
   const [approveConfirmSheetVisible, setApproveConfirmSheetVisible] = useState(false)
@@ -44,10 +55,6 @@ export default function EmployeeDashboardMobile() {
   const [rejectSheetVisible, setRejectSheetVisible] = useState(false)
   const [rejectSuccessName, setRejectSuccessName] = useState<string | null>(null)
   const [rejectSuccessSheetVisible, setRejectSuccessSheetVisible] = useState(false)
-  const [finishTargetId, setFinishTargetId] = useState<string | null>(null)
-  const [finishConfirmSheetVisible, setFinishConfirmSheetVisible] = useState(false)
-  const [successVisitorName, setSuccessVisitorName] = useState<string | null>(null)
-  const [successSheetVisible, setSuccessSheetVisible] = useState(false)
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
   const [cancelSheetVisible, setCancelSheetVisible] = useState(false)
 
@@ -84,22 +91,6 @@ export default function EmployeeDashboardMobile() {
   }, [rejectSuccessName])
 
   useEffect(() => {
-    if (finishTargetId) {
-      requestAnimationFrame(() => { requestAnimationFrame(() => setFinishConfirmSheetVisible(true)) })
-    } else {
-      setFinishConfirmSheetVisible(false)
-    }
-  }, [finishTargetId])
-
-  useEffect(() => {
-    if (successVisitorName) {
-      requestAnimationFrame(() => { requestAnimationFrame(() => setSuccessSheetVisible(true)) })
-    } else {
-      setSuccessSheetVisible(false)
-    }
-  }, [successVisitorName])
-
-  useEffect(() => {
     if (cancelTargetId) {
       requestAnimationFrame(() => { requestAnimationFrame(() => setCancelSheetVisible(true)) })
     } else {
@@ -120,7 +111,7 @@ export default function EmployeeDashboardMobile() {
   const upcomingToday = myVisits.filter((v) =>
     ['confirmed', 'scheduled'].includes(v.status) && v.scheduledDate === today,
   )
-  const checkedIn = myVisits.filter((v) => v.status === 'checked-in' && !finishedIds.has(v.id))
+  const checkedIn = myVisits.filter((v) => v.status === 'checked-in')
   const cancelledRejected = myVisits.filter((v) => ['cancelled', 'rejected'].includes(v.status))
 
   const baseList =
@@ -140,6 +131,19 @@ export default function EmployeeDashboardMobile() {
           || (visitor?.company?.toLowerCase() ?? '').includes(searchQuery)
       })
     : []
+
+  const resultList =
+    searchQuery ? searchResults
+    : kpiFilter === 'today' ? allToday
+    : kpiFilter === 'pending' ? pendingApprovals
+    : kpiFilter === 'checkedin' ? checkedIn
+    : kpiFilter === 'declined' ? cancelledRejected
+    : []
+
+  function handleKpiClick(filter: KpiFilter) {
+    setKpiFilter((prev) => (prev === filter ? null : filter))
+    setSearchInput('')
+  }
 
   function handleApprove(visitId: string) {
     setApproveTargetId(visitId)
@@ -182,30 +186,6 @@ export default function EmployeeDashboardMobile() {
     setTimeout(() => setRejectSuccessName(null), 260)
   }
 
-  function handleFinish(visitId: string) {
-    setExpandedEntryKey(null)
-    setFinishTargetId(visitId)
-  }
-
-  function handleFinishConfirmSheetClose() {
-    setFinishConfirmSheetVisible(false)
-    setTimeout(() => setFinishTargetId(null), 260)
-  }
-
-  function handleFinishConfirm() {
-    if (!finishTargetId) return
-    const visitor = visitorMap[visits.find((v) => v.id === finishTargetId)?.visitorId ?? '']
-    setFinishedIds((prev) => new Set([...prev, finishTargetId]))
-    const name = visitor?.name ?? 'Visitor'
-    handleFinishConfirmSheetClose()
-    setTimeout(() => setSuccessVisitorName(name), 260)
-  }
-
-  function handleSuccessSheetClose() {
-    setSuccessSheetVisible(false)
-    setTimeout(() => setSuccessVisitorName(null), 260)
-  }
-
   function handleCancelSheetClose() {
     setCancelSheetVisible(false)
     setTimeout(() => setCancelTargetId(null), 260)
@@ -225,22 +205,32 @@ export default function EmployeeDashboardMobile() {
           {/* Search bar */}
           <MobileSearchInput
             value={searchInput}
-            onChange={setSearchInput}
+            onChange={(v) => { setSearchInput(v); setKpiFilter(null) }}
             placeholder="Search visitor name..."
           />
 
-          {searchQuery ? (
-            /* ── Search results panel (mirrors frontdesk behaviour) ── */
+          {(searchQuery || kpiFilter !== null) ? (
+            /* ── Search / KPI results ── */
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
-                <p className="text-sm font-semibold text-text-primary flex-1">Search results</p>
-                <CountBadge count={searchResults.length} />
+                <p className="text-sm font-semibold text-text-primary flex-1">
+                  {kpiFilter && !searchQuery ? KPI_LABELS[kpiFilter] : 'Search results'}
+                </p>
+                <CountBadge count={resultList.length} />
+                {kpiFilter && !searchQuery && (
+                  <button
+                    onClick={() => setKpiFilter(null)}
+                    className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors ml-1"
+                  >
+                    <i className="ri-close-line text-base" />
+                  </button>
+                )}
               </div>
               <div className="p-3 space-y-2">
-                {searchResults.length === 0 ? (
+                {resultList.length === 0 ? (
                   <EmptyState icon="ri-search-2-line" title="No visits match your search" className="py-16" />
                 ) : (
-                  searchResults.map((visit, idx) => {
+                  resultList.map((visit, idx) => {
                     const visitor = visitorMap[visit.visitorId]
                     return (
                       <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
@@ -272,6 +262,8 @@ export default function EmployeeDashboardMobile() {
                     value={allToday.length}
                     icon="ri-calendar-check-fill"
                     color="blue"
+                    active={kpiFilter === 'today'}
+                    onClick={() => handleKpiClick('today')}
                   />
                 </div>
                 <div className="w-[40vw] shrink-0">
@@ -284,6 +276,8 @@ export default function EmployeeDashboardMobile() {
                     alertCount={pendingApprovals.length}
                     alertLabel="need action"
                     alertColor="orange"
+                    active={kpiFilter === 'pending'}
+                    onClick={() => handleKpiClick('pending')}
                   />
                 </div>
                 <div className="w-[40vw] shrink-0">
@@ -293,15 +287,19 @@ export default function EmployeeDashboardMobile() {
                     value={checkedIn.length}
                     icon="ri-user-location-fill"
                     color="green"
+                    active={kpiFilter === 'checkedin'}
+                    onClick={() => handleKpiClick('checkedin')}
                   />
                 </div>
                 <div className="w-[40vw] shrink-0">
                   <KpiCardV2
-                    label="Cancelled & Rejected"
+                    label="Declined Visits"
                     info="Visits that were cancelled or rejected"
                     value={cancelledRejected.length}
                     icon="ri-close-circle-fill"
                     color="red"
+                    active={kpiFilter === 'declined'}
+                    onClick={() => handleKpiClick('declined')}
                   />
                 </div>
                 <div className="w-4 shrink-0" />
@@ -371,21 +369,22 @@ export default function EmployeeDashboardMobile() {
                         className="py-8" iconClassName="text-2xl" titleClassName="text-sm"
                       />
                     ) : (
-                      activeList.map((visit) => {
+                      activeList.map((visit, idx) => {
                         const visitor = visitorMap[visit.visitorId]
                         return (
-                          <VisitCard
-                            key={visit.id}
-                            visit={visit}
-                            visitorName={visitor?.name ?? 'Unknown'}
-                            visitorPhone={visitor?.mobile}
-                            visitorAvatar={visitor?.avatar}
-                            role="employee"
-                            viewerIsHost
-                            onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
-                            onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
-                            onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
-                          />
+                          <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
+                            <VisitCard
+                              visit={visit}
+                              visitorName={visitor?.name ?? 'Unknown'}
+                              visitorPhone={visitor?.mobile}
+                              visitorAvatar={visitor?.avatar}
+                              role="employee"
+                              viewerIsHost
+                              onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
+                              onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                              onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
+                            />
+                          </div>
                         )
                       })
                     )}
@@ -397,10 +396,14 @@ export default function EmployeeDashboardMobile() {
               {activeTab === 'checkedin' && (
             <div className="bg-white rounded-xl border border-border overflow-hidden mt-1">
               {checkedInList.length === 0 ? (
-                <EmptyState icon="ri-user-location-line" title={searchQuery ? 'No results found' : 'No visitors checked in'} className="py-10" iconClassName="text-2xl" titleClassName="text-sm" />
+                <div className="p-3">
+                  <EmptyState icon="ri-user-location-line" title="No visitors checked in" className="py-8" iconClassName="text-2xl" titleClassName="text-sm" />
+                </div>
               ) : (
-                checkedInList
+                <>
+                {checkedInList
                   .sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
+                  .slice(0, showAllCheckedIn ? undefined : 5)
                   .map((visit, idx) => {
                     const visitor = visitorMap[visit.visitorId]
                     const name = visitor?.name ?? 'Unknown Visitor'
@@ -470,21 +473,27 @@ export default function EmployeeDashboardMobile() {
                                 <p className="text-xs font-medium text-text-primary mt-1">{getPurposeLabel(visit.purpose)}</p>
                               </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
-                                onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/visit/${visit.id}`) }}>
-                                View Details
-                              </Button>
-                              <Button size="sm" variant="primary" icon="ri-checkbox-circle-line" fullWidth
-                                onClick={(e) => { e.stopPropagation(); handleFinish(visit.id) }}>
-                                Finish
-                              </Button>
-                            </div>
+                            <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
+                              onClick={(e) => { e.stopPropagation(); navigate(`/employee/visit/${visit.id}`) }}>
+                              View Details
+                            </Button>
                           </div>
                         </Collapsible>
                       </div>
                     )
                   })
+                }
+                {checkedInList.length >= 6 && (
+                  <div className="border-t border-border-light px-4 py-2.5">
+                    <button
+                      onClick={() => setShowAllCheckedIn((v) => !v)}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors py-1"
+                    >
+                      {showAllCheckedIn ? <>Show less <i className="ri-arrow-up-s-line text-sm" /></> : <>View all <i className="ri-arrow-down-s-line text-sm" /></>}
+                    </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
             )}
@@ -497,7 +506,9 @@ export default function EmployeeDashboardMobile() {
       {/* Approve confirmation bottom sheet */}
       {approveTargetId && (() => {
         const v = visits.find((x) => x.id === approveTargetId)
-        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+        const visitor = visitorMap[v?.visitorId ?? '']
+        const host = employees.find((e) => e.id === v?.hostEmployeeId)
+        const location = locations.find((l) => l.id === v?.locationId)
         return (
           <BottomSheet
             mounted={!!approveTargetId}
@@ -511,8 +522,50 @@ export default function EmployeeDashboardMobile() {
               </div>
             }
           >
-            <div className="px-5 py-4">
-              <p className="text-sm text-text-secondary">Allow <span className="font-medium text-text-primary">{name}</span> to proceed to the front desk for check-in?</p>
+            <div className="px-5 py-4 space-y-4">
+              <div className="flex flex-col gap-4">
+                {visitor?.avatar ? (
+                  <img src={visitor.avatar} alt={visitor?.name} className="w-full h-52 rounded-xl object-cover border border-border" />
+                ) : (
+                  <div className="w-full h-52 rounded-xl bg-surface-secondary flex items-center justify-center border border-border">
+                    <i className="ri-user-line text-5xl text-text-tertiary" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-text-primary">{visitor?.name ?? 'Visitor'}</p>
+                      {visitor?.company && <p className="text-xs text-text-secondary mt-0.5">{visitor.company}</p>}
+                    </div>
+                    <button
+                      className="text-xs font-medium text-brand hover:underline shrink-0"
+                      onClick={() => { handleApproveConfirmSheetClose(); navigate(`/employee/visit/${v?.id}`) }}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([
+                      ['Mobile', visitor?.mobile ?? '—'],
+                      ['Purpose', v ? getPurposeLabel(v.purpose) : '—'],
+                      ['Visit Type', v ? getVisitTypeLabel(v.visitType) : '—'],
+                      ['Location', location?.name ?? '—'],
+                      ['Host', host?.name ?? '—'],
+                      ['Time', v ? formatTime(v.scheduledTime) : '—'],
+                      ['WiFi Access', v ? (v.guestWifi ? 'Yes' : 'No') : '—'],
+                      v?.visitType === 'customer' && v.businessSegment
+                        ? ['Business Segment', getBusinessSegmentLabel(v.businessSegment)]
+                        : null,
+                    ].filter(Boolean) as [string, string][]).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] text-text-tertiary">{label}</p>
+                        <p className="text-xs font-medium text-text-primary">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-text-secondary">Allow this visitor to proceed to the front desk for check-in?</p>
             </div>
           </BottomSheet>
         )
@@ -542,36 +595,76 @@ export default function EmployeeDashboardMobile() {
       )}
 
       {/* Rejection bottom sheet */}
-      {rejectTargetId && (
-        <BottomSheet
-          mounted={!!rejectTargetId}
-          visible={rejectSheetVisible}
-          onClose={handleRejectSheetClose}
-          title="Reject Visit"
-          footer={
-            <div className="flex gap-2">
-              <Button variant="danger" fullWidth disabled={!rejectReason.trim()} onClick={handleRejectConfirm}>
-                Confirm Rejection
-              </Button>
-              <Button variant="secondary" fullWidth onClick={handleRejectSheetClose}>
-                Cancel
-              </Button>
+      {rejectTargetId && (() => {
+        const v = visits.find((x) => x.id === rejectTargetId)
+        const visitor = visitorMap[v?.visitorId ?? '']
+        const host = employees.find((e) => e.id === v?.hostEmployeeId)
+        const location = locations.find((l) => l.id === v?.locationId)
+        return (
+          <BottomSheet
+            mounted={!!rejectTargetId}
+            visible={rejectSheetVisible}
+            onClose={handleRejectSheetClose}
+            title="Reject Visit"
+            footer={
+              <div className="flex gap-2">
+                <Button variant="danger" fullWidth disabled={!rejectReason.trim()} onClick={handleRejectConfirm}>
+                  Confirm Rejection
+                </Button>
+                <Button variant="secondary" fullWidth onClick={handleRejectSheetClose}>
+                  Cancel
+                </Button>
+              </div>
+            }
+          >
+            <div className="px-5 py-4 flex flex-col gap-4">
+              <div className="flex flex-col gap-4">
+                {visitor?.avatar ? (
+                  <img src={visitor.avatar} alt={visitor?.name} className="w-full h-52 rounded-xl object-cover border border-border" />
+                ) : (
+                  <div className="w-full h-52 rounded-xl bg-surface-secondary flex items-center justify-center border border-border">
+                    <i className="ri-user-line text-5xl text-text-tertiary" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-text-primary">{visitor?.name ?? 'Visitor'}</p>
+                  {visitor?.company && <p className="text-xs text-text-secondary mt-0.5">{visitor.company}</p>}
+                  <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([
+                      ['Mobile', visitor?.mobile ?? '—'],
+                      ['Purpose', v ? getPurposeLabel(v.purpose) : '—'],
+                      ['Visit Type', v ? getVisitTypeLabel(v.visitType) : '—'],
+                      ['Location', location?.name ?? '—'],
+                      ['Host', host?.name ?? '—'],
+                      ['Time', v ? formatTime(v.scheduledTime) : '—'],
+                      ['WiFi Access', v ? (v.guestWifi ? 'Yes' : 'No') : '—'],
+                      v?.visitType === 'customer' && v.businessSegment
+                        ? ['Business Segment', getBusinessSegmentLabel(v.businessSegment)]
+                        : null,
+                    ].filter(Boolean) as [string, string][]).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] text-text-tertiary">{label}</p>
+                        <p className="text-xs font-medium text-text-primary">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-text-secondary">Provide a reason for rejecting this visit.</p>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Reason for rejection…"
+                  rows={3}
+                  autoFocus
+                  className="w-full text-sm rounded-lg border border-border-light px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50 bg-white"
+                />
+              </div>
             </div>
-          }
-        >
-          <div className="px-5 py-4 flex flex-col gap-3">
-            <p className="text-xs text-text-secondary">Please provide a reason for rejecting this visit.</p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Reason for rejection…"
-              rows={3}
-              autoFocus
-              className="w-full text-sm rounded-lg border border-border-light px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50 bg-white"
-            />
-          </div>
-        </BottomSheet>
-      )}
+          </BottomSheet>
+        )
+      })()}
 
       {/* Rejection success bottom sheet */}
       {rejectSuccessName && (
@@ -596,34 +689,13 @@ export default function EmployeeDashboardMobile() {
         </BottomSheet>
       )}
 
-      {/* Finish confirmation bottom sheet */}
-      {finishTargetId && (() => {
-        const v = visits.find((x) => x.id === finishTargetId)
-        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
-        return (
-          <BottomSheet
-            mounted={!!finishTargetId}
-            visible={finishConfirmSheetVisible}
-            onClose={handleFinishConfirmSheetClose}
-            title="Finish Visit"
-            footer={
-              <div className="flex gap-2">
-                <Button variant="primary" fullWidth onClick={handleFinishConfirm}>Yes, Finish</Button>
-                <Button variant="secondary" fullWidth onClick={handleFinishConfirmSheetClose}>Cancel</Button>
-              </div>
-            }
-          >
-            <div className="px-5 py-4">
-              <p className="text-sm text-text-secondary">Mark <span className="font-medium text-text-primary">{name}</span>'s visit as complete?</p>
-            </div>
-          </BottomSheet>
-        )
-      })()}
-
       {/* Cancel confirmation bottom sheet */}
       {cancelTargetId && (() => {
         const v = visits.find((x) => x.id === cancelTargetId)
-        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+        const visitor = visitorMap[v?.visitorId ?? '']
+        const host = employees.find((e) => e.id === v?.hostEmployeeId)
+        const location = locations.find((l) => l.id === v?.locationId)
+        const isToday = v?.scheduledDate === today
         return (
           <BottomSheet
             mounted={!!cancelTargetId}
@@ -637,35 +709,45 @@ export default function EmployeeDashboardMobile() {
               </div>
             }
           >
-            <div className="px-5 py-4">
-              <p className="text-sm text-text-secondary">Cancel the upcoming visit from <span className="font-medium text-text-primary">{name}</span>? This cannot be undone.</p>
+            <div className="px-5 py-4 space-y-4">
+              <div className="flex flex-col gap-4">
+                {visitor?.avatar ? (
+                  <img src={visitor.avatar} alt={visitor?.name} className="w-full h-52 rounded-xl object-cover border border-border" />
+                ) : (
+                  <div className="w-full h-52 rounded-xl bg-surface-secondary flex items-center justify-center border border-border">
+                    <i className="ri-user-line text-5xl text-text-tertiary" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-text-primary">{visitor?.name ?? 'Visitor'}</p>
+                  {visitor?.company && <p className="text-xs text-text-secondary mt-0.5">{visitor.company}</p>}
+                  <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([
+                      ['Mobile', visitor?.mobile ?? '—'],
+                      ['Purpose', v ? getPurposeLabel(v.purpose) : '—'],
+                      ['Visit Type', v ? getVisitTypeLabel(v.visitType) : '—'],
+                      ['Location', location?.name ?? '—'],
+                      ['Host', host?.name ?? '—'],
+                      [isToday ? 'Time' : 'Date', v ? (isToday ? formatTime(v.scheduledTime) : `${formatDate(v.scheduledDate)}, ${formatTime(v.scheduledTime)}`) : '—'],
+                      ['WiFi Access', v ? (v.guestWifi ? 'Yes' : 'No') : '—'],
+                      v?.visitType === 'customer' && v.businessSegment
+                        ? ['Business Segment', getBusinessSegmentLabel(v.businessSegment)]
+                        : null,
+                    ].filter(Boolean) as [string, string][]).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] text-text-tertiary">{label}</p>
+                        <p className="text-xs font-medium text-text-primary">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-text-secondary">This cannot be undone.</p>
             </div>
           </BottomSheet>
         )
       })()}
 
-      {/* Finish success bottom sheet */}
-      {successVisitorName && (
-        <BottomSheet
-          mounted={!!successVisitorName}
-          visible={successSheetVisible}
-          onClose={handleSuccessSheetClose}
-          footer={<Button fullWidth onClick={handleSuccessSheetClose}>Done</Button>}
-        >
-          <div className="px-5 py-6 flex flex-col items-center text-center gap-5">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: 'var(--color-confirmed-surface)' }}
-            >
-              <i className="ri-checkbox-circle-fill text-5xl" style={{ color: 'var(--color-confirmed)' }} />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-text-primary">Visit Completed</p>
-              <p className="text-sm text-text-secondary mt-1">{successVisitorName}'s visit has been marked as complete.</p>
-            </div>
-          </div>
-        </BottomSheet>
-      )}
     </div>
   )
 }

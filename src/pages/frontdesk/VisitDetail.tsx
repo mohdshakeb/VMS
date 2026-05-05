@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useUIStore } from '@/store/uiStore'
+import { useAuthStore } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
@@ -8,6 +10,7 @@ import Card from '@/components/Card'
 import PageHeader from '@/components/PageHeader'
 import StatusBadge from '@/components/StatusBadge'
 import Button from '@/components/Button'
+import Modal from '@/components/Modal'
 import DetailItem from '@/components/common/DetailItem'
 import SectionLabel from '@/components/common/SectionLabel'
 import CheckInModal from '@/components/CheckInModal'
@@ -40,11 +43,18 @@ export default function VisitDetail() {
   const isMobile = useIsMobile()
   const visits = useVisitStore((s) => s.visits)
   const storeVisitors = useVisitStore((s) => s.visitors)
+  const { approveWalkIn, rejectWalkIn, cancelVisit } = useVisitStore()
   const checkInVisitId = useUIStore((s) => s.checkInVisitId)
   const checkOutVisitId = useUIStore((s) => s.checkOutVisitId)
   const openCheckIn = useUIStore((s) => s.openCheckIn)
   const openCheckOut = useUIStore((s) => s.openCheckOut)
   const closeModals = useUIStore((s) => s.closeModals)
+  const { currentRole } = useAuthStore()
+
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [approveSuccess, setApproveSuccess] = useState(false)
 
   const visit = visits.find((v) => v.id === visitId)
 
@@ -68,8 +78,28 @@ export default function VisitDetail() {
     .map((w) => w[0].toUpperCase())
     .join('')
 
-  const canCheckIn = ['pending-approval', 'confirmed', 'scheduled'].includes(visit.status)
-  const canCheckOut = visit.status === 'checked-in'
+  const isFrontDesk = currentRole === 'front-desk'
+  const canCheckIn = isFrontDesk && ['confirmed', 'scheduled'].includes(visit.status)
+  const canCheckOut = isFrontDesk && visit.status === 'checked-in'
+  const canApproveReject = !isFrontDesk && visit.status === 'pending-approval'
+  const canCancel = !isFrontDesk && ['confirmed', 'scheduled'].includes(visit.status)
+
+  function handleApprove() {
+    approveWalkIn(visit.id)
+    setApproveSuccess(true)
+  }
+
+  function handleRejectConfirm() {
+    if (!rejectReason.trim()) return
+    rejectWalkIn(visit.id, rejectReason.trim())
+    setShowRejectModal(false)
+    setRejectReason('')
+  }
+
+  function handleCancelConfirm() {
+    cancelVisit(visit.id)
+    setShowCancelModal(false)
+  }
 
   return (
     <>
@@ -77,7 +107,7 @@ export default function VisitDetail() {
       {/* Desktop header */}
       <PageHeader
         title="Visit Details"
-        breadcrumb={[{ label: 'Dashboard', path: '/front-desk/dashboard' }]}
+        breadcrumb={[{ label: 'Dashboard', path: isFrontDesk ? '/front-desk/dashboard' : '/employee/dashboard' }]}
         onBack={() => navigate(-1)}
         actions={
           canCheckIn ? (
@@ -87,6 +117,19 @@ export default function VisitDetail() {
           ) : canCheckOut ? (
             <Button size="sm" variant="danger" icon="ri-logout-box-line" onClick={() => openCheckOut(visit.id)}>
               Check Out
+            </Button>
+          ) : canApproveReject ? (
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" icon="ri-close-line" onClick={() => setShowRejectModal(true)}>
+                Reject
+              </Button>
+              <Button size="sm" icon="ri-check-line" onClick={handleApprove}>
+                Approve
+              </Button>
+            </div>
+          ) : canCancel ? (
+            <Button size="sm" variant="secondary" icon="ri-close-circle-line" onClick={() => setShowCancelModal(true)}>
+              Cancel Visit
             </Button>
           ) : undefined
         }
@@ -112,34 +155,60 @@ export default function VisitDetail() {
 
           {/* Visitor identity */}
           <Card>
-            <div className="flex items-start gap-3 mb-4">
-              <div className="shrink-0">
-                {photoSrc ? (
-                  <img
-                    src={photoSrc}
-                    alt={visitor?.name}
-                    className="h-14 w-14 rounded-full object-cover border border-border"
-                  />
-                ) : (
-                  <div className="h-14 w-14 rounded-full bg-brand-red-50 flex items-center justify-center text-sm font-semibold text-brand-red-500 border border-brand-red-100">
-                    {initials}
+            {/* Walk-in / check-in captured photo → portrait; otherwise circular avatar */}
+            {photoSrc && (visit.entryPath === 'walk-in' || visit.idPhotoCapture) ? (
+              <div className="flex gap-4">
+                <img
+                  src={photoSrc}
+                  alt={visitor?.name}
+                  className="w-20 h-28 rounded-xl object-cover shrink-0 border border-border"
+                />
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold text-text-primary leading-tight">{visitor?.name ?? 'Unknown'}</p>
+                      {visitor?.company && <p className="text-sm text-text-secondary mt-0.5">{visitor.company}</p>}
+                    </div>
+                    <StatusBadge status={visit.status} />
                   </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-text-primary leading-tight">{visitor?.name ?? 'Unknown'}</p>
-                    {visitor?.company && <p className="text-sm text-text-secondary mt-0.5">{visitor.company}</p>}
+                  <div className="grid grid-cols-1 gap-y-2 text-sm">
+                    <DetailItem label="Mobile" value={visitor?.mobile ?? '—'} />
+                    {visitor?.email && <DetailItem label="Email" value={visitor.email} />}
                   </div>
-                  <StatusBadge status={visit.status} />
                 </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-              <DetailItem label="Mobile" value={visitor?.mobile ?? '—'} />
-              {visitor?.email && <DetailItem label="Email" value={visitor.email} />}
-            </div>
+            ) : (
+              <>
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="shrink-0">
+                    {photoSrc ? (
+                      <img
+                        src={photoSrc}
+                        alt={visitor?.name}
+                        className="h-14 w-14 rounded-full object-cover border border-border"
+                      />
+                    ) : (
+                      <div className="h-14 w-14 rounded-full bg-brand-red-50 flex items-center justify-center text-sm font-semibold text-brand-red-500 border border-brand-red-100">
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold text-text-primary leading-tight">{visitor?.name ?? 'Unknown'}</p>
+                        {visitor?.company && <p className="text-sm text-text-secondary mt-0.5">{visitor.company}</p>}
+                      </div>
+                      <StatusBadge status={visit.status} />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <DetailItem label="Mobile" value={visitor?.mobile ?? '—'} />
+                  {visitor?.email && <DetailItem label="Email" value={visitor.email} />}
+                </div>
+              </>
+            )}
           </Card>
 
           {/* Visit details */}
@@ -160,7 +229,7 @@ export default function VisitDetail() {
               {visit.duration != null && (
                 <DetailItem label="Duration" value={formatDuration(visit.duration)} />
               )}
-              {visit.guestWifi && <DetailItem label="Guest WiFi" value="Requested" />}
+              <DetailItem label="WiFi Access" value={visit.guestWifi ? 'Yes' : 'No'} />
             </div>
           </Card>
 
@@ -204,13 +273,37 @@ export default function VisitDetail() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
                 <DetailItem label="Badge" value={visit.badgeNumber ?? '—'} />
                 <DetailItem label="Checked In" value={new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
-                {visit.idProofType && (
-                  <DetailItem
-                    label="ID Proof"
-                    value={[idProofLabel(visit.idProofType), visit.idProofNumber].filter(Boolean).join(' · ')}
-                  />
-                )}
+                <DetailItem label="ID Type" value={visit.idProofType ? idProofLabel(visit.idProofType) : '—'} />
+                <DetailItem label="ID Number" value={visit.idProofNumber ?? '—'} />
                 {visit.visitorInTemperature && <DetailItem label="Entry Temp." value={visit.visitorInTemperature} />}
+              </div>
+              {/* Items issued — always shown since it's mandatory at check-in */}
+              <div className="mt-4 pt-3 border-t border-border-light">
+                <p className="text-xs text-text-tertiary mb-2">Items Issued</p>
+                {(visit.issueAssets === false || (visit.issueAssets === undefined && !visit.assetsIssued)) ? (
+                  <p className="text-sm font-medium text-text-primary">{visit.issueAssets === false ? 'None' : '—'}</p>
+                ) : (() => {
+                  const assets = parseIssuedAssets(visit.assetsIssued)
+                  return assets.length === 0 ? (
+                    <p className="text-sm font-medium text-text-primary">{visit.assetsIssued ?? 'Yes'}</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {assets.map((asset) => (
+                        <div
+                          key={asset.id}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-secondary border border-border-light"
+                        >
+                          {asset.svg ? (
+                            <img src={asset.svg} alt={asset.label} className="w-4 h-4 object-contain shrink-0" />
+                          ) : (
+                            <i className={`${asset.icon} text-sm text-text-secondary shrink-0`} />
+                          )}
+                          <span className="text-xs font-medium text-text-primary">{asset.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
               </div>
             </Card>
           )}
@@ -246,43 +339,14 @@ export default function VisitDetail() {
             </Card>
           )}
 
-          {/* Other details */}
-          {(visit.laptopDetails || visit.otherDeviceDetails || visit.hasVehicle !== undefined || visit.issueAssets !== undefined) && (
+          {/* Devices & Vehicle — optional fields only, assets moved to check-in section */}
+          {(visit.laptopDetails || visit.otherDeviceDetails || visit.hasVehicle !== undefined) && (
             <Card>
-              <SectionLabel icon="ri-shield-check-line" title="Other Details" />
+              <SectionLabel icon="ri-macbook-line" title="Devices & Vehicle" />
               <div className="mt-3 space-y-3 text-sm">
                 {visit.laptopDetails && <DetailItem label="Laptop" value={visit.laptopDetails} />}
                 {visit.otherDeviceDetails && <DetailItem label="Other Devices" value={visit.otherDeviceDetails} />}
                 {visit.hasVehicle !== undefined && <DetailItem label="Vehicle" value={visit.hasVehicle ? (visit.vehicleRegistration ?? 'Yes') : 'No'} />}
-                {visit.issueAssets !== undefined && (
-                  <div>
-                    <p className="text-xs text-text-tertiary mb-2">Assets Issued</p>
-                    {!visit.issueAssets ? (
-                      <p className="text-sm font-medium text-text-primary">None</p>
-                    ) : (() => {
-                      const assets = parseIssuedAssets(visit.assetsIssued)
-                      return assets.length === 0 ? (
-                        <p className="text-sm font-medium text-text-primary">{visit.assetsIssued ?? 'Yes'}</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {assets.map((asset) => (
-                            <div
-                              key={asset.id}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-secondary border border-border-light"
-                            >
-                              {asset.svg ? (
-                                <img src={asset.svg} alt={asset.label} className="w-4 h-4 object-contain shrink-0" />
-                              ) : (
-                                <i className={`${asset.icon} text-sm text-text-secondary shrink-0`} />
-                              )}
-                              <span className="text-xs font-medium text-text-primary">{asset.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
               </div>
             </Card>
           )}
@@ -302,7 +366,7 @@ export default function VisitDetail() {
       </div>
 
       {/* Mobile CTA bar */}
-      {(canCheckIn || canCheckOut) && (
+      {(canCheckIn || canCheckOut || canApproveReject || canCancel) && (
         <div className="md:hidden shrink-0 border-t border-border-light bg-white px-4 py-3">
           {canCheckIn && (
             <Button icon="ri-login-box-line" fullWidth onClick={() => openCheckIn(visit.id)}>
@@ -312,6 +376,21 @@ export default function VisitDetail() {
           {canCheckOut && (
             <Button variant="danger" icon="ri-logout-box-line" fullWidth onClick={() => openCheckOut(visit.id)}>
               Check Out
+            </Button>
+          )}
+          {canApproveReject && (
+            <div className="flex gap-2">
+              <Button variant="secondary" fullWidth icon="ri-close-line" onClick={() => setShowRejectModal(true)}>
+                Reject
+              </Button>
+              <Button fullWidth icon="ri-check-line" onClick={handleApprove}>
+                Approve
+              </Button>
+            </div>
+          )}
+          {canCancel && (
+            <Button variant="secondary" icon="ri-close-circle-line" fullWidth onClick={() => setShowCancelModal(true)}>
+              Cancel Visit
             </Button>
           )}
         </div>
@@ -327,6 +406,76 @@ export default function VisitDetail() {
       isMobile
         ? <CheckOutSheet visitId={checkOutVisitId} onClose={closeModals} />
         : <CheckOutModal visitId={checkOutVisitId} onClose={closeModals} />
+    )}
+
+    {/* Approve success modal */}
+    {approveSuccess && (
+      <Modal open onClose={() => setApproveSuccess(false)} size="md">
+        <div className="py-4 flex flex-col items-center text-center gap-5">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-confirmed-surface)' }}>
+            <i className="ri-checkbox-circle-fill text-4xl" style={{ color: 'var(--color-confirmed)' }} />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-text-primary">Walk-in Approved</p>
+            <p className="text-sm text-text-secondary mt-1">{visitor?.name ?? 'Visitor'} can now proceed to check in at the front desk.</p>
+          </div>
+          <Button fullWidth onClick={() => setApproveSuccess(false)}>Done</Button>
+        </div>
+      </Modal>
+    )}
+
+    {/* Reject modal */}
+    {showRejectModal && (
+      <Modal
+        open
+        title="Reject Visit"
+        onClose={() => { setShowRejectModal(false); setRejectReason('') }}
+        size="md"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="danger" fullWidth disabled={!rejectReason.trim()} onClick={handleRejectConfirm}>
+              Confirm Rejection
+            </Button>
+            <Button variant="secondary" fullWidth onClick={() => { setShowRejectModal(false); setRejectReason('') }}>
+              Cancel
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4 py-2">
+          <p className="text-sm text-text-secondary">Provide a reason for rejecting this visit from <span className="font-medium text-text-primary">{visitor?.name ?? 'this visitor'}</span>.</p>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Reason for rejection…"
+            rows={3}
+            autoFocus
+            className="w-full text-sm rounded-lg border border-border-light px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50 bg-white"
+          />
+        </div>
+      </Modal>
+    )}
+
+    {/* Cancel confirmation modal */}
+    {showCancelModal && (
+      <Modal
+        open
+        title="Cancel Visit"
+        onClose={() => setShowCancelModal(false)}
+        size="md"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="danger" fullWidth onClick={handleCancelConfirm}>Cancel Visit</Button>
+            <Button variant="secondary" fullWidth onClick={() => setShowCancelModal(false)}>Keep It</Button>
+          </div>
+        }
+      >
+        <div className="py-2">
+          <p className="text-sm text-text-secondary">
+            Are you sure you want to cancel the visit from <span className="font-medium text-text-primary">{visitor?.name ?? 'this visitor'}</span>? This cannot be undone.
+          </p>
+        </div>
+      </Modal>
     )}
     </>
   )

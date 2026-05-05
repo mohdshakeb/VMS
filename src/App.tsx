@@ -55,6 +55,7 @@ export default function App() {
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
         <Route path="/employee/create-visit" element={<CreateVisit />} />
         <Route path="/employee/visits" element={<MyVisits />} />
+        <Route path="/employee/visit/:visitId" element={<VisitDetail />} />
         <Route path="/employee/approve/:visitId" element={<ApproveWalkIn />} />
 
         {/* Shared */}

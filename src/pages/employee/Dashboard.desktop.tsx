@@ -17,7 +17,9 @@ import EmptyState from '@/components/common/EmptyState'
 import CountBadge from '@/components/common/CountBadge'
 import AvatarBadge from '@/components/common/AvatarBadge'
 import Collapsible from '@/components/common/Collapsible'
-import { getLocalDateString, getVisitTypeLabel, getPurposeLabel } from '@/utils/helpers'
+import { employees } from '@/data/employees'
+import { locations } from '@/data/locations'
+import { getLocalDateString, getVisitTypeLabel, getPurposeLabel, formatTime, formatDate, getBusinessSegmentLabel } from '@/utils/helpers'
 
 export default function EmployeeDashboardDesktop() {
   const visits = useVisitStore((s) => s.visits)
@@ -33,12 +35,9 @@ export default function EmployeeDashboardDesktop() {
   const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
-  const [finishedIds, setFinishedIds] = useState<Set<string>>(new Set())
   const [approveTargetId, setApproveTargetId] = useState<string | null>(null)
-  const [finishTargetId, setFinishTargetId] = useState<string | null>(null)
   const [approveSuccessName, setApproveSuccessName] = useState<string | null>(null)
   const [rejectSuccessName, setRejectSuccessName] = useState<string | null>(null)
-  const [successVisitorName, setSuccessVisitorName] = useState<string | null>(null)
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
 
   const now = new Date()
@@ -54,7 +53,7 @@ export default function EmployeeDashboardDesktop() {
   const cancelledRejected = myVisits.filter((v) => ['cancelled', 'rejected'].includes(v.status))
 
   // Checked-in visitors (all dates)
-  const checkedIn = myVisits.filter((v) => v.status === 'checked-in' && !finishedIds.has(v.id))
+  const checkedIn = myVisits.filter((v) => v.status === 'checked-in')
 
   const activeList = todayFilter === 'all' ? allToday : todayFilter === 'pending' ? pendingApprovals : upcomingToday
 
@@ -88,19 +87,6 @@ export default function EmployeeDashboardDesktop() {
     setRejectSuccessName(visitor?.name ?? 'Visitor')
     setRejectTargetId(null)
     setRejectReason('')
-  }
-
-  function handleFinish(visitId: string) {
-    setExpandedEntryKey(null)
-    setFinishTargetId(visitId)
-  }
-
-  function handleFinishConfirm() {
-    if (!finishTargetId) return
-    const visitor = visitorMap[visits.find((v) => v.id === finishTargetId)?.visitorId ?? '']
-    setFinishedIds((prev) => new Set([...prev, finishTargetId]))
-    setFinishTargetId(null)
-    setSuccessVisitorName(visitor?.name ?? 'Visitor')
   }
 
   function handleCancelConfirm() {
@@ -216,7 +202,7 @@ export default function EmployeeDashboardDesktop() {
                   color="green"
                 />
                 <KpiCardV2
-                  label="Cancelled & Rejected"
+                  label="Declined Visits"
                   info="Visits that were cancelled or rejected"
                   value={cancelledRejected.length}
                   icon="ri-close-circle-fill"
@@ -366,16 +352,10 @@ export default function EmployeeDashboardDesktop() {
                                         <p className="text-xs font-medium text-text-primary mt-1">{getPurposeLabel(visit.purpose)}</p>
                                       </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                      <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
-                                        onClick={(e) => { e.stopPropagation(); navigate(`/front-desk/visit/${visit.id}`) }}>
-                                        View Details
-                                      </Button>
-                                      <Button size="sm" variant="primary" icon="ri-checkbox-circle-line" fullWidth
-                                        onClick={(e) => { e.stopPropagation(); handleFinish(visit.id) }}>
-                                        Finish
-                                      </Button>
-                                    </div>
+                                    <Button size="sm" variant="secondary" icon="ri-eye-line" fullWidth
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/employee/visit/${visit.id}`) }}>
+                                      View Details
+                                    </Button>
                                   </div>
                                 </Collapsible>
                               </div>
@@ -395,7 +375,9 @@ export default function EmployeeDashboardDesktop() {
       {/* Approve confirmation modal */}
       {approveTargetId && (() => {
         const v = visits.find((x) => x.id === approveTargetId)
-        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+        const visitor = visitorMap[v?.visitorId ?? '']
+        const host = employees.find((e) => e.id === v?.hostEmployeeId)
+        const location = locations.find((l) => l.id === v?.locationId)
         return (
           <Modal
             open
@@ -409,64 +391,122 @@ export default function EmployeeDashboardDesktop() {
               </div>
             }
           >
-            <div className="py-2">
-              <p className="text-sm text-text-secondary">Allow <span className="font-medium text-text-primary">{name}</span> to proceed to the front desk for check-in?</p>
+            <div className="py-2 space-y-4">
+              <div className="flex items-start gap-4">
+                {visitor?.avatar ? (
+                  <img src={visitor.avatar} alt={visitor.name} className="w-40 h-48 rounded-xl object-cover flex-shrink-0 border border-border" />
+                ) : (
+                  <div className="w-32 h-40 rounded-xl bg-surface-secondary flex items-center justify-center flex-shrink-0 border border-border">
+                    <i className="ri-user-line text-4xl text-text-tertiary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-text-primary">{visitor?.name ?? 'Visitor'}</p>
+                      {visitor?.company && <p className="text-xs text-text-secondary mt-0.5">{visitor.company}</p>}
+                    </div>
+                    <button
+                      className="text-xs font-medium text-brand hover:underline shrink-0"
+                      onClick={() => { setApproveTargetId(null); navigate(`/employee/visit/${v?.id}`) }}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                  <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([
+                      ['Mobile', visitor?.mobile ?? '—'],
+                      ['Purpose', v ? getPurposeLabel(v.purpose) : '—'],
+                      ['Visit Type', v ? getVisitTypeLabel(v.visitType) : '—'],
+                      ['Location', location?.name ?? '—'],
+                      ['Host', host?.name ?? '—'],
+                      ['Time', v ? formatTime(v.scheduledTime) : '—'],
+                      ['WiFi Access', v ? (v.guestWifi ? 'Yes' : 'No') : '—'],
+                      v?.visitType === 'customer' && v.businessSegment
+                        ? ['Business Segment', getBusinessSegmentLabel(v.businessSegment)]
+                        : null,
+                    ].filter(Boolean) as [string, string][]).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] text-text-tertiary">{label}</p>
+                        <p className="text-xs font-medium text-text-primary">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-text-secondary pt-1">Allow this visitor to proceed to the front desk for check-in?</p>
             </div>
           </Modal>
         )
       })()}
 
       {/* Rejection modal */}
-      {rejectTargetId && (
-        <Modal
-          open
-          title="Reject Visit"
-          onClose={() => { setRejectTargetId(null); setRejectReason('') }}
-          size="md"
-          footer={
-            <div className="flex gap-2">
-              <Button variant="danger" fullWidth disabled={!rejectReason.trim()} onClick={handleRejectConfirm}>
-                Confirm Rejection
-              </Button>
-              <Button variant="secondary" fullWidth onClick={() => { setRejectTargetId(null); setRejectReason('') }}>
-                Cancel
-              </Button>
-            </div>
-          }
-        >
-          <div className="flex flex-col gap-3 py-2">
-            <p className="text-xs text-text-secondary">Please provide a reason for rejecting this visit.</p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Reason for rejection…"
-              rows={3}
-              autoFocus
-              className="w-full text-sm rounded-lg border border-border-light px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50 bg-white"
-            />
-          </div>
-        </Modal>
-      )}
-
-      {/* Finish confirmation modal */}
-      {finishTargetId && (() => {
-        const v = visits.find((x) => x.id === finishTargetId)
-        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+      {rejectTargetId && (() => {
+        const v = visits.find((x) => x.id === rejectTargetId)
+        const visitor = visitorMap[v?.visitorId ?? '']
+        const host = employees.find((e) => e.id === v?.hostEmployeeId)
+        const location = locations.find((l) => l.id === v?.locationId)
         return (
           <Modal
             open
-            title="Finish Visit"
-            onClose={() => setFinishTargetId(null)}
+            title="Reject Visit"
+            onClose={() => { setRejectTargetId(null); setRejectReason('') }}
             size="md"
             footer={
               <div className="flex gap-2">
-                <Button variant="primary" fullWidth onClick={handleFinishConfirm}>Yes, Finish</Button>
-                <Button variant="secondary" fullWidth onClick={() => setFinishTargetId(null)}>Cancel</Button>
+                <Button variant="danger" fullWidth disabled={!rejectReason.trim()} onClick={handleRejectConfirm}>
+                  Confirm Rejection
+                </Button>
+                <Button variant="secondary" fullWidth onClick={() => { setRejectTargetId(null); setRejectReason('') }}>
+                  Cancel
+                </Button>
               </div>
             }
           >
-            <div className="py-2">
-              <p className="text-sm text-text-secondary">Mark <span className="font-medium text-text-primary">{name}</span>'s visit as complete?</p>
+            <div className="flex flex-col gap-4 py-2">
+              <div className="flex items-start gap-4">
+                {visitor?.avatar ? (
+                  <img src={visitor.avatar} alt={visitor.name} className="w-40 h-48 rounded-xl object-cover flex-shrink-0 border border-border" />
+                ) : (
+                  <div className="w-32 h-40 rounded-xl bg-surface-secondary flex items-center justify-center flex-shrink-0 border border-border">
+                    <i className="ri-user-line text-4xl text-text-tertiary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-text-primary">{visitor?.name ?? 'Visitor'}</p>
+                  {visitor?.company && <p className="text-xs text-text-secondary mt-0.5">{visitor.company}</p>}
+                  <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([
+                      ['Mobile', visitor?.mobile ?? '—'],
+                      ['Purpose', v ? getPurposeLabel(v.purpose) : '—'],
+                      ['Visit Type', v ? getVisitTypeLabel(v.visitType) : '—'],
+                      ['Location', location?.name ?? '—'],
+                      ['Host', host?.name ?? '—'],
+                      ['Time', v ? formatTime(v.scheduledTime) : '—'],
+                      ['WiFi Access', v ? (v.guestWifi ? 'Yes' : 'No') : '—'],
+                      v?.visitType === 'customer' && v.businessSegment
+                        ? ['Business Segment', getBusinessSegmentLabel(v.businessSegment)]
+                        : null,
+                    ].filter(Boolean) as [string, string][]).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] text-text-tertiary">{label}</p>
+                        <p className="text-xs font-medium text-text-primary">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-text-secondary">Provide a reason for rejecting this visit.</p>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Reason for rejection…"
+                  rows={3}
+                  autoFocus
+                  className="w-full text-sm rounded-lg border border-border-light px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50 bg-white"
+                />
+              </div>
             </div>
           </Modal>
         )
@@ -513,7 +553,10 @@ export default function EmployeeDashboardDesktop() {
       {/* Cancel confirmation modal */}
       {cancelTargetId && (() => {
         const v = visits.find((x) => x.id === cancelTargetId)
-        const name = visitorMap[v?.visitorId ?? '']?.name ?? 'Visitor'
+        const visitor = visitorMap[v?.visitorId ?? '']
+        const host = employees.find((e) => e.id === v?.hostEmployeeId)
+        const location = locations.find((l) => l.id === v?.locationId)
+        const isToday = v?.scheduledDate === today
         return (
           <Modal
             open
@@ -527,31 +570,45 @@ export default function EmployeeDashboardDesktop() {
               </div>
             }
           >
-            <div className="py-2">
-              <p className="text-sm text-text-secondary">Cancel the upcoming visit from <span className="font-medium text-text-primary">{name}</span>? This cannot be undone.</p>
+            <div className="py-2 space-y-4">
+              <div className="flex items-start gap-4">
+                {visitor?.avatar ? (
+                  <img src={visitor.avatar} alt={visitor.name} className="w-40 h-48 rounded-xl object-cover flex-shrink-0 border border-border" />
+                ) : (
+                  <div className="w-32 h-40 rounded-xl bg-surface-secondary flex items-center justify-center flex-shrink-0 border border-border">
+                    <i className="ri-user-line text-4xl text-text-tertiary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-text-primary">{visitor?.name ?? 'Visitor'}</p>
+                  {visitor?.company && <p className="text-xs text-text-secondary mt-0.5">{visitor.company}</p>}
+                  <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {([
+                      ['Mobile', visitor?.mobile ?? '—'],
+                      ['Purpose', v ? getPurposeLabel(v.purpose) : '—'],
+                      ['Visit Type', v ? getVisitTypeLabel(v.visitType) : '—'],
+                      ['Location', location?.name ?? '—'],
+                      ['Host', host?.name ?? '—'],
+                      [isToday ? 'Time' : 'Date', v ? (isToday ? formatTime(v.scheduledTime) : `${formatDate(v.scheduledDate)}, ${formatTime(v.scheduledTime)}`) : '—'],
+                      ['WiFi Access', v ? (v.guestWifi ? 'Yes' : 'No') : '—'],
+                      v?.visitType === 'customer' && v.businessSegment
+                        ? ['Business Segment', getBusinessSegmentLabel(v.businessSegment)]
+                        : null,
+                    ].filter(Boolean) as [string, string][]).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] text-text-tertiary">{label}</p>
+                        <p className="text-xs font-medium text-text-primary">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-text-secondary pt-1">This cannot be undone.</p>
             </div>
           </Modal>
         )
       })()}
 
-      {/* Finish success modal */}
-      {successVisitorName && (
-        <Modal open onClose={() => setSuccessVisitorName(null)} size="md">
-          <div className="py-4 flex flex-col items-center text-center gap-5">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: 'var(--color-confirmed-surface)' }}
-            >
-              <i className="ri-checkbox-circle-fill text-4xl" style={{ color: 'var(--color-confirmed)' }} />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-text-primary">Visit Completed</p>
-              <p className="text-sm text-text-secondary mt-1">{successVisitorName}'s visit has been marked as complete.</p>
-            </div>
-            <Button fullWidth onClick={() => setSuccessVisitorName(null)}>Done</Button>
-          </div>
-        </Modal>
-      )}
     </div>
   )
 }

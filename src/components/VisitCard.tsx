@@ -103,7 +103,7 @@ export default function VisitCard({ visit, visitorName, visitorPhone, visitorAva
         : null
 
   function handleCardClick() {
-    navigate(`/front-desk/visit/${visit.id}`)
+    navigate(role === 'employee' ? `/employee/visit/${visit.id}` : `/front-desk/visit/${visit.id}`)
   }
 
   return (
