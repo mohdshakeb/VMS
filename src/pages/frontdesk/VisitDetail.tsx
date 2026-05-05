@@ -85,18 +85,20 @@ export default function VisitDetail() {
   const canCancel = !isFrontDesk && ['confirmed', 'scheduled'].includes(visit.status)
 
   function handleApprove() {
+    if (!visit) return
     approveWalkIn(visit.id)
     setApproveSuccess(true)
   }
 
   function handleRejectConfirm() {
-    if (!rejectReason.trim()) return
+    if (!visit || !rejectReason.trim()) return
     rejectWalkIn(visit.id, rejectReason.trim())
     setShowRejectModal(false)
     setRejectReason('')
   }
 
   function handleCancelConfirm() {
+    if (!visit) return
     cancelVisit(visit.id)
     setShowCancelModal(false)
   }
