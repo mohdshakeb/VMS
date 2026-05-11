@@ -31,16 +31,17 @@ const navByRole: Record<Role, NavItem[]> = {
     { label: 'Dashboard', path: '/employee/dashboard', icon: 'ri-home-2-line' },
     { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line' },
   ],
-  'branch-admin': [
-    { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line' },
-    { label: 'Reports', path: '/manager/reports', icon: 'ri-bar-chart-box-line' },
+  'central-admin': [
+    { label: 'Dashboard',     path: '/manager/dashboard',     icon: 'ri-home-2-line' },
+    { label: 'Visit History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line' },
+    { label: 'My Visits',     path: '/manager/my-visits',     icon: 'ri-calendar-check-line' },
   ],
 }
 
 const roleLabels: Record<Role, string> = {
   'front-desk': 'Front Desk',
   employee: 'Employee',
-  'branch-admin': 'Branch Admin',
+  'central-admin': 'Central Admin',
 }
 
 export default function Sidebar() {
@@ -51,7 +52,8 @@ export default function Sidebar() {
 
   const items = navByRole[currentRole]
   const currentEmployee = employees.find((e) => e.id === currentEmployeeId)
-  const currentLocation = locations.find((l) => l.id === currentLocationId)
+  const isAllLocations = currentLocationId === 'all'
+  const currentLocation = isAllLocations ? null : locations.find((l) => l.id === currentLocationId)
   const initials = currentEmployee?.name
     .split(' ')
     .map((n) => n[0])
@@ -85,11 +87,15 @@ export default function Sidebar() {
           className="w-full flex items-center gap-2.5 bg-chrome-surface border border-chrome-border-subtle rounded-lg px-2 py-2 hover:border-chrome-border transition-colors text-left"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-chrome-surface-hover">
-            <i className="ri-map-pin-2-fill text-chrome-text text-md" />
+            <i className={`${isAllLocations ? 'ri-global-line' : 'ri-map-pin-2-fill'} text-chrome-text text-md`} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-white truncate leading-none">{currentLocation?.name ?? 'Select location'}</p>
-            <p className="text-[11px] text-chrome-text-muted truncate mt-0.5">{currentLocation?.address ?? ''}</p>
+            <p className="text-xs font-medium text-white truncate leading-none">
+              {isAllLocations ? 'All Locations' : (currentLocation?.name ?? 'Select location')}
+            </p>
+            <p className="text-[11px] text-chrome-text-muted truncate mt-0.5">
+              {isAllLocations ? 'Aggregate view' : (currentLocation?.address ?? '')}
+            </p>
           </div>
           <i className={`ri-arrow-down-s-line text-chrome-text-muted text-base shrink-0 transition-transform duration-150 ${locationOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -97,24 +103,42 @@ export default function Sidebar() {
         {/* Dropdown — opens downward */}
         {locationOpen && (
           <div className="absolute top-full left-3 right-3 -mt-1 bg-chrome-surface border border-chrome-border rounded-xl shadow-xl overflow-hidden z-30">
-            {locations.map((loc, idx) => (
-              <button
-                key={loc.id}
-                onClick={() => { setCurrentLocation(loc.id); setLocationOpen(false) }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-chrome-surface-hover ${idx > 0 ? 'border-t border-chrome-border' : ''}`}
-              >
-                <div className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg ${loc.id === currentLocationId ? 'bg-chrome-active-bg' : 'bg-chrome-surface-hover'}`}>
-                  <i className={`ri-building-2-line text-sm ${loc.id === currentLocationId ? 'text-chrome-active-text' : 'text-chrome-text-muted'}`} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-xs font-medium truncate ${loc.id === currentLocationId ? 'text-chrome-active-text' : 'text-chrome-text'}`}>{loc.name}</p>
-                  <p className="text-[11px] text-chrome-text-faint truncate mt-0.5">{loc.address}</p>
-                </div>
-                {loc.id === currentLocationId && (
-                  <i className="ri-check-line text-chrome-active-text text-sm shrink-0" />
-                )}
-              </button>
-            ))}
+            <div className="max-h-64 overflow-y-auto scrollbar-chrome">
+              {/* All Locations option — only for central-admin */}
+              {currentRole === 'central-admin' && (
+                <button
+                  onClick={() => { setCurrentLocation('all'); setLocationOpen(false) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-chrome-surface-hover"
+                >
+                  <div className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg ${isAllLocations ? 'bg-chrome-active-bg' : 'bg-chrome-surface-hover'}`}>
+                    <i className={`ri-global-line text-sm ${isAllLocations ? 'text-chrome-active-text' : 'text-chrome-text-muted'}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-xs font-medium truncate ${isAllLocations ? 'text-chrome-active-text' : 'text-chrome-text'}`}>All Locations</p>
+                    <p className="text-[11px] text-chrome-text-faint truncate mt-0.5">Aggregate view</p>
+                  </div>
+                  {isAllLocations && <i className="ri-check-line text-chrome-active-text text-sm shrink-0" />}
+                </button>
+              )}
+              {locations.map((loc, idx) => (
+                <button
+                  key={loc.id}
+                  onClick={() => { setCurrentLocation(loc.id); setLocationOpen(false) }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-chrome-surface-hover border-t border-chrome-border ${idx === 0 && currentRole !== 'central-admin' ? 'border-t-0' : ''}`}
+                >
+                  <div className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg ${loc.id === currentLocationId ? 'bg-chrome-active-bg' : 'bg-chrome-surface-hover'}`}>
+                    <i className={`ri-building-2-line text-sm ${loc.id === currentLocationId ? 'text-chrome-active-text' : 'text-chrome-text-muted'}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-xs font-medium truncate ${loc.id === currentLocationId ? 'text-chrome-active-text' : 'text-chrome-text'}`}>{loc.name}</p>
+                    <p className="text-[11px] text-chrome-text-faint truncate mt-0.5">{loc.address}</p>
+                  </div>
+                  {loc.id === currentLocationId && (
+                    <i className="ri-check-line text-chrome-active-text text-sm shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>}

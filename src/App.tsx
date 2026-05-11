@@ -12,13 +12,16 @@ import ApproveWalkIn from '@/pages/employee/ApproveWalkIn'
 import Notifications from '@/pages/shared/Notifications'
 import VisitHistory from '@/pages/frontdesk/VisitHistory'
 import QRCodePage from '@/pages/frontdesk/QRCodePage'
+import ManagerDashboard from '@/pages/manager/Dashboard'
+import ManagerVisitHistory from '@/pages/manager/VisitHistory'
+import ManagerMyVisits from '@/pages/manager/MyVisits'
 import { useAuthStore } from '@/store/authStore'
 import type { Role } from '@/types/user'
 
 const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/dashboard',
-  'branch-admin': '/manager/dashboard',
+  'central-admin': '/manager/dashboard',
 }
 
 function PrivateLayout() {
@@ -61,8 +64,10 @@ export default function App() {
         {/* Shared */}
         <Route path="/notifications" element={<Notifications />} />
 
-        {/* Visitor Manager placeholder */}
-        <Route path="/manager/dashboard" element={<PlaceholderPage title="Visitor Manager Dashboard" />} />
+        {/* Central Admin */}
+        <Route path="/manager/dashboard"     element={<ManagerDashboard />} />
+        <Route path="/manager/visit-history" element={<ManagerVisitHistory />} />
+        <Route path="/manager/my-visits"     element={<ManagerMyVisits />} />
       </Route>
     </Routes>
   )

@@ -22,7 +22,7 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'Home', path: '/employee/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
     { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
   ],
-  'branch-admin': [
+  'central-admin': [
     { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
     { label: 'Reports', path: '/manager/reports', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
   ],

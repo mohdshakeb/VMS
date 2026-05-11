@@ -6,7 +6,7 @@ import type { Role } from '@/types/user'
 const CREDENTIAL_MAP: Record<string, { role: Role; employeeId: string }> = {
   'employee@gmmco.com': { role: 'employee', employeeId: 'emp-1' },
   'frontdesk@gmmco.com': { role: 'front-desk', employeeId: 'emp-7' },
-  'manager@gmmco.com': { role: 'branch-admin', employeeId: 'emp-5' },
+  'manager@gmmco.com': { role: 'central-admin', employeeId: 'emp-5' },
 }
 
 interface AuthState {
@@ -37,7 +37,12 @@ export const useAuthStore = create<AuthState>()(
         if (!email.trim() || !password.trim()) return false
         const creds = CREDENTIAL_MAP[email.toLowerCase().trim()]
         if (creds) {
-          set({ isAuthenticated: true, currentRole: creds.role, currentEmployeeId: creds.employeeId })
+          set({
+            isAuthenticated: true,
+            currentRole: creds.role,
+            currentEmployeeId: creds.employeeId,
+            currentLocationId: creds.role === 'central-admin' ? 'all' : 'loc-1',
+          })
         } else {
           // Allow any non-empty email+password for easy demo access (defaults to front-desk)
           set({ isAuthenticated: true })
@@ -49,6 +54,15 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'vms-auth',
+      version: 2,
+      migrate: (persisted: unknown) => {
+        const s = persisted as Record<string, unknown>
+        if (s.currentRole === 'branch-admin') {
+          s.currentRole = 'central-admin'
+          s.currentLocationId = 'all'
+        }
+        return s
+      },
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         currentRole: state.currentRole,

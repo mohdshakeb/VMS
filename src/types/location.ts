@@ -5,4 +5,6 @@ export interface Location {
   name: string
   type: LocationType
   address?: string
+  state?: string
+  coordinates?: [number, number]  // [longitude, latitude] — GeoJSON order
 }

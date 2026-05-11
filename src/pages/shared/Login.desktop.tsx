@@ -18,7 +18,7 @@ const APPS = [
 const ROLE_ROUTES: Record<string, string> = {
   employee:       '/employee/visits',
   'front-desk':   '/front-desk/dashboard',
-  'branch-admin': '/manager/dashboard',
+  'central-admin': '/manager/dashboard',
 }
 
 export default function LoginDesktop() {

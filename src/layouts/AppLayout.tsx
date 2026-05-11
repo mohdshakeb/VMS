@@ -14,13 +14,13 @@ import MobileTopBar from '@/components/Mobile/MobileTopBar'
 const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/dashboard',
-  'branch-admin': '/manager/dashboard',
+  'central-admin': '/manager/dashboard',
 }
 
 const roleLabels: Record<Role, string> = {
   'front-desk': 'Front Desk',
   employee: 'Employee',
-  'branch-admin': 'Branch Admin',
+  'central-admin': 'Central Admin',
 }
 
 // Routes that take over the full screen on ALL viewports (no sidebar on desktop, no nav bars on mobile)
