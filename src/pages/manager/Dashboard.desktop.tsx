@@ -3,7 +3,7 @@
 // KPI cards aggregate across selected location(s), India map shows real-time visitors.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useRef } from 'react'
-import { useNavigate, NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
@@ -110,8 +110,6 @@ export default function ManagerDashboardDesktop() {
   const storeVisitors = useVisitStore((s) => s.visitors)
   const { currentLocationId, currentRole } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
-  const navigate = useNavigate()
-
   const [searchInput, setSearchInput] = useState('')
   const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
   const [mapPeriod, setMapPeriod] = useState<MapPeriod>('realtime')
@@ -301,10 +299,6 @@ export default function ManagerDashboardDesktop() {
   }
 
   const resultList = getResultList()
-
-  const locationLabel = currentLocationId === 'all'
-    ? 'All Locations'
-    : (locations.find((l) => l.id === currentLocationId)?.name ?? '')
 
   return (
     <div className="hidden md:flex flex-col h-full bg-surface-secondary">
@@ -580,8 +574,9 @@ export default function ManagerDashboardDesktop() {
                               animationBegin={0}
                               animationDuration={400}
                               animationEasing="ease-out"
-                              onClick={(data: { typeKey?: string }) => {
-                                if (data?.typeKey) setDrilldownType(data.typeKey)
+                              onClick={(data) => {
+                                const item = data as unknown as { typeKey?: string }
+                                if (item?.typeKey) setDrilldownType(item.typeKey)
                               }}
                             >
                               {visitTypeChartData.map((entry) => (

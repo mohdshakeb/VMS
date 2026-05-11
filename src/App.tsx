@@ -73,14 +73,3 @@ export default function App() {
   )
 }
 
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center h-full p-8">
-      <div className="text-center">
-        <i className="ri-tools-line text-4xl text-text-tertiary" />
-        <p className="mt-3 text-sm text-text-secondary">{title}</p>
-        <p className="text-xs text-text-tertiary mt-1">Coming soon</p>
-      </div>
-    </div>
-  )
-}
