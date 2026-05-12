@@ -32,9 +32,9 @@ const navByRole: Record<Role, NavItem[]> = {
     { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line' },
   ],
   'central-admin': [
-    { label: 'Dashboard',     path: '/manager/dashboard',     icon: 'ri-home-2-line' },
+    { label: 'Home',          path: '/manager/my-visits',     icon: 'ri-home-2-line' },
+    { label: 'Visit Insights', path: '/manager/dashboard',   icon: 'ri-bar-chart-box-line' },
     { label: 'Visit History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line' },
-    { label: 'My Visits',     path: '/manager/my-visits',     icon: 'ri-calendar-check-line' },
   ],
 }
 

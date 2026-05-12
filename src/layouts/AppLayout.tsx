@@ -126,7 +126,7 @@ export default function AppLayout() {
           {/* Mobile top bar — inside content area with white background */}
           {!isFullScreen && !isMobileInner && (
             <MobileTopBar
-              locationLabel={currentLocation ? currentLocation.name.split(' — ')[0] : '—'}
+              locationLabel={currentLocationId === 'all' ? 'All Locations' : currentLocation ? currentLocation.name.split(' — ')[0] : '—'}
               initials={initials}
               unreadCount={unreadCount}
               onLocationPress={openLocationSheet}
@@ -162,6 +162,22 @@ export default function AppLayout() {
         title="Select Location"
       >
         <div className="px-3 pt-2 pb-8">
+          {currentRole === 'central-admin' && (
+            <button
+              onClick={() => { setCurrentLocation('all'); closeLocationSheet() }}
+              className="w-full flex items-center gap-3 px-3 py-3.5 text-left rounded-xl transition-colors active:bg-surface-secondary hover:bg-surface-secondary"
+            >
+              <div className={`flex items-center justify-center h-8 w-8 rounded-full shrink-0 ${currentLocationId === 'all' ? 'bg-brand/10' : 'bg-surface-secondary'}`}>
+                <i className={`ri-global-line text-sm ${currentLocationId === 'all' ? 'text-brand' : 'text-text-tertiary'}`} />
+              </div>
+              <span className={`flex-1 text-sm min-w-0 truncate ${currentLocationId === 'all' ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                All Locations
+              </span>
+              {currentLocationId === 'all' && (
+                <i className="ri-check-line text-brand text-base shrink-0" />
+              )}
+            </button>
+          )}
           {locations.map((loc) => (
             <button
               key={loc.id}

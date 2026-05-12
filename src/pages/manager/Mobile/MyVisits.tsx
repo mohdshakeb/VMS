@@ -7,9 +7,10 @@ import { useNavigate } from 'react-router-dom'
 import { useVisitStore, getPendingApprovals } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { visitors as seedVisitors } from '@/data/visitors'
-import { OVERDUE_VISIT_IDS } from '@/data/visits'
+import { OVERDUE_VISIT_IDS, DELAYED_VISIT_IDS } from '@/data/visits'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
+import KpiCardV2 from '@/components/KpiCardV2'
 import VisitCard from '@/components/VisitCard'
 import Button from '@/components/Button'
 import BottomSheet from '@/components/Mobile/BottomSheet'
@@ -22,6 +23,14 @@ import { getPurposeLabel, getVisitTypeLabel, formatTime, formatDate, getLocalDat
 
 type ActiveTab = 'today' | 'checkedin'
 type TodayFilter = 'all' | 'pending' | 'upcoming'
+type KpiFilter = 'all' | 'pending' | 'on-premises' | 'declined'
+
+const KPI_LABELS: Record<KpiFilter, string> = {
+  all: 'Total Visitors',
+  pending: 'Pending Approval',
+  'on-premises': 'On Premises',
+  declined: 'Declined Visits',
+}
 
 export default function ManagerMyVisitsMobile() {
   const visits = useVisitStore((s) => s.visits)
@@ -35,6 +44,7 @@ export default function ManagerMyVisitsMobile() {
   const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
   const [showAllCheckedIn, setShowAllCheckedIn] = useState(false)
   const [searchInput, setSearchInput] = useState('')
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
 
   const [approveTargetId, setApproveTargetId] = useState<string | null>(null)
   const [approveConfirmSheetVisible, setApproveConfirmSheetVisible] = useState(false)
@@ -101,6 +111,24 @@ export default function ManagerMyVisitsMobile() {
     ['confirmed', 'scheduled'].includes(v.status) && v.scheduledDate === today,
   )
   const checkedIn = myVisits.filter((v) => v.status === 'checked-in')
+
+  const myTodayVisits = myVisits.filter((v) => v.scheduledDate === today)
+  const kpiTotalVisited = myTodayVisits.filter((v) => v.status === 'checked-in' || v.status === 'checked-out')
+  const kpiOnPremises = myTodayVisits.filter((v) => v.status === 'checked-in')
+  const kpiPendingApproval = myTodayVisits.filter((v) => v.status === 'pending-approval')
+  const kpiDeclined = myTodayVisits.filter((v) => v.status === 'cancelled' || v.status === 'rejected')
+  const overdueCount = kpiOnPremises.filter((v) => OVERDUE_VISIT_IDS.has(v.id)).length
+  const delayedCount = kpiPendingApproval.filter((v) => DELAYED_VISIT_IDS.has(v.id)).length
+
+  function getKpiResultList() {
+    if (kpiFilter === 'all') return [...kpiTotalVisited].sort((a, b) => (b.checkInTime ?? '').localeCompare(a.checkInTime ?? ''))
+    if (kpiFilter === 'pending') return [...kpiPendingApproval].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    if (kpiFilter === 'on-premises') return [...kpiOnPremises].sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
+    if (kpiFilter === 'declined') return [...kpiDeclined].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return []
+  }
+
+  const kpiResultList = getKpiResultList()
 
   const baseList =
     todayFilter === 'all' ? allToday
@@ -175,9 +203,64 @@ export default function ManagerMyVisitsMobile() {
 
           <MobileSearchInput
             value={searchInput}
-            onChange={(v) => setSearchInput(v)}
+            onChange={(v) => { setSearchInput(v); setKpiFilter(null) }}
             placeholder="Search visitor name..."
           />
+
+          {/* KPI summary — horizontal scroll */}
+          <div className="-mx-4 px-4 flex items-stretch gap-2.5 overflow-x-auto scrollbar-none">
+            <div className="w-[40vw] shrink-0">
+              <KpiCardV2
+                label="Total Visitors"
+                info="Checked-in and checked-out"
+                value={kpiTotalVisited.length}
+                icon="ri-group-fill"
+                color="blue"
+                active={kpiFilter === 'all'}
+                onClick={() => { setKpiFilter((p) => (p === 'all' ? null : 'all')); setSearchInput('') }}
+              />
+            </div>
+            <div className="w-[40vw] shrink-0">
+              <KpiCardV2
+                label="Pending Approval"
+                info="Awaiting your response"
+                value={kpiPendingApproval.length}
+                icon="ri-time-fill"
+                color="yellow"
+                alertCount={delayedCount}
+                alertLabel="need follow-up"
+                alertColor="orange"
+                active={kpiFilter === 'pending'}
+                onClick={() => { setKpiFilter((p) => (p === 'pending' ? null : 'pending')); setSearchInput('') }}
+              />
+            </div>
+            <div className="w-[40vw] shrink-0">
+              <KpiCardV2
+                label="On Premises"
+                info="Currently inside the facility"
+                value={kpiOnPremises.length}
+                icon="ri-building-2-fill"
+                color="green"
+                alertCount={overdueCount}
+                alertLabel="overdue"
+                alertColor="red"
+                active={kpiFilter === 'on-premises'}
+                onClick={() => { setKpiFilter((p) => (p === 'on-premises' ? null : 'on-premises')); setSearchInput('') }}
+              />
+            </div>
+            <div className="w-[40vw] shrink-0">
+              <KpiCardV2
+                label="Declined Visits"
+                info="Cancelled and rejected today"
+                value={kpiDeclined.length}
+                icon="ri-close-circle-fill"
+                color="red"
+                active={kpiFilter === 'declined'}
+                onClick={() => { setKpiFilter((p) => (p === 'declined' ? null : 'declined')); setSearchInput('') }}
+              />
+            </div>
+            <div className="w-4 shrink-0" />
+          </div>
 
           {searchQuery ? (
             <div className="bg-white rounded-xl border border-border overflow-hidden">
@@ -190,6 +273,40 @@ export default function ManagerMyVisitsMobile() {
                   <EmptyState icon="ri-search-2-line" title="No visits match your search" className="py-16" />
                 ) : (
                   searchResults.map((visit, idx) => {
+                    const visitor = visitorMap[visit.visitorId]
+                    return (
+                      <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
+                        <VisitCard
+                          visit={visit}
+                          visitorName={visitor?.name ?? 'Unknown Visitor'}
+                          visitorPhone={visitor?.mobile}
+                          visitorAvatar={visitor?.avatar}
+                          role="employee"
+                          viewerIsHost
+                          onApprove={visit.status === 'pending-approval' ? () => handleApprove(visit.id) : undefined}
+                          onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                          onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
+                        />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          ) : kpiFilter !== null ? (
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
+                <p className="text-sm font-semibold text-text-primary flex-1">{KPI_LABELS[kpiFilter]}</p>
+                <CountBadge count={kpiResultList.length} />
+                <button onClick={() => setKpiFilter(null)} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors ml-1">
+                  <i className="ri-close-line text-base" />
+                </button>
+              </div>
+              <div className="p-3 space-y-2">
+                {kpiResultList.length === 0 ? (
+                  <EmptyState icon="ri-filter-off-line" title="No visits found" className="py-16" />
+                ) : (
+                  kpiResultList.map((visit, idx) => {
                     const visitor = visitorMap[visit.visitorId]
                     return (
                       <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>

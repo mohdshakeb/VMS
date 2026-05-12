@@ -34,6 +34,8 @@ interface KpiCardV2Props {
   value: number
   icon: string
   color?: Color
+  /** Show the info subtitle even on mobile (default: hidden below md breakpoint) */
+  showInfo?: boolean
   /** Trend vs yesterday — positive/negative/zero. Shown with graph-direction icons. */
   trend?: number
   /** Alert count (e.g. overdue, delayed). If 0, renders nothing. */
@@ -46,7 +48,7 @@ interface KpiCardV2Props {
 
 export default function KpiCardV2({
   label, info, value, icon, color = 'blue',
-  trend, alertCount, alertLabel = '', alertColor = 'red', onClick, active,
+  showInfo = false, trend, alertCount, alertLabel = '', alertColor = 'red', onClick, active,
 }: KpiCardV2Props) {
   const display = value < 10 ? String(value).padStart(2, '0') : String(value)
   const c = colorMap[color]
@@ -90,8 +92,7 @@ export default function KpiCardV2({
           <p className="text-xs font-semibold text-text-primary uppercase tracking-widest leading-snug">
             {label}
           </p>
-          {/* Sub-heading — desktop only */}
-          <p className="hidden md:block text-xs mt-1 text-text-tertiary">{info}</p>
+          <p className={`text-xs mt-1 text-text-tertiary ${showInfo ? '' : 'hidden md:block'}`}>{info}</p>
         </div>
         <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconBorder}`}>
           <i className={`${icon} text-lg md:text-xl ${c.iconColor}`} />

@@ -3,15 +3,15 @@
 // KPI cards aggregate across selected location(s), India map shows real-time visitors.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useRef } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList,
 } from 'recharts'
+import Button from '@/components/Button'
 import KpiCardV2 from '@/components/KpiCardV2'
-import VisitCard from '@/components/VisitCard'
 import PageHeader from '@/components/PageHeader'
 import IndiaMap, { type IndiaMapHandle } from '@/components/IndiaMap'
 import { visitors as seedVisitors } from '@/data/visitors'
@@ -23,7 +23,6 @@ import { getLocalDateString } from '@/utils/helpers'
 import EmptyState from '@/components/common/EmptyState'
 import CountBadge from '@/components/common/CountBadge'
 
-type KpiFilter = 'all' | 'ready' | 'pending' | 'on-premises' | 'declined'
 type MapPeriod = 'realtime' | 'today' | 'week' | 'month'
 type ChartPeriod = 'today' | 'week' | 'month'
 
@@ -97,24 +96,16 @@ const DEPT_FILTER_OPTIONS: { value: string; label: string }[] = [
   ...DEPARTMENTS.map((d) => ({ value: d, label: d })),
 ]
 
-const KPI_LABELS: Record<KpiFilter, string> = {
-  all: 'Total Visitors',
-  ready: 'Expected Today',
-  pending: 'Pending Approval',
-  'on-premises': 'On Premises',
-  declined: 'Declined Visits',
-}
-
 export default function ManagerDashboardDesktop() {
   const visits = useVisitStore((s) => s.visits)
   const storeVisitors = useVisitStore((s) => s.visitors)
   const { currentLocationId, currentRole } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
-  const [searchInput, setSearchInput] = useState('')
-  const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
+  const navigate = useNavigate()
   const [mapPeriod, setMapPeriod] = useState<MapPeriod>('realtime')
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('today')
   const [locationPeriod, setLocationPeriod] = useState<ChartPeriod>('today')
+  const [locationTypeFilter, setLocationTypeFilter] = useState<string>('all')
   const [mapDrilledState, setMapDrilledState] = useState<string | null>(null)
   const [deptFilter, setDeptFilter] = useState<string>('all')
   const [drilldownType, setDrilldownType] = useState<string | null>(null)
@@ -137,10 +128,6 @@ export default function ManagerDashboardDesktop() {
     [visits, today, currentLocationId],
   )
 
-  const kpiExpected = todaysVisits.filter((v) => v.status === 'confirmed' || v.status === 'scheduled')
-  const kpiExpectedByEmployee = kpiExpected.filter(
-    (v) => v.entryPath === 'employee-request' || v.entryPath === 'pre-scheduled',
-  )
   const kpiOnPremises = todaysVisits.filter((v) => v.status === 'checked-in')
   const kpiTotalVisited = todaysVisits.filter((v) => v.status === 'checked-in' || v.status === 'checked-out')
   const pendingApproval = todaysVisits.filter((v) => v.status === 'pending-approval')
@@ -177,11 +164,13 @@ export default function ManagerDashboardDesktop() {
     locations
       .map((loc) => ({
         ...loc,
-        count: locationFilteredVisits.filter((v) => v.locationId === loc.id).length,
+        count: locationFilteredVisits.filter((v) =>
+          v.locationId === loc.id && (locationTypeFilter === 'all' || v.visitType === locationTypeFilter)
+        ).length,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10),
-    [locationFilteredVisits],
+    [locationFilteredVisits, locationTypeFilter],
   )
 
 
@@ -264,118 +253,35 @@ export default function ManagerDashboardDesktop() {
     return Object.values(visitsByLocation).reduce((sum, arr) => sum + arr.length, 0)
   }, [visitsByLocation, mapDrilledState])
 
-  function handleKpiClick(filter: KpiFilter) {
-    setKpiFilter((prev) => (prev === filter ? null : filter))
-    setSearchInput('')
-  }
-
-  function getResultList(): Visit[] {
-    const q = searchInput.trim().toLowerCase()
-    if (q) {
-      return todaysVisits.filter((v) => {
-        const visitor = visitorMap[v.visitorId]
-        return (
-          (visitor?.name?.toLowerCase() ?? '').includes(q) ||
-          (visitor?.company?.toLowerCase() ?? '').includes(q)
-        )
-      })
-    }
-    const sortReady = (arr: Visit[]) =>
-      [...arr].sort((a, b) => {
-        const aWalkIn = a.entryPath === 'walk-in'
-        const bWalkIn = b.entryPath === 'walk-in'
-        if (aWalkIn !== bWalkIn) return aWalkIn ? -1 : 1
-        if (aWalkIn && bWalkIn) return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        return a.scheduledTime.localeCompare(b.scheduledTime)
-      })
-    const sortPending = (arr: Visit[]) =>
-      [...arr].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    if (kpiFilter === 'all') return [...kpiTotalVisited].sort((a, b) => (b.checkInTime ?? '').localeCompare(a.checkInTime ?? ''))
-    if (kpiFilter === 'ready') return sortReady(kpiExpectedByEmployee)
-    if (kpiFilter === 'pending') return sortPending(pendingApproval)
-    if (kpiFilter === 'on-premises') return [...kpiOnPremises].sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
-    if (kpiFilter === 'declined') return [...kpiDeclined].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    return []
-  }
-
-  const resultList = getResultList()
-
   return (
     <div className="hidden md:flex flex-col h-full bg-surface-secondary">
       <PageHeader
-        title="Branch Admin"
-        titleNode={
-          <div className="w-72 flex items-center gap-2 bg-surface border border-border rounded-lg px-4 h-9 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
-            <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => { setSearchInput(e.target.value); setKpiFilter(null) }}
-              placeholder="Search visitor or company…"
-              className="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
-            />
-            {searchInput && (
-              <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
-                <i className="ri-close-line text-base" />
-              </button>
-            )}
-          </div>
-        }
+        title="Visit Insights"
         actions={
-          <NavLink
-            to="/notifications"
-            className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
-          >
-            <i className="ri-notification-3-line text-xl text-text-secondary" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
-                {unreadCount}
-              </span>
-            )}
-          </NavLink>
+          <>
+            <NavLink
+              to="/notifications"
+              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
+            >
+              <i className="ri-notification-3-line text-xl text-text-secondary" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
+                  {unreadCount}
+                </span>
+              )}
+            </NavLink>
+            <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/employee/create-visit')} className="ml-1">
+              Create Visit
+            </Button>
+          </>
         }
       />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 pt-6 pb-10 flex flex-col gap-5 min-h-full">
 
-          {(searchInput.trim() || kpiFilter !== null) ? (
-            <div className="bg-white rounded-xl border border-border overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
-                <p className="text-sm font-semibold text-text-primary flex-1">
-                  {kpiFilter && !searchInput.trim() ? KPI_LABELS[kpiFilter] : 'Search results'}
-                </p>
-                <CountBadge count={resultList.length} />
-                {kpiFilter && !searchInput.trim() && (
-                  <button onClick={() => setKpiFilter(null)} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors ml-1">
-                    <i className="ri-close-line text-base" />
-                  </button>
-                )}
-              </div>
-              <div className="p-3 space-y-2">
-                {resultList.length === 0 ? (
-                  <EmptyState icon="ri-search-2-line" title="No visits match your search" className="py-16" />
-                ) : (
-                  resultList.map((visit, idx) => {
-                    const visitor = visitorMap[visit.visitorId]
-                    return (
-                      <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
-                        <VisitCard
-                          visit={visit}
-                          visitorName={visitor?.name ?? 'Unknown Visitor'}
-                          visitorPhone={visitor?.mobile}
-                          visitorAvatar={visitor?.avatar}
-                          role="front-desk"
-                        />
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* KPI row */}
+          <>
+              {/* KPI row — each card navigates to Visit History with the relevant filter */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 <KpiCardV2
                   label="Total Visitors"
@@ -384,8 +290,7 @@ export default function ManagerDashboardDesktop() {
                   icon="ri-group-fill"
                   color="blue"
                   trend={MOCK_TREND_TOTAL}
-                  active={kpiFilter === 'all'}
-                  onClick={() => handleKpiClick('all')}
+                  onClick={() => navigate('/manager/visit-history', { state: { dateRange: 'today' } })}
                 />
                 <KpiCardV2
                   label="Pending Approval"
@@ -396,8 +301,7 @@ export default function ManagerDashboardDesktop() {
                   alertCount={delayedCount}
                   alertLabel="need follow-up"
                   alertColor="orange"
-                  active={kpiFilter === 'pending'}
-                  onClick={() => handleKpiClick('pending')}
+                  onClick={() => navigate('/manager/visit-history', { state: { statusFilter: 'open', dateRange: 'today' } })}
                 />
                 <KpiCardV2
                   label="On Premises"
@@ -408,8 +312,7 @@ export default function ManagerDashboardDesktop() {
                   alertCount={overdueCount}
                   alertLabel="overdue"
                   alertColor="red"
-                  active={kpiFilter === 'on-premises'}
-                  onClick={() => handleKpiClick('on-premises')}
+                  onClick={() => navigate('/manager/visit-history', { state: { statusFilter: 'open', dateRange: 'today' } })}
                 />
                 <KpiCardV2
                   label="Declined Visits"
@@ -417,8 +320,7 @@ export default function ManagerDashboardDesktop() {
                   value={kpiDeclined.length}
                   icon="ri-close-circle-fill"
                   color="red"
-                  active={kpiFilter === 'declined'}
-                  onClick={() => handleKpiClick('declined')}
+                  onClick={() => navigate('/manager/visit-history', { state: { statusFilter: 'cancelled', dateRange: 'today' } })}
                 />
               </div>
 
@@ -481,7 +383,10 @@ export default function ManagerDashboardDesktop() {
                   <div className="bg-white rounded-xl border border-border overflow-hidden">
                     <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
                       <i className="ri-calendar-2-fill text-text-tertiary text-base" />
-                      <p className="text-sm font-semibold text-text-primary">Monthly Summary</p>
+                      <p className="text-sm font-semibold text-text-primary flex-1">Monthly Summary</p>
+                      <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors" title="Export">
+                        <i className="ri-download-line text-sm" />
+                      </button>
                     </div>
                     <div className="grid grid-cols-3 divide-x divide-border-light">
                       {monthlyChartData.map((m, idx) => (
@@ -522,6 +427,9 @@ export default function ManagerDashboardDesktop() {
                         <PeriodDropdown value={deptFilter} onChange={(v) => { setDeptFilter(v); setDrilldownType(null) }} options={DEPT_FILTER_OPTIONS} />
                       )}
                       <PeriodDropdown value={chartPeriod} onChange={setChartPeriod} options={CHART_PERIOD_OPTIONS} />
+                      <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors" title="Export">
+                        <i className="ri-download-line text-sm" />
+                      </button>
                     </div>
 
                     {drilldownType ? (
@@ -533,9 +441,9 @@ export default function ManagerDashboardDesktop() {
                         <div className="space-y-3">
                           {drilldownData.map(({ dept, color, count, pct }) => (
                             <div key={dept} className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5 w-[130px] shrink-0">
+                              <div className="flex items-center gap-1.5 w-[200px] shrink-0">
                                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                                <span className="text-xs text-text-secondary truncate">{dept}</span>
+                                <span className="text-xs text-text-secondary">{dept}</span>
                               </div>
                               <div className="flex-1 h-2 bg-surface-secondary rounded-full overflow-hidden">
                                 <div
@@ -552,11 +460,11 @@ export default function ManagerDashboardDesktop() {
                     ) : (
                       /* Main chart — each bar = a visit type; click to drill into dept breakdown */
                       <div key="main-chart" className="px-2 py-4 vms-stagger-item">
-                        <ResponsiveContainer width="100%" height={200}>
+                        <ResponsiveContainer width="100%" height={220}>
                           <BarChart
                             key={deptFilter}
                             data={visitTypeChartData}
-                            margin={{ top: 0, right: 8, left: -20, bottom: 0 }}
+                            margin={{ top: 18, right: 8, left: -20, bottom: 0 }}
                             barCategoryGap="30%"
                             style={{ cursor: 'pointer' }}
                           >
@@ -579,6 +487,12 @@ export default function ManagerDashboardDesktop() {
                                 if (item?.typeKey) setDrilldownType(item.typeKey)
                               }}
                             >
+                              <LabelList
+                                dataKey="value"
+                                position="top"
+                                style={{ fontSize: 10, fontWeight: 600, fill: 'var(--color-text-secondary)' }}
+                                formatter={(v: unknown) => (v as number) > 0 ? String(v) : ''}
+                              />
                               {visitTypeChartData.map((entry) => (
                                 <Cell key={entry.typeKey} fill={entry.color} />
                               ))}
@@ -597,7 +511,18 @@ export default function ManagerDashboardDesktop() {
                     <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light shrink-0">
                       <i className="ri-map-pin-2-fill text-text-tertiary text-base" />
                       <p className="text-sm font-semibold text-text-primary flex-1">Top Locations</p>
+                      <PeriodDropdown
+                        value={locationTypeFilter}
+                        onChange={setLocationTypeFilter}
+                        options={[
+                          { value: 'all', label: 'All Types' },
+                          ...VISIT_TYPES_CONFIG.map((t) => ({ value: t.key, label: t.label })),
+                        ]}
+                      />
                       <PeriodDropdown value={locationPeriod} onChange={setLocationPeriod} options={CHART_PERIOD_OPTIONS} />
+                      <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors" title="Export">
+                        <i className="ri-download-line text-sm" />
+                      </button>
                     </div>
                     <div className="divide-y divide-border-light">
                       {topLocations.length === 0 ? (
@@ -622,7 +547,6 @@ export default function ManagerDashboardDesktop() {
 
               </div>
             </>
-          )}
 
         </div>
       </div>

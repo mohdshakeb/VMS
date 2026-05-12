@@ -181,11 +181,11 @@ export default function ManagerVisitHistoryMobile() {
         <div className="bg-surface-secondary px-4 pt-4 pb-3 space-y-3">
           <MobileSearchInput value={search} onChange={setSearch} placeholder="Search visitor or phone…" />
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="-mx-4 px-4 flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
             {isAllLocations && (
               <button
                 onClick={() => openSheet('location')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${locationFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
+                className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${locationFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
               >
                 {locationLabel}
                 <i className={`ri-arrow-down-s-line text-sm ${locationFilter ? 'text-brand' : 'text-text-tertiary'}`} />
@@ -194,7 +194,7 @@ export default function ManagerVisitHistoryMobile() {
 
             <button
               onClick={() => openSheet('status')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
+              className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${statusFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
             >
               {statusLabel}
               <i className={`ri-arrow-down-s-line text-sm ${statusFilter ? 'text-brand' : 'text-text-tertiary'}`} />
@@ -202,7 +202,7 @@ export default function ManagerVisitHistoryMobile() {
 
             <button
               onClick={() => openSheet('visitType')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${visitTypeFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
+              className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${visitTypeFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
             >
               {visitTypeLabel}
               <i className={`ri-arrow-down-s-line text-sm ${visitTypeFilter ? 'text-brand' : 'text-text-tertiary'}`} />
@@ -210,7 +210,7 @@ export default function ManagerVisitHistoryMobile() {
 
             <button
               onClick={() => openSheet('date')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${dateRange ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
+              className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${dateRange ? 'bg-brand-light text-brand border-brand' : 'bg-white text-text-secondary border-border'}`}
             >
               {dateLabel}
               <i className={`ri-arrow-down-s-line text-sm ${dateRange ? 'text-brand' : 'text-text-tertiary'}`} />
@@ -219,11 +219,12 @@ export default function ManagerVisitHistoryMobile() {
             {hasActiveFilters && (
               <button
                 onClick={() => { setStatusFilter(''); setVisitTypeFilter(''); setDateRange(''); setLocationFilter('') }}
-                className="text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+                className="shrink-0 text-xs text-text-tertiary hover:text-text-secondary transition-colors"
               >
                 Clear
               </button>
             )}
+            <div className="w-2 shrink-0" />
           </div>
         </div>
 

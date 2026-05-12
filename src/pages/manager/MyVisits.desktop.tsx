@@ -2,16 +2,18 @@
 // My Visits — Desktop (Branch Admin)
 // Employee view: today's visits + checked-in panel, scoped to currentEmployeeId.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useVisitStore, getPendingApprovals } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { visitors as seedVisitors } from '@/data/visitors'
-import { OVERDUE_VISIT_IDS } from '@/data/visits'
+import { OVERDUE_VISIT_IDS, DELAYED_VISIT_IDS } from '@/data/visits'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
 import PageHeader from '@/components/PageHeader'
+import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import Button from '@/components/Button'
+import KpiCardV2 from '@/components/KpiCardV2'
 import Modal from '@/components/Modal'
 import VisitCard from '@/components/VisitCard'
 import EmptyState from '@/components/common/EmptyState'
@@ -20,13 +22,27 @@ import AvatarBadge from '@/components/common/AvatarBadge'
 import Collapsible from '@/components/common/Collapsible'
 import { getPurposeLabel, getVisitTypeLabel, formatTime, formatDate, getLocalDateString, getBusinessSegmentLabel } from '@/utils/helpers'
 
+type KpiFilter = 'all' | 'pending' | 'on-premises' | 'declined'
+
+const KPI_LABELS: Record<KpiFilter, string> = {
+  all: 'Total Visitors',
+  pending: 'Pending Approval',
+  'on-premises': 'On Premises',
+  declined: 'Declined Visits',
+}
+
 export default function ManagerMyVisitsDesktop() {
   const visits = useVisitStore((s) => s.visits)
   const storeVisitors = useVisitStore((s) => s.visitors)
   const { approveWalkIn, rejectWalkIn, cancelVisit } = useVisitStore()
   const employeeId = useAuthStore((s) => s.currentEmployeeId)
+  const currentRole = useAuthStore((s) => s.currentRole)
+  const notifications = useNotificationStore((s) => s.notifications)
+  const unreadCount = getUnreadCount(notifications, currentRole)
   const navigate = useNavigate()
 
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter | null>(null)
+  const [searchInput, setSearchInput] = useState('')
   const [todayFilter, setTodayFilter] = useState<'all' | 'pending' | 'upcoming'>('all')
   const [expandedEntryKey, setExpandedEntryKey] = useState<string | null>(null)
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null)
@@ -46,7 +62,33 @@ export default function ManagerMyVisitsDesktop() {
   const allToday = myVisits.filter((v) => ['pending-approval', 'scheduled', 'confirmed'].includes(v.status) && v.scheduledDate === today)
   const checkedIn = myVisits.filter((v) => v.status === 'checked-in')
 
+  const myTodayVisits = myVisits.filter((v) => v.scheduledDate === today)
+  const kpiTotalVisited = myTodayVisits.filter((v) => v.status === 'checked-in' || v.status === 'checked-out')
+  const kpiOnPremises = myTodayVisits.filter((v) => v.status === 'checked-in')
+  const kpiPendingApproval = myTodayVisits.filter((v) => v.status === 'pending-approval')
+  const kpiDeclined = myTodayVisits.filter((v) => v.status === 'cancelled' || v.status === 'rejected')
+  const overdueCount = kpiOnPremises.filter((v) => OVERDUE_VISIT_IDS.has(v.id)).length
+  const delayedCount = kpiPendingApproval.filter((v) => DELAYED_VISIT_IDS.has(v.id)).length
+
+  function getKpiResultList() {
+    if (kpiFilter === 'all') return [...kpiTotalVisited].sort((a, b) => (b.checkInTime ?? '').localeCompare(a.checkInTime ?? ''))
+    if (kpiFilter === 'pending') return [...kpiPendingApproval].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    if (kpiFilter === 'on-premises') return [...kpiOnPremises].sort((a, b) => Number(OVERDUE_VISIT_IDS.has(b.id)) - Number(OVERDUE_VISIT_IDS.has(a.id)))
+    if (kpiFilter === 'declined') return [...kpiDeclined].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return []
+  }
+
+  const kpiResultList = getKpiResultList()
+
   const activeList = todayFilter === 'all' ? allToday : todayFilter === 'pending' ? pendingApprovals : upcomingToday
+  const filteredActiveList = useMemo(() => {
+    if (!searchInput.trim()) return activeList
+    const q = searchInput.toLowerCase()
+    return activeList.filter((v) => {
+      const visitor = visitorMap[v.visitorId]
+      return (visitor?.name?.toLowerCase() ?? '').includes(q) || (visitor?.company?.toLowerCase() ?? '').includes(q)
+    })
+  }, [activeList, searchInput, visitorMap])
 
   function handleApprove(visitId: string) { setApproveTargetId(visitId) }
 
@@ -77,23 +119,141 @@ export default function ManagerMyVisitsDesktop() {
     <div className="hidden md:flex flex-col h-full bg-surface-secondary">
       <PageHeader
         title="My Visits"
+        titleNode={
+          <div className="w-64 flex items-center gap-2 bg-surface border border-border rounded-lg px-4 h-9 focus-within:ring-2 focus-within:ring-brand-light focus-within:border-brand-light transition-shadow">
+            <i className="ri-search-line text-text-tertiary shrink-0 text-base" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search visitor or company…"
+              className="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-tertiary outline-none min-w-0"
+            />
+            {searchInput && (
+              <button onClick={() => setSearchInput('')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+                <i className="ri-close-line text-base" />
+              </button>
+            )}
+          </div>
+        }
         actions={
-          <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/employee/create-visit')}>
-            Create Visit
-          </Button>
+          <>
+            <NavLink
+              to="/notifications"
+              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
+            >
+              <i className="ri-notification-3-line text-xl text-text-secondary" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
+                  {unreadCount}
+                </span>
+              )}
+            </NavLink>
+            <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/employee/create-visit')} className="ml-1">
+              Create Visit
+            </Button>
+          </>
         }
       />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 pt-6 pb-10 flex flex-col gap-5 min-h-full">
-          <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 lg:gap-5">
+          {/* KPI row — admin's own visitor counts as host */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <KpiCardV2
+              label="Total Visitors"
+              info="Checked-in and checked-out"
+              value={kpiTotalVisited.length}
+              icon="ri-group-fill"
+              color="blue"
+              active={kpiFilter === 'all'}
+              onClick={() => setKpiFilter((p) => (p === 'all' ? null : 'all'))}
+            />
+            <KpiCardV2
+              label="Pending Approval"
+              info="Awaiting your response"
+              value={kpiPendingApproval.length}
+              icon="ri-time-fill"
+              color="yellow"
+              alertCount={delayedCount}
+              alertLabel="need follow-up"
+              alertColor="orange"
+              active={kpiFilter === 'pending'}
+              onClick={() => setKpiFilter((p) => (p === 'pending' ? null : 'pending'))}
+            />
+            <KpiCardV2
+              label="On Premises"
+              info="Currently inside the facility"
+              value={kpiOnPremises.length}
+              icon="ri-building-2-fill"
+              color="green"
+              alertCount={overdueCount}
+              alertLabel="overdue"
+              alertColor="red"
+              active={kpiFilter === 'on-premises'}
+              onClick={() => setKpiFilter((p) => (p === 'on-premises' ? null : 'on-premises'))}
+            />
+            <KpiCardV2
+              label="Declined Visits"
+              info="Cancelled and rejected today"
+              value={kpiDeclined.length}
+              icon="ri-close-circle-fill"
+              color="red"
+              active={kpiFilter === 'declined'}
+              onClick={() => setKpiFilter((p) => (p === 'declined' ? null : 'declined'))}
+            />
+          </div>
+
+          {/* KPI filter panel */}
+          {kpiFilter !== null && (
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light">
+                <p className="text-sm font-semibold text-text-primary flex-1">
+                  {KPI_LABELS[kpiFilter]}
+                </p>
+                <CountBadge count={kpiResultList.length} />
+                <button onClick={() => setKpiFilter(null)} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors ml-1">
+                  <i className="ri-close-line text-base" />
+                </button>
+              </div>
+              <div className="p-3 space-y-2">
+                {kpiResultList.length === 0 ? (
+                  <EmptyState icon="ri-filter-off-line" title="No visits found" className="py-16" />
+                ) : (
+                  kpiResultList.map((visit, idx) => {
+                    const visitor = visitorMap[visit.visitorId]
+                    return (
+                      <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
+                        <VisitCard
+                          visit={visit}
+                          visitorName={visitor?.name ?? 'Unknown Visitor'}
+                          visitorPhone={visitor?.mobile}
+                          visitorAvatar={visitor?.avatar}
+                          role="employee"
+                          viewerIsHost
+                          onApprove={visit.status === 'pending-approval' ? () => setApproveTargetId(visit.id) : undefined}
+                          onReject={visit.status === 'pending-approval' ? () => { setRejectTargetId(visit.id); setRejectReason('') } : undefined}
+                          onCancel={['confirmed', 'scheduled'].includes(visit.status) ? () => setCancelTargetId(visit.id) : undefined}
+                        />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {kpiFilter === null && <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 lg:gap-5">
 
             {/* Left column — Today's Visits */}
             <div className="lg:col-span-3">
               <div className="bg-white rounded-xl border border-border overflow-hidden">
                 <div className="flex items-center gap-2 px-4 pt-3.5 pb-1">
-                  <p className="text-sm font-semibold text-text-primary">Today's Visits</p>
-                  <CountBadge count={activeList.length} />
+                  <p className="text-sm font-semibold text-text-primary flex-1">Today's Visits</p>
+                  <CountBadge count={filteredActiveList.length} />
+                  <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors mr-1" title="Export">
+                    <i className="ri-download-line text-sm" />
+                  </button>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2.5">
                   <button
@@ -116,13 +276,13 @@ export default function ManagerMyVisitsDesktop() {
                   </button>
                 </div>
                 <div className="p-3 space-y-2">
-                  {activeList.length === 0 ? (
+                  {filteredActiveList.length === 0 ? (
                     <EmptyState
                       icon={todayFilter === 'pending' ? 'ri-time-line' : todayFilter === 'upcoming' ? 'ri-calendar-schedule-line' : 'ri-calendar-line'}
                       title={todayFilter === 'pending' ? 'No pending approvals' : todayFilter === 'upcoming' ? 'No confirmed visits for today' : 'No visits for today'}
                     />
                   ) : (
-                    activeList.map((visit, idx) => {
+                    filteredActiveList.map((visit, idx) => {
                       const visitor = visitorMap[visit.visitorId]
                       return (
                         <div key={visit.id} className="vms-stagger-item" style={{ animationDelay: `${Math.min(idx * 35, 210)}ms` }}>
@@ -149,8 +309,11 @@ export default function ManagerMyVisitsDesktop() {
             <div className="lg:col-span-2 lg:sticky lg:top-4 lg:self-start">
               <div className="bg-white rounded-xl border border-border overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border-light shrink-0">
-                  <p className="text-sm font-semibold text-text-primary">Checked-In</p>
+                  <p className="text-sm font-semibold text-text-primary flex-1">Checked-In</p>
                   <CountBadge count={checkedIn.length} />
+                  <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors ml-1" title="Export">
+                    <i className="ri-download-line text-sm" />
+                  </button>
                 </div>
                 <div>
                   {checkedIn.length === 0 ? (
@@ -241,7 +404,7 @@ export default function ManagerMyVisitsDesktop() {
               </div>
             </div>
 
-          </div>
+          </div>}
         </div>
       </div>
 

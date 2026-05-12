@@ -3,13 +3,15 @@
 // Scoped to selected location(s). Adds a Location column when "All Locations" is active.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { visitors as seedVisitors } from '@/data/visitors'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
 import PageHeader from '@/components/PageHeader'
+import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
+import Button from '@/components/Button'
 import { formatDate, formatTime, getStatusColor, getStatusLabel, getVisitTypeLabel, getLocalDateString } from '@/utils/helpers'
 import EmptyState from '@/components/common/EmptyState'
 import AvatarBadge from '@/components/common/AvatarBadge'
@@ -71,14 +73,18 @@ function extractTime(iso: string): string {
 export default function ManagerVisitHistoryDesktop() {
   const visits = useVisitStore((s) => s.visits)
   const storeVisitors = useVisitStore((s) => s.visitors)
-  const { currentLocationId } = useAuthStore()
+  const { currentLocationId, currentRole } = useAuthStore()
+  const notifications = useNotificationStore((s) => s.notifications)
+  const unreadCount = getUnreadCount(notifications, currentRole)
   const navigate = useNavigate()
   const isAllLocations = currentLocationId === 'all'
 
+  const { state: routeState } = useLocation()
+
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>((routeState as { statusFilter?: StatusFilter } | null)?.statusFilter ?? '')
   const [visitTypeFilter, setVisitTypeFilter] = useState('')
-  const [dateRange, setDateRange] = useState<DateRange>('')
+  const [dateRange, setDateRange] = useState<DateRange>((routeState as { dateRange?: DateRange } | null)?.dateRange ?? '')
   const [locationFilter, setLocationFilter] = useState('')
   const [page, setPage] = useState(1)
 
@@ -135,7 +141,27 @@ export default function ManagerVisitHistoryDesktop() {
 
   return (
     <div className="hidden md:flex flex-col h-full bg-surface-secondary">
-      <PageHeader title="Visit History" />
+      <PageHeader
+        title="Visit History"
+        actions={
+          <>
+            <NavLink
+              to="/notifications"
+              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
+            >
+              <i className="ri-notification-3-line text-xl text-text-secondary" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
+                  {unreadCount}
+                </span>
+              )}
+            </NavLink>
+            <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/employee/create-visit')} className="ml-1">
+              Create Visit
+            </Button>
+          </>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
@@ -213,6 +239,13 @@ export default function ManagerVisitHistoryDesktop() {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border-light">
+            <p className="text-sm font-semibold text-text-primary flex-1">Visit Records</p>
+            <span className="text-xs text-text-tertiary tabular-nums">{filtered.length} results</span>
+            <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors ml-1" title="Export">
+              <i className="ri-download-line text-sm" />
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
               <thead>

@@ -4,6 +4,7 @@ import type { Role } from '@/types/user'
 const ctaByRole: Partial<Record<Role, { label: string; path: string; icon: string }>> = {
   'front-desk': { label: 'Walk-in', path: '/front-desk/walk-in', icon: 'ri-user-add-line' },
   employee: { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
+  'central-admin': { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
 }
 
 interface MobileNavItem {
@@ -23,8 +24,9 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'My Visits', path: '/employee/visits', icon: 'ri-calendar-check-line', activeIcon: 'ri-calendar-check-fill' },
   ],
   'central-admin': [
-    { label: 'Dashboard', path: '/manager/dashboard', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
-    { label: 'Reports', path: '/manager/reports', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
+    { label: 'Home', path: '/manager/my-visits', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
+    { label: 'Insights', path: '/manager/dashboard', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
+    { label: 'History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
   ],
 }
 

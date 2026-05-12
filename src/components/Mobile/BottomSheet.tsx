@@ -4,6 +4,7 @@ interface BottomSheetProps {
   mounted: boolean
   visible: boolean
   onClose: () => void
+  onBack?: () => void
   title?: string
   subtitle?: string
   children: ReactNode
@@ -15,6 +16,7 @@ export default function BottomSheet({
   mounted,
   visible,
   onClose,
+  onBack,
   title,
   subtitle,
   children,
@@ -58,13 +60,23 @@ export default function BottomSheet({
 
         {(title || subtitle) && (
           <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-border-light flex-shrink-0">
-            <div>
-              {title && <p className="text-sm font-semibold text-text-primary">{title}</p>}
-              {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="rounded-lg p-1 text-text-tertiary hover:bg-surface-secondary hover:text-text-primary transition-colors shrink-0 -ml-1"
+                >
+                  <i className="ri-arrow-left-s-line text-lg" />
+                </button>
+              )}
+              <div className="min-w-0">
+                {title && <p className="text-sm font-semibold text-text-primary">{title}</p>}
+                {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-secondary hover:text-text-primary transition-colors -mr-1"
+              className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-secondary hover:text-text-primary transition-colors -mr-1 shrink-0"
             >
               <i className="ri-close-line text-lg" />
             </button>
