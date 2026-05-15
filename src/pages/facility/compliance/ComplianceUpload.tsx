@@ -7,8 +7,6 @@ import Button from '@/components/Button'
 import Modal from '@/components/Modal'
 import type { BuildingType, InfraApplicability } from '@/types/facility'
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 function getDraftAgeDays(savedAt?: string): number {
   if (!savedAt) return 0
   const diff = Date.now() - new Date(savedAt).getTime()
