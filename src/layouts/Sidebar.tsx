@@ -7,7 +7,11 @@ import type { Role } from '@/types/user'
 import logoUrl from '@/assets/Logo.svg'
 
 // Maps child route prefixes to their parent nav path so the correct item stays highlighted
-const childToParentNav: Record<string, string> = {}
+const childToParentNav: Record<string, string> = {
+  '/facility/buildings/':   '/facility/buildings',
+  '/facility/compliance/':  '/facility/compliance',
+  '/facility/onboarding/':  '/facility/buildings',
+}
 
 function getActiveNavPath(pathname: string): string {
   for (const [prefix, parent] of Object.entries(childToParentNav)) {
@@ -36,12 +40,18 @@ const navByRole: Record<Role, NavItem[]> = {
     { label: 'Visit Insights', path: '/manager/dashboard',   icon: 'ri-bar-chart-box-line' },
     { label: 'Visit History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line' },
   ],
+  'building-admin': [
+    { label: 'Dashboard',     path: '/facility/dashboard',   icon: 'ri-home-2-line' },
+    { label: 'My Buildings',  path: '/facility/buildings',   icon: 'ri-building-2-line' },
+    { label: 'Compliance',    path: '/facility/compliance',  icon: 'ri-camera-line' },
+  ],
 }
 
 const roleLabels: Record<Role, string> = {
   'front-desk': 'Front Desk',
   employee: 'Employee',
   'central-admin': 'Central Admin',
+  'building-admin': 'Building Admin',
 }
 
 export default function Sidebar() {
@@ -80,8 +90,8 @@ export default function Sidebar() {
         <img src={logoUrl} alt="GMMCO — CKA Birla Group" className="h-10 w-auto" />
       </div>
 
-      {/* Location card — hidden for employees (they don't switch locations) */}
-      {currentRole !== 'employee' && <div ref={locationRef} className="shrink-0 px-3 pb-3 relative">
+      {/* Location card — hidden for employees and building-admin (facility role has no VMS location) */}
+      {currentRole !== 'employee' && currentRole !== 'building-admin' && <div ref={locationRef} className="shrink-0 px-3 pb-3 relative">
         <button
           onClick={() => setLocationOpen((o) => !o)}
           className="w-full flex items-center gap-2.5 bg-chrome-surface border border-chrome-border-subtle rounded-lg px-2 py-2 hover:border-chrome-border transition-colors text-left"

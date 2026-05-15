@@ -7,6 +7,7 @@ const CREDENTIAL_MAP: Record<string, { role: Role; employeeId: string }> = {
   'employee@gmmco.com': { role: 'employee', employeeId: 'emp-1' },
   'frontdesk@gmmco.com': { role: 'front-desk', employeeId: 'emp-7' },
   'manager@gmmco.com': { role: 'central-admin', employeeId: 'emp-5' },
+  'facilityadmin@gmmco.com': { role: 'building-admin', employeeId: 'emp-ra' },
 }
 
 interface AuthState {

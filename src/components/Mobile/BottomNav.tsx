@@ -5,6 +5,7 @@ const ctaByRole: Partial<Record<Role, { label: string; path: string; icon: strin
   'front-desk': { label: 'Walk-in', path: '/front-desk/walk-in', icon: 'ri-user-add-line' },
   employee: { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
   'central-admin': { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
+  // building-admin has no CTA — compliance starts from dashboard
 }
 
 interface MobileNavItem {
@@ -27,6 +28,11 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'Home', path: '/manager/my-visits', icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
     { label: 'Insights', path: '/manager/dashboard', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
     { label: 'History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
+  ],
+  'building-admin': [
+    { label: 'Home',       path: '/facility/dashboard',  icon: 'ri-home-2-line',       activeIcon: 'ri-home-2-fill' },
+    { label: 'Buildings',  path: '/facility/buildings',  icon: 'ri-building-2-line',   activeIcon: 'ri-building-2-fill' },
+    { label: 'Compliance', path: '/facility/compliance', icon: 'ri-camera-line',       activeIcon: 'ri-camera-fill' },
   ],
 }
 

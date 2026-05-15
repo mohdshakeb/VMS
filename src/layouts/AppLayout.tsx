@@ -5,6 +5,7 @@ import BottomNav from '@/components/Mobile/BottomNav'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import { useVisitStore } from '@/store/visitStore'
+import { useFacilityStore } from '@/store/facilityStore'
 import type { Role } from '@/types/user'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
@@ -15,16 +16,18 @@ const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/dashboard',
   'central-admin': '/manager/dashboard',
+  'building-admin': '/facility/dashboard',
 }
 
 const roleLabels: Record<Role, string> = {
   'front-desk': 'Front Desk',
   employee: 'Employee',
   'central-admin': 'Central Admin',
+  'building-admin': 'Building Admin',
 }
 
 // Routes that take over the full screen on ALL viewports (no sidebar on desktop, no nav bars on mobile)
-const FULL_SCREEN_ROUTES = ['/front-desk/walk-in', '/front-desk/qr-code', '/employee/create-visit']
+const FULL_SCREEN_ROUTES = ['/front-desk/walk-in', '/front-desk/qr-code', '/employee/create-visit', '/facility/onboarding/new']
 // Route prefixes that suppress mobile chrome (top bar + bottom nav) but keep the desktop sidebar
 const MOBILE_INNER_PREFIXES = ['/front-desk/visit/', '/employee/visit/']
 
@@ -37,6 +40,8 @@ export default function AppLayout() {
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
   const { toastMessage, clearToast } = useVisitStore()
+  const facilityToast = useFacilityStore((s) => s.toastMessage)
+  const activeToast = toastMessage ?? facilityToast
 
   const currentEmployee = employees.find((e) => e.id === currentEmployeeId)
   const currentLocation = locations.find((l) => l.id === currentLocationId)
@@ -107,10 +112,10 @@ export default function AppLayout() {
           </main>
 
           {/* Toast */}
-          {toastMessage && (
+          {activeToast && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]">
               <div className="rounded-xl bg-chrome-toast px-4 py-3 text-sm text-white shadow-lg">
-                {toastMessage}
+                {activeToast}
               </div>
             </div>
           )}
@@ -131,7 +136,7 @@ export default function AppLayout() {
               unreadCount={unreadCount}
               onLocationPress={openLocationSheet}
               onProfilePress={openProfileSheet}
-              hideLocationAndQr={currentRole === 'employee'}
+              hideLocationAndQr={currentRole === 'employee' || currentRole === 'building-admin'}
             />
           )}
 
@@ -142,10 +147,10 @@ export default function AppLayout() {
         </div>
 
         {/* Toast */}
-        {toastMessage && (
+        {activeToast && (
           <div className={`fixed left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] ${(isFullScreen || isMobileInner) ? 'bottom-6' : 'bottom-16'}`}>
             <div className="rounded-xl bg-chrome-toast px-4 py-3 text-sm text-white shadow-lg">
-              {toastMessage}
+              {activeToast}
             </div>
           </div>
         )}

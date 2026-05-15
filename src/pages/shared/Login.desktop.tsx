@@ -12,13 +12,14 @@ import logoSecondaryUrl from '@/assets/LogoSecondary.png'
 const APPS = [
   { id: 'shield',   name: 'Shield',   tagline: 'Security & Access Control',   icon: 'ri-shield-keyhole-line', iconBg: 'bg-zinc-800',  available: false },
   { id: 'visitor',  name: 'Visitor',  tagline: 'Visitor Management System',   icon: 'ri-user-follow-line',    iconBg: 'bg-brand',     available: true  },
-  { id: 'facility', name: 'Facility', tagline: 'Facility & Asset Management', icon: 'ri-building-2-line',     iconBg: 'bg-amber-500', available: false },
+  { id: 'facility', name: 'Facility', tagline: 'Facility & Asset Management', icon: 'ri-building-2-line',     iconBg: 'bg-amber-500', available: true  },
 ]
 
 const ROLE_ROUTES: Record<string, string> = {
-  employee:       '/employee/visits',
-  'front-desk':   '/front-desk/dashboard',
-  'central-admin': '/manager/dashboard',
+  employee:         '/employee/visits',
+  'front-desk':     '/front-desk/dashboard',
+  'central-admin':  '/manager/dashboard',
+  'building-admin': '/facility/dashboard',
 }
 
 export default function LoginDesktop() {
@@ -51,9 +52,10 @@ export default function LoginDesktop() {
   }
 
   function handleAppSelect(appId: string) {
-    if (appId !== 'visitor') return
-    const role = useAuthStore.getState().currentRole
-    navigate(ROLE_ROUTES[role] ?? '/front-desk/dashboard')
+    if (appId === 'visitor' || appId === 'facility') {
+      const role = useAuthStore.getState().currentRole
+      navigate(ROLE_ROUTES[role] ?? '/front-desk/dashboard')
+    }
   }
 
   const rawName     = email.split('@')[0].split('.')[0]
