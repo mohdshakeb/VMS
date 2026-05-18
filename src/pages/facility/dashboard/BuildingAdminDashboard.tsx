@@ -35,7 +35,6 @@ export default function BuildingAdminDashboard() {
   const navigate = useNavigate()
   const buildings = useFacilityStore((s) => s.buildings)
   const complianceRecords = useFacilityStore((s) => s.complianceRecords)
-  const discardDraft = useFacilityStore((s) => s.discardDraft)
   const { currentRole } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
   const markAsRead = useNotificationStore((s) => s.markAsRead)
@@ -144,8 +143,8 @@ export default function BuildingAdminDashboard() {
                       <ComplianceCard
                         key={building.id}
                         building={building}
+                        recordId={record?.id}
                         submittedAt={record?.submittedAt}
-                        onDiscard={(e) => { e.stopPropagation(); discardDraft(building.id) }}
                       />
                     )
                   })}

@@ -24,6 +24,9 @@ export interface Building {
   description?: string
   status: BuildingStatus
   remarks?: string
+  photoUrl?: string
+  layoutPlanName?: string
+  complianceDocName?: string
   complianceStatus: FacilityComplianceStatus
   complianceProgress: number
   complianceTotal: number

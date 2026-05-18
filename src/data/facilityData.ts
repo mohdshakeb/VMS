@@ -29,10 +29,13 @@ export const buildings: Building[] = [
     storeCode: 'CHN-001',
     description: 'Main Chennai branch office handling South SBU operations.',
     status: 'active',
-    remarks: '',
+    remarks: 'Main operations hub for South SBU. Priority building for monthly compliance.',
+    photoUrl: 'https://loremflickr.com/80/80/building,office?lock=11',
+    layoutPlanName: 'FloorPlan_Chennai_Branch_v2.pdf',
+    complianceDocName: 'ComplianceGuidelines_Chennai.pdf',
     complianceStatus: 'draft',
     complianceProgress: 8,
-    complianceTotal: 14,
+    complianceTotal: 35,
     complianceDraftAge: 6,
   },
   {
@@ -56,9 +59,12 @@ export const buildings: Building[] = [
     description: 'Coimbatore branch office serving west Tamil Nadu region.',
     status: 'active',
     remarks: '',
+    photoUrl: 'https://loremflickr.com/80/80/building,office?lock=47',
+    layoutPlanName: 'FloorPlan_Coimbatore_Office.pdf',
+    complianceDocName: 'ComplianceDoc_Coimbatore.pdf',
     complianceStatus: 'pending',
     complianceProgress: 0,
-    complianceTotal: 12,
+    complianceTotal: 35,
   },
   {
     id: 'bld-3',
@@ -81,9 +87,12 @@ export const buildings: Building[] = [
     description: 'Heavy machinery repair center with workshop facilities.',
     status: 'active',
     remarks: '',
+    photoUrl: 'https://loremflickr.com/80/80/factory,warehouse?lock=23',
+    layoutPlanName: 'WorkshopFloorPlan_Madurai.pdf',
+    complianceDocName: 'Safety_Compliance_Madurai.pdf',
     complianceStatus: 'submitted',
-    complianceProgress: 18,
-    complianceTotal: 18,
+    complianceProgress: 35,
+    complianceTotal: 35,
   },
 ]
 
@@ -161,34 +170,126 @@ export function getCategoriesForBuildingType(buildingType: string) {
 
 // ─── Compliance records (May 2026) ───────────────────────────────────────────
 
-const MAY_2026_CHENNAI_DRAFT_DATE = new Date('2026-05-07T09:30:00').toISOString()
-
-// Chennai — 8/14 uploaded, Draft (started 6 days ago relative to 2026-05-13)
-const chennaiCategories = [
-  // Mandatory — uploaded (8)
-  { categoryId: 'cat-ext-1', categoryName: 'Building Front',       group: 'External',    photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:30:00' },
-  { categoryId: 'cat-ext-2', categoryName: 'Building Signage',     group: 'External',    photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:32:00' },
-  { categoryId: 'cat-ext-3', categoryName: 'Entry Gate',           group: 'External',    photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:34:00' },
-  { categoryId: 'cat-ext-4', categoryName: 'Security Cabin',       group: 'External',    photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:36:00' },
-  { categoryId: 'cat-ext-5', categoryName: 'Parking Area',         group: 'External',    photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:38:00' },
-  { categoryId: 'cat-off-1', categoryName: 'Reception Area',       group: 'Office',      photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:40:00' },
-  { categoryId: 'cat-off-2', categoryName: 'Meeting Room',         group: 'Office',      photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:42:00' },
-  { categoryId: 'cat-off-3', categoryName: 'Pantry',               group: 'Office',      photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo', uploadedAt: '2026-05-07T09:44:00' },
-  // Mandatory — not uploaded (3)
-  { categoryId: 'cat-off-4', categoryName: 'Washroom',             group: 'Office',      photoUrl: undefined, uploadedAt: undefined },
-  { categoryId: 'cat-off-5', categoryName: 'Training Room',        group: 'Office',      photoUrl: undefined, uploadedAt: undefined },
-  { categoryId: 'cat-elc-1', categoryName: 'Electrical Panel',     group: 'Electrical',  photoUrl: undefined, uploadedAt: undefined },
-  // Optional — not uploaded (3)
-  { categoryId: 'cat-ext-6', categoryName: 'Yard / Open Area',     group: 'External',    photoUrl: undefined, uploadedAt: undefined },
-  { categoryId: 'cat-off-6', categoryName: 'Office Workspace',     group: 'Office',      photoUrl: undefined, uploadedAt: undefined },
-  { categoryId: 'cat-elc-6', categoryName: 'DG Room',              group: 'Electrical',  photoUrl: undefined, uploadedAt: undefined },
+// All applicable categories for a Branch Office (27 mandatory + 8 optional = 35 total)
+// Order matches infraCategories groups: External → Office → Electrical → Fire & Safety → Environment → Security → Utilities
+const BRANCH_OFFICE_ALL_CATS = [
+  // External (5M + 1O)
+  { categoryId: 'cat-ext-1', categoryName: 'Building Front',                      group: 'External'      },
+  { categoryId: 'cat-ext-2', categoryName: 'Building Signage',                    group: 'External'      },
+  { categoryId: 'cat-ext-3', categoryName: 'Entry Gate',                          group: 'External'      },
+  { categoryId: 'cat-ext-4', categoryName: 'Security Cabin',                      group: 'External'      },
+  { categoryId: 'cat-ext-5', categoryName: 'Parking Area',                        group: 'External'      },
+  { categoryId: 'cat-ext-6', categoryName: 'Yard / Open Area',                    group: 'External'      },
+  // Office (5M + 1O)
+  { categoryId: 'cat-off-1', categoryName: 'Reception Area',                      group: 'Office'        },
+  { categoryId: 'cat-off-2', categoryName: 'Meeting Room',                        group: 'Office'        },
+  { categoryId: 'cat-off-3', categoryName: 'Pantry',                              group: 'Office'        },
+  { categoryId: 'cat-off-4', categoryName: 'Washroom',                            group: 'Office'        },
+  { categoryId: 'cat-off-5', categoryName: 'Training Room',                       group: 'Office'        },
+  { categoryId: 'cat-off-6', categoryName: 'Office Workspace',                    group: 'Office'        },
+  // Electrical (5M + 1O)
+  { categoryId: 'cat-elc-1', categoryName: 'Electrical Panel',                    group: 'Electrical'    },
+  { categoryId: 'cat-elc-2', categoryName: 'Transformer',                         group: 'Electrical'    },
+  { categoryId: 'cat-elc-3', categoryName: 'UPS Room',                            group: 'Electrical'    },
+  { categoryId: 'cat-elc-4', categoryName: 'Earthing Pit',                        group: 'Electrical'    },
+  { categoryId: 'cat-elc-5', categoryName: 'Internal Lighting',                   group: 'Electrical'    },
+  { categoryId: 'cat-elc-6', categoryName: 'DG Room',                             group: 'Electrical'    },
+  // Fire & Safety (7M + 2O)
+  { categoryId: 'cat-frs-1', categoryName: 'Fire Extinguishers',                  group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-2', categoryName: 'Emergency Assembly Point',            group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-3', categoryName: 'Smoke Detector / Sprinkler System',   group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-4', categoryName: 'Fire Alarm',                          group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-5', categoryName: 'Emergency Exit',                      group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-6', categoryName: 'First Aid Kit',                       group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-7', categoryName: 'PPE Station',                         group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-8', categoryName: 'Fire Hydrant',                        group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-9', categoryName: 'Fire Pump Room / Fire Control Room',  group: 'Fire & Safety' },
+  // Environment (2M + 1O)
+  { categoryId: 'cat-env-1', categoryName: 'Drainage System',                     group: 'Environment'   },
+  { categoryId: 'cat-env-2', categoryName: 'Green Area',                          group: 'Environment'   },
+  { categoryId: 'cat-env-3', categoryName: 'Waste Disposal',                      group: 'Environment'   },
+  // Security (1M + 1O)
+  { categoryId: 'cat-sec-1', categoryName: 'CCTV Surveillance',                   group: 'Security'      },
+  { categoryId: 'cat-sec-2', categoryName: 'Access Control System',               group: 'Security'      },
+  // Utilities (2M + 1O)
+  { categoryId: 'cat-utl-1', categoryName: 'Water Tank',                          group: 'Utilities'     },
+  { categoryId: 'cat-utl-2', categoryName: 'Pump Room',                           group: 'Utilities'     },
+  { categoryId: 'cat-utl-3', categoryName: 'Generator Room',                      group: 'Utilities'     },
 ]
 
-// Madurai — 18/18 uploaded, Submitted
-const maduraiCategories = Array.from({ length: 18 }, (_, i) => ({
-  categoryId: `cat-mdu-${i + 1}`,
-  categoryName: ['Workshop Floor', 'Tool Storage', 'Inspection Bay', 'Entry Gate', 'Security Cabin', 'Parking Area', 'Washroom', 'Pantry', 'Electrical Panel', 'Transformer', 'UPS Room', 'Earthing Pit', 'Internal Lighting', 'Fire Extinguishers', 'Emergency Exit', 'First Aid Kit', 'CCTV Surveillance', 'Water Tank'][i],
-  group: ['Workshop', 'Workshop', 'Workshop', 'External', 'External', 'External', 'Office', 'Office', 'Electrical', 'Electrical', 'Electrical', 'Electrical', 'Electrical', 'Fire & Safety', 'Fire & Safety', 'Fire & Safety', 'Security', 'Utilities'][i],
+// All applicable categories for a Repair Center (27 mandatory + 8 optional = 35 total)
+const REPAIR_CENTER_ALL_CATS = [
+  // Workshop (3M + 1O)
+  { categoryId: 'cat-wks-1', categoryName: 'Workshop Floor',                      group: 'Workshop'      },
+  { categoryId: 'cat-wks-2', categoryName: 'Tool Storage',                        group: 'Workshop'      },
+  { categoryId: 'cat-wks-3', categoryName: 'Inspection Bay',                      group: 'Workshop'      },
+  { categoryId: 'cat-wks-4', categoryName: 'Wash Bay',                            group: 'Workshop'      },
+  // External (4M + 2O)
+  { categoryId: 'cat-ext-1', categoryName: 'Building Front',                      group: 'External'      },
+  { categoryId: 'cat-ext-2', categoryName: 'Building Signage',                    group: 'External'      },
+  { categoryId: 'cat-ext-3', categoryName: 'Entry Gate',                          group: 'External'      },
+  { categoryId: 'cat-ext-4', categoryName: 'Security Cabin',                      group: 'External'      },
+  { categoryId: 'cat-ext-5', categoryName: 'Parking Area',                        group: 'External'      },
+  { categoryId: 'cat-ext-6', categoryName: 'Yard / Open Area',                    group: 'External'      },
+  // Office (1M + 1O)
+  { categoryId: 'cat-off-3', categoryName: 'Pantry',                              group: 'Office'        },
+  { categoryId: 'cat-off-4', categoryName: 'Washroom',                            group: 'Office'        },
+  // Electrical (4M + 2O)
+  { categoryId: 'cat-elc-1', categoryName: 'Electrical Panel',                    group: 'Electrical'    },
+  { categoryId: 'cat-elc-2', categoryName: 'Transformer',                         group: 'Electrical'    },
+  { categoryId: 'cat-elc-3', categoryName: 'UPS Room',                            group: 'Electrical'    },
+  { categoryId: 'cat-elc-4', categoryName: 'Earthing Pit',                        group: 'Electrical'    },
+  { categoryId: 'cat-elc-5', categoryName: 'Internal Lighting',                   group: 'Electrical'    },
+  { categoryId: 'cat-elc-6', categoryName: 'DG Room',                             group: 'Electrical'    },
+  // Fire & Safety (9M)
+  { categoryId: 'cat-frs-1', categoryName: 'Fire Extinguishers',                  group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-2', categoryName: 'Emergency Assembly Point',            group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-3', categoryName: 'Smoke Detector / Sprinkler System',   group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-4', categoryName: 'Fire Alarm',                          group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-5', categoryName: 'Emergency Exit',                      group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-6', categoryName: 'First Aid Kit',                       group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-7', categoryName: 'PPE Station',                         group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-8', categoryName: 'Fire Hydrant',                        group: 'Fire & Safety' },
+  { categoryId: 'cat-frs-9', categoryName: 'Fire Pump Room / Fire Control Room',  group: 'Fire & Safety' },
+  // Environment (2M + 1O)
+  { categoryId: 'cat-env-1', categoryName: 'Drainage System',                     group: 'Environment'   },
+  { categoryId: 'cat-env-2', categoryName: 'Green Area',                          group: 'Environment'   },
+  { categoryId: 'cat-env-3', categoryName: 'Waste Disposal',                      group: 'Environment'   },
+  // Security (1M + 1O)
+  { categoryId: 'cat-sec-1', categoryName: 'CCTV Surveillance',                   group: 'Security'      },
+  { categoryId: 'cat-sec-2', categoryName: 'Access Control System',               group: 'Security'      },
+  // Utilities (3M)
+  { categoryId: 'cat-utl-1', categoryName: 'Water Tank',                          group: 'Utilities'     },
+  { categoryId: 'cat-utl-2', categoryName: 'Pump Room',                           group: 'Utilities'     },
+  { categoryId: 'cat-utl-3', categoryName: 'Generator Room',                      group: 'Utilities'     },
+]
+
+const MAY_2026_CHENNAI_DRAFT_DATE = new Date('2026-05-07T09:30:00').toISOString()
+
+// IDs of the 8 categories already uploaded in the Chennai May 2026 draft
+const CHENNAI_MAY_UPLOADED = new Set([
+  'cat-ext-1', 'cat-ext-2', 'cat-ext-3', 'cat-ext-4', 'cat-ext-5',
+  'cat-off-1', 'cat-off-2', 'cat-off-3',
+])
+const CHENNAI_MAY_UPLOAD_TIMES: Record<string, string> = {
+  'cat-ext-1': '2026-05-07T09:30:00', 'cat-ext-2': '2026-05-07T09:32:00',
+  'cat-ext-3': '2026-05-07T09:34:00', 'cat-ext-4': '2026-05-07T09:36:00',
+  'cat-ext-5': '2026-05-07T09:38:00', 'cat-off-1': '2026-05-07T09:40:00',
+  'cat-off-2': '2026-05-07T09:42:00', 'cat-off-3': '2026-05-07T09:44:00',
+}
+
+// Chennai draft — 8 of 35 uploaded
+const chennaiCategories = BRANCH_OFFICE_ALL_CATS.map((c) => ({
+  ...c,
+  photoUrl: CHENNAI_MAY_UPLOADED.has(c.categoryId)
+    ? 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo'
+    : undefined,
+  uploadedAt: CHENNAI_MAY_UPLOAD_TIMES[c.categoryId],
+}))
+
+// Madurai — all 35 RC categories uploaded, Submitted
+const maduraiCategories = REPAIR_CENTER_ALL_CATS.map((c, i) => ({
+  ...c,
   photoUrl: `https://placehold.co/200x150/e2e8f0/64748b?text=Photo+${i + 1}`,
   uploadedAt: '2026-05-11T11:00:00',
 }))
@@ -202,8 +303,8 @@ export const complianceRecords: ComplianceRecord[] = [
     year: 2026,
     status: 'draft',
     categories: chennaiCategories,
-    totalMandatory: 11,
-    totalOptional: 3,
+    totalMandatory: 27,
+    totalOptional: 8,
     savedAt: MAY_2026_CHENNAI_DRAFT_DATE,
   },
   {
@@ -214,8 +315,8 @@ export const complianceRecords: ComplianceRecord[] = [
     year: 2026,
     status: 'pending',
     categories: [],
-    totalMandatory: 12,
-    totalOptional: 0,
+    totalMandatory: 27,
+    totalOptional: 8,
   },
   {
     id: 'comp-3',
@@ -225,12 +326,12 @@ export const complianceRecords: ComplianceRecord[] = [
     year: 2026,
     status: 'submitted',
     categories: maduraiCategories,
-    totalMandatory: 15,
-    totalOptional: 3,
+    totalMandatory: 27,
+    totalOptional: 8,
     submittedAt: '2026-05-11T11:15:00',
     submittedBy: 'Ravi Anand',
   },
-  // April 2026 history
+  // April 2026 history — all 35 categories with photos for each building
   {
     id: 'comp-4',
     buildingId: 'bld-1',
@@ -238,15 +339,13 @@ export const complianceRecords: ComplianceRecord[] = [
     month: 4,
     year: 2026,
     status: 'approved',
-    categories: Array.from({ length: 14 }, (_, i) => ({
-      categoryId: `cat-apr-${i + 1}`,
-      categoryName: `Category ${i + 1}`,
-      group: 'External',
-      photoUrl: `https://placehold.co/200x150/e2e8f0/64748b?text=Apr+${i + 1}`,
-      uploadedAt: '2026-04-10T10:00:00',
+    categories: BRANCH_OFFICE_ALL_CATS.map((c) => ({
+      ...c,
+      photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Apr',
+      uploadedAt: '2026-04-10T09:00:00',
     })),
-    totalMandatory: 11,
-    totalOptional: 3,
+    totalMandatory: 27,
+    totalOptional: 8,
     submittedAt: '2026-04-10T10:30:00',
     submittedBy: 'Ravi Anand',
     approvedAt: '2026-04-12T14:00:00',
@@ -259,9 +358,13 @@ export const complianceRecords: ComplianceRecord[] = [
     month: 4,
     year: 2026,
     status: 'approved',
-    categories: [],
-    totalMandatory: 12,
-    totalOptional: 0,
+    categories: BRANCH_OFFICE_ALL_CATS.map((c) => ({
+      ...c,
+      photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Apr',
+      uploadedAt: '2026-04-09T08:00:00',
+    })),
+    totalMandatory: 27,
+    totalOptional: 8,
     submittedAt: '2026-04-09T09:00:00',
     submittedBy: 'Ravi Anand',
     approvedAt: '2026-04-12T15:00:00',
@@ -274,9 +377,13 @@ export const complianceRecords: ComplianceRecord[] = [
     month: 4,
     year: 2026,
     status: 'approved',
-    categories: [],
-    totalMandatory: 15,
-    totalOptional: 3,
+    categories: REPAIR_CENTER_ALL_CATS.map((c) => ({
+      ...c,
+      photoUrl: 'https://placehold.co/200x150/e2e8f0/64748b?text=Apr',
+      uploadedAt: '2026-04-08T07:00:00',
+    })),
+    totalMandatory: 27,
+    totalOptional: 8,
     submittedAt: '2026-04-08T08:00:00',
     submittedBy: 'Ravi Anand',
     approvedAt: '2026-04-11T10:00:00',

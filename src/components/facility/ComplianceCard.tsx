@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import type { Building } from '@/types/facility'
-import Button from '@/components/Button'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 
 interface ComplianceCardProps {
   building: Building
+  recordId?: string
   submittedAt?: string
-  onDiscard?: (e: React.MouseEvent) => void
 }
 
 const BUILDING_TYPE_ICON: Record<string, string> = {
@@ -19,14 +18,18 @@ const BUILDING_TYPE_ICON: Record<string, string> = {
   'HQ':               'ri-government-line',
 }
 
-export default function ComplianceCard({ building, submittedAt, onDiscard }: ComplianceCardProps) {
+export default function ComplianceCard({ building, recordId, submittedAt }: ComplianceCardProps) {
   const navigate = useNavigate()
 
   const isActive = building.status === 'active'
   const isDraft = building.complianceStatus === 'draft'
   const isPending = building.complianceStatus === 'pending'
-  const showActions = isDraft || isPending
-  const showProgress = isDraft || isPending
+  const isEditable = isDraft || isPending
+
+  function getDestination() {
+    if (recordId) return `/facility/compliance/record/${recordId}`
+    return '/facility/compliance'
+  }
 
   // Time meta
   let timeIcon = 'ri-time-line'
@@ -40,15 +43,6 @@ export default function ComplianceCard({ building, submittedAt, onDiscard }: Com
   } else if (isPending) {
     timeIcon = 'ri-calendar-line'
     timeLabel = 'May 2026 cycle'
-  }
-
-
-  function handleCardClick() {
-    navigate(`/facility/compliance/${building.id}`)
-  }
-
-  function stopProp(e: React.MouseEvent) {
-    e.stopPropagation()
   }
 
   const buildingTypeIcon = BUILDING_TYPE_ICON[building.type] ?? 'ri-building-2-line'
@@ -65,7 +59,7 @@ export default function ComplianceCard({ building, submittedAt, onDiscard }: Com
         <i className={`${buildingTypeIcon} shrink-0 text-text-tertiary/80`} />
         <span className="text-text-secondary">{building.type}</span>
       </span>
-      {showProgress && (
+      {isEditable && (
         <span className="inline-flex items-center gap-1 shrink-0">
           <i className="ri-image-line shrink-0 text-text-tertiary/80" />
           <span className="text-text-secondary">{building.complianceProgress}/{building.complianceTotal}</span>
@@ -74,43 +68,24 @@ export default function ComplianceCard({ building, submittedAt, onDiscard }: Com
     </>
   )
 
-  const ActionButtons = ({ fullWidth }: { fullWidth?: boolean }) => {
-    if (isDraft) {
-      return (
-        <div className={`flex items-center gap-1.5 ${fullWidth ? 'w-full' : ''}`}>
-          <Button size="sm" variant="secondary" fullWidth={fullWidth} onClick={onDiscard}>
-            Discard
-          </Button>
-          <Button size="sm" variant="primary" fullWidth={fullWidth}
-            onClick={(e) => { e.stopPropagation(); navigate(`/facility/compliance/${building.id}`) }}
-          >
-            Resume
-          </Button>
-        </div>
-      )
-    }
-    if (isPending) {
-      return (
-        <Button size="sm" variant="primary" fullWidth={fullWidth}
-          onClick={(e) => { e.stopPropagation(); navigate(`/facility/compliance/${building.id}`) }}
-        >
-          Start
-        </Button>
-      )
-    }
-    return null
-  }
-
   return (
     <div
       className="rounded-xl bg-white border border-border-light shadow-sm transition-all duration-150 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
-      onClick={handleCardClick}
+      onClick={() => navigate(getDestination())}
     >
       {/* Top: avatar + name/location + status pill at top-right */}
       <div className="px-4 pt-4 pb-1.5 flex gap-3 items-start">
-        <div className="shrink-0 h-10 w-10 rounded-full bg-brand-red-50 flex items-center justify-center border border-brand-red-100">
-          <i className="ri-building-2-fill text-brand text-[15px]" />
-        </div>
+        {building.photoUrl ? (
+          <img
+            src={building.photoUrl}
+            alt={building.name}
+            className="shrink-0 h-10 w-10 rounded-full object-cover border border-border-light"
+          />
+        ) : (
+          <div className="shrink-0 h-10 w-10 rounded-full bg-brand-red-50 flex items-center justify-center border border-brand-red-100">
+            <i className="ri-building-2-fill text-brand text-[15px]" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="text-sm font-medium text-text-primary truncate">{building.name}</p>
@@ -121,15 +96,13 @@ export default function ComplianceCard({ building, submittedAt, onDiscard }: Com
           </div>
           <p className="text-xs text-text-secondary truncate mt-0.5">{building.location}, {building.city}</p>
         </div>
-        {/* Status pill at top-right */}
         <div className="shrink-0">
           <FacilityStatusBadge status={building.complianceStatus} />
         </div>
       </div>
 
-
       {/* Mobile footer */}
-      <div className={`md:hidden pl-[4.25rem] pr-4 pt-0.5 ${showActions ? 'pb-2' : 'pb-3'}`}>
+      <div className="md:hidden pl-[4.25rem] pr-4 pt-0.5 pb-3">
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
           <MetaItems />
         </div>
@@ -140,11 +113,6 @@ export default function ComplianceCard({ building, submittedAt, onDiscard }: Com
           </p>
         )}
       </div>
-      {showActions && (
-        <div className="md:hidden px-4 pb-3" onClick={stopProp}>
-          <ActionButtons fullWidth />
-        </div>
-      )}
 
       {/* Desktop footer */}
       <div className="hidden md:flex pl-[4.25rem] pr-4 items-center flex-wrap gap-x-3 gap-y-1 text-xs pt-0.5 pb-3">
@@ -154,11 +122,6 @@ export default function ComplianceCard({ building, submittedAt, onDiscard }: Com
             <i className="ri-alarm-warning-line mr-1" />
             Draft is {building.complianceDraftAge} days old
           </span>
-        )}
-        {showActions && (
-          <div className="ml-auto shrink-0" onClick={stopProp}>
-            <ActionButtons />
-          </div>
         )}
       </div>
     </div>

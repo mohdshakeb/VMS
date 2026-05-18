@@ -23,6 +23,8 @@ interface FacilityState {
   resetOnboardingForm: () => void
   submitOnboarding: (request: OnboardingRequest) => void
 
+  toggleBuildingStatus: (buildingId: string) => void
+
   setPhoto: (buildingId: string, categoryId: string, url: string) => void
   removePhoto: (buildingId: string, categoryId: string) => void
   saveComplianceDraft: (buildingId: string) => void
@@ -78,8 +80,11 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
     },
     'bld-3': {
       photos: Object.fromEntries(
-        ['Workshop Floor', 'Tool Storage', 'Inspection Bay', 'Entry Gate', 'Security Cabin', 'Parking Area', 'Washroom', 'Pantry', 'Electrical Panel', 'Transformer', 'UPS Room', 'Earthing Pit', 'Internal Lighting', 'Fire Extinguishers', 'Emergency Exit', 'First Aid Kit', 'CCTV Surveillance', 'Water Tank']
-          .map((_, i) => [`cat-mdu-${i + 1}`, `https://placehold.co/200x150/e2e8f0/64748b?text=Photo+${i + 1}`])
+        ['cat-wks-1','cat-wks-2','cat-wks-3','cat-wks-4','cat-ext-1','cat-ext-2','cat-ext-3','cat-ext-4','cat-ext-5','cat-ext-6',
+         'cat-off-3','cat-off-4','cat-elc-1','cat-elc-2','cat-elc-3','cat-elc-4','cat-elc-5','cat-elc-6',
+         'cat-frs-1','cat-frs-2','cat-frs-3','cat-frs-4','cat-frs-5','cat-frs-6','cat-frs-7','cat-frs-8','cat-frs-9',
+         'cat-env-1','cat-env-2','cat-env-3','cat-sec-1','cat-sec-2','cat-utl-1','cat-utl-2','cat-utl-3']
+          .map((id, i) => [id, `https://placehold.co/200x150/e2e8f0/64748b?text=Photo+${i + 1}`])
       ),
       savedAt: new Date('2026-05-11T11:00:00').toISOString(),
     },
@@ -102,6 +107,15 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
 
   submitOnboarding: (request) =>
     set({ submittedRequest: request, onboardingCurrentStep: 1, onboardingFormData: defaultFormData }),
+
+  toggleBuildingStatus: (buildingId) =>
+    set((s) => ({
+      buildings: s.buildings.map((b) =>
+        b.id === buildingId
+          ? { ...b, status: b.status === 'active' ? 'inactive' : 'active' }
+          : b
+      ),
+    })),
 
   setPhoto: (buildingId, categoryId, url) =>
     set((s) => {

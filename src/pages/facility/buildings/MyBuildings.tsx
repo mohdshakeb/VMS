@@ -1,12 +1,95 @@
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import PageHeader from '@/components/PageHeader'
 import Button from '@/components/Button'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
+import EmptyState from '@/components/common/EmptyState'
+import type { ComplianceRecord, BuildingType, FacilityComplianceStatus, BuildingStatus } from '@/types/facility'
+
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const now = new Date()
+const CURRENT_MONTH = now.getMonth() + 1
+const CURRENT_YEAR = now.getFullYear()
+
+const TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Type' },
+  { value: 'Branch Office',    label: 'Branch Office' },
+  { value: 'Parts Warehouse',  label: 'Parts Warehouse' },
+  { value: 'CRC',              label: 'CRC' },
+  { value: 'MRC',              label: 'MRC' },
+  { value: 'Repair Center',    label: 'Repair Center' },
+  { value: 'Executive Office', label: 'Executive Office' },
+  { value: 'HQ',               label: 'HQ' },
+]
+
+const STATUS_OPTIONS: { value: BuildingStatus | ''; label: string }[] = [
+  { value: '', label: 'Status' },
+  { value: 'active',   label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
+
+const COMPLIANCE_OPTIONS: { value: FacilityComplianceStatus | ''; label: string }[] = [
+  { value: '', label: 'Compliance' },
+  { value: 'pending',   label: 'Pending' },
+  { value: 'draft',     label: 'Draft' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'approved',  label: 'Approved' },
+]
+
+function getLastCompliance(records: ComplianceRecord[], buildingId: string) {
+  return [...records]
+    .filter((r) => r.buildingId === buildingId && ['submitted', 'approved'].includes(r.status))
+    .sort((a, b) => b.year - a.year || b.month - a.month)[0] ?? null
+}
+
+function getCurrentRecord(records: ComplianceRecord[], buildingId: string) {
+  return records.find((r) => r.buildingId === buildingId && r.month === CURRENT_MONTH && r.year === CURRENT_YEAR) ?? null
+}
+
+function getNextDue(last: ComplianceRecord | null) {
+  if (!last) return null
+  return last.month === 12
+    ? { month: 1, year: last.year + 1 }
+    : { month: last.month + 1, year: last.year }
+}
+
+function isDueThisMonth(next: { month: number; year: number } | null) {
+  return next?.month === CURRENT_MONTH && next?.year === CURRENT_YEAR
+}
 
 export default function MyBuildings() {
   const navigate = useNavigate()
   const buildings = useFacilityStore((s) => s.buildings)
+  const complianceRecords = useFacilityStore((s) => s.complianceRecords)
+
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<BuildingType | ''>('')
+  const [statusFilter, setStatusFilter] = useState<BuildingStatus | ''>('')
+  const [complianceFilter, setComplianceFilter] = useState<FacilityComplianceStatus | ''>('')
+
+  const filtered = useMemo(() => {
+    let result = [...buildings]
+    if (typeFilter) result = result.filter((b) => b.type === typeFilter)
+    if (statusFilter) result = result.filter((b) => b.status === statusFilter)
+    if (complianceFilter) result = result.filter((b) => b.complianceStatus === complianceFilter)
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (b) => b.name.toLowerCase().includes(q) || b.buildingId.toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [buildings, typeFilter, statusFilter, complianceFilter, search])
+
+  const hasActiveFilters = typeFilter !== '' || statusFilter !== '' || complianceFilter !== ''
+
+  function clearFilters() {
+    setTypeFilter('')
+    setStatusFilter('')
+    setComplianceFilter('')
+  }
 
   return (
     <div className="flex flex-col h-full bg-surface-secondary">
@@ -19,52 +102,309 @@ export default function MyBuildings() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 space-y-4">
         {/* Mobile header */}
-        <div className="flex items-center justify-between mb-4 md:hidden">
+        <div className="flex items-center justify-between md:hidden">
           <h2 className="text-base font-semibold text-text-primary">My Buildings</h2>
           <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/facility/onboarding/new')}>
             New Building
           </Button>
         </div>
 
-        <div className="space-y-3">
-          {buildings.map((building) => (
-            <button
-              key={building.id}
-              onClick={() => navigate(`/facility/buildings/${building.id}`)}
-              className="w-full text-left bg-white border border-border-light rounded-xl px-4 py-4 hover:border-brand/30 hover:shadow-sm transition-all duration-150 group"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary">
-                  <i className="ri-building-2-line text-lg text-text-secondary" />
-                </div>
+        {/* ── Controls row (desktop only) ── */}
+        <div className="hidden md:flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            {/* Type */}
+            <div className="relative">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as BuildingType | '')}
+                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${typeFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+              >
+                {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${typeFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+            </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
+            {/* Status */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as BuildingStatus | '')}
+                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${statusFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+              >
+                {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${statusFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+            </div>
+
+            {/* Compliance */}
+            <div className="relative">
+              <select
+                value={complianceFilter}
+                onChange={(e) => setComplianceFilter(e.target.value as FacilityComplianceStatus | '')}
+                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${complianceFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+              >
+                {COMPLIANCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${complianceFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary px-2 py-1.5 rounded-lg hover:bg-surface-secondary transition-colors"
+              >
+                <i className="ri-close-circle-line text-sm" />
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search name or ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-60 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
+            />
+          </div>
+        </div>
+
+        {/* ── Mobile: card list ── */}
+        <div className="md:hidden space-y-3">
+          {/* Mobile search */}
+          <div className="relative">
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search name or ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
+            <EmptyState icon="ri-building-2-line" title="No buildings match your search" className="py-12" titleClassName="text-sm" />
+          ) : (
+            filtered.map((building) => {
+              const last = getLastCompliance(complianceRecords, building.id)
+              const nextDue = getNextDue(last)
+              const dueNow = isDueThisMonth(nextDue)
+              const isPending = building.complianceStatus === 'pending'
+              const isDraft = building.complianceStatus === 'draft'
+              const currentRecord = getCurrentRecord(complianceRecords, building.id)
+
+              return (
+                <div
+                  key={building.id}
+                  onClick={() => navigate(`/facility/buildings/${building.id}`)}
+                  className="bg-white border border-border-light rounded-xl p-4 cursor-pointer hover:shadow-sm transition-all duration-150"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-text-primary">{building.name}</p>
-                      <p className="text-xs text-text-tertiary mt-0.5 font-mono">{building.buildingId}</p>
+                      <p className="text-sm font-medium text-text-primary truncate">{building.name}</p>
+                      <p className="text-[11px] text-text-tertiary font-mono mt-0.5">{building.buildingId}</p>
                     </div>
                     <FacilityStatusBadge status={building.status} />
                   </div>
 
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="text-xs text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">{building.type}</span>
-                    <span className="text-xs text-text-tertiary">{building.sbu} · {building.state} · {building.city}</span>
+                  <div className="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+                    <span className="text-xs text-text-secondary bg-surface-secondary px-2 py-0.5 rounded-full">{building.type}</span>
+                    <span className="text-xs text-text-tertiary">{building.city} · {building.sbu}</span>
                   </div>
 
-                  <div className="flex items-center justify-between mt-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-text-tertiary">May 2026:</span>
-                      <FacilityStatusBadge status={building.complianceStatus} />
+                  <div className="grid grid-cols-2 gap-3 text-xs border-t border-border-light pt-3">
+                    <div>
+                      <p className="text-text-tertiary mb-0.5">Last Compliance</p>
+                      <p className="font-medium text-text-secondary">
+                        {last ? `${MONTH_SHORT[last.month - 1]} ${last.year}` : '—'}
+                      </p>
                     </div>
-                    <i className="ri-arrow-right-s-line text-text-tertiary text-lg group-hover:text-brand transition-colors" />
+                    <div>
+                      <p className="text-text-tertiary mb-0.5">Next Due</p>
+                      {nextDue ? (
+                        <p className={`font-medium ${dueNow ? 'text-pending' : 'text-text-secondary'}`}>
+                          {MONTH_SHORT[nextDue.month - 1]} {nextDue.year}
+                          {dueNow && <span className="ml-1 text-[10px] bg-pending-surface text-pending px-1.5 py-0.5 rounded-full font-semibold">Due</span>}
+                        </p>
+                      ) : (
+                        <p className="text-text-tertiary">—</p>
+                      )}
+                    </div>
                   </div>
+
+                  {(isPending || isDraft) && currentRecord && (
+                    <div className="mt-3 pt-3 border-t border-border-light" onClick={(e) => e.stopPropagation()}>
+                      {isPending && (
+                        <Button size="sm" variant="primary" fullWidth onClick={() => navigate(`/facility/compliance/record/${currentRecord.id}`)}>
+                          Start Compliance
+                        </Button>
+                      )}
+                      {isDraft && (
+                        <Button size="sm" variant="secondary" fullWidth onClick={() => navigate(`/facility/compliance/record/${currentRecord.id}`)}>
+                          Resume Compliance
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </button>
-          ))}
+              )
+            })
+          )}
+        </div>
+
+        {/* ── Desktop: table ── */}
+        <div className="hidden md:block">
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead>
+                  <tr className="border-b border-border-light bg-surface/60">
+                    <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 w-10">#</th>
+                    {['Building', 'Type', 'Floors / Area', 'Last Compliance', 'Next Due', 'Status', 'Action'].map((h) => (
+                      <th key={h} className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={8}>
+                        <EmptyState
+                          icon={hasActiveFilters || search ? 'ri-filter-off-line' : 'ri-building-2-line'}
+                          title={hasActiveFilters || search ? 'No buildings match your filters' : 'No buildings found'}
+                          className="py-16"
+                          titleClassName="text-sm"
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((building, idx) => {
+                      const last = getLastCompliance(complianceRecords, building.id)
+                      const nextDue = getNextDue(last)
+                      const dueNow = isDueThisMonth(nextDue)
+                      const isPending = building.complianceStatus === 'pending'
+                      const isDraft = building.complianceStatus === 'draft'
+                      const currentRecord = getCurrentRecord(complianceRecords, building.id)
+
+                      return (
+                        <tr
+                          key={building.id}
+                          onClick={() => navigate(`/facility/buildings/${building.id}`)}
+                          className="border-b border-border-light last:border-0 hover:bg-surface/70 transition-colors cursor-pointer group"
+                        >
+                          {/* # */}
+                          <td className="px-4 py-3.5 text-sm text-text-tertiary tabular-nums">
+                            {String(idx + 1).padStart(2, '0')}
+                          </td>
+
+                          {/* Building + Location */}
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-3">
+                              {building.photoUrl ? (
+                                <img
+                                  src={building.photoUrl}
+                                  alt={building.name}
+                                  className="h-10 w-10 rounded-lg object-cover shrink-0 border border-border-light"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-lg bg-surface-secondary shrink-0 flex items-center justify-center border border-border-light">
+                                  <i className="ri-building-2-line text-text-tertiary" />
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-medium text-text-primary leading-tight whitespace-nowrap group-hover:text-brand transition-colors">{building.name}</p>
+                                <p className="text-xs text-text-tertiary leading-tight mt-0.5 whitespace-nowrap">{building.city} · {building.sbu} · {building.state}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Type */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className="text-xs text-text-secondary bg-surface-secondary px-2.5 py-1 rounded-full">
+                              {building.type}
+                            </span>
+                          </td>
+
+                          {/* Floors / Area */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <p className="text-sm text-text-primary leading-tight">{building.floors} floor{building.floors !== 1 ? 's' : ''}</p>
+                            {building.area && (
+                              <p className="text-xs text-text-tertiary leading-tight mt-0.5">{building.area.toLocaleString()} sqft</p>
+                            )}
+                          </td>
+
+                          {/* Last Compliance */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {last ? (
+                              <>
+                                <p className="text-sm text-text-primary leading-tight">{MONTH_SHORT[last.month - 1]} {last.year}</p>
+                                {last.submittedAt && (
+                                  <p className="text-xs text-text-tertiary leading-tight mt-0.5">
+                                    {new Date(last.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-sm text-text-tertiary">—</span>
+                            )}
+                          </td>
+
+                          {/* Next Due */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {nextDue ? (
+                              <span className={`inline-flex items-center gap-1.5 text-sm ${dueNow ? 'text-pending font-medium' : 'text-text-secondary'}`}>
+                                {MONTH_SHORT[nextDue.month - 1]} {nextDue.year}
+                                {dueNow && (
+                                  <span className="inline-flex items-center rounded-full bg-pending-surface text-pending text-[10px] font-semibold px-1.5 py-0.5 leading-none">
+                                    Due
+                                  </span>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-text-tertiary">—</span>
+                            )}
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-4 py-3.5">
+                            <FacilityStatusBadge status={building.status} />
+                          </td>
+
+                          {/* Action */}
+                          <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                            {isPending && currentRecord && (
+                              <Button size="sm" variant="primary" onClick={() => navigate(`/facility/compliance/record/${currentRecord.id}`)}>
+                                Start
+                              </Button>
+                            )}
+                            {isDraft && currentRecord && (
+                              <Button size="sm" variant="secondary" onClick={() => navigate(`/facility/compliance/record/${currentRecord.id}`)}>
+                                Resume
+                              </Button>
+                            )}
+                            {!isPending && !isDraft && (
+                              <span className="text-sm text-text-tertiary">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {filtered.length > 0 && (
+            <p className="text-sm text-text-secondary mt-2">{filtered.length} building{filtered.length !== 1 ? 's' : ''}</p>
+          )}
         </div>
       </div>
     </div>
