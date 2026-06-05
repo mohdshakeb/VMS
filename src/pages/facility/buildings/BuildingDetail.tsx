@@ -3,7 +3,6 @@ import { useFacilityStore } from '@/store/facilityStore'
 import PageHeader from '@/components/PageHeader'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
-import DetailItem from '@/components/common/DetailItem'
 import SectionLabel from '@/components/common/SectionLabel'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import buildingPlaceholder from '@/assets/building.png'
@@ -31,7 +30,7 @@ export default function BuildingDetail() {
   if (!building) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <p className="text-sm text-text-secondary">Building not found.</p>
+        <p className="text-sm text-text-secondary">Business not found.</p>
       </div>
     )
   }
@@ -49,6 +48,16 @@ export default function BuildingDetail() {
     (r) => r.buildingId === building.id && r.month === now.getMonth() + 1 && r.year === now.getFullYear()
   )
 
+  const COMPLIANCE_LABEL: Record<string, string> = {
+    pending: 'Pending', draft: 'Draft', submitted: 'In Progress',
+    approved: 'Completed', overdue: 'Overdue',
+  }
+  const COMPLIANCE_STYLE: Record<string, string> = {
+    pending: 'bg-yellow-surface text-yellow-fg', draft: 'bg-surface-secondary text-text-secondary',
+    submitted: 'bg-blue-surface text-blue-fg', approved: 'bg-green-surface text-green-fg',
+    overdue: 'bg-red-surface text-red-fg',
+  }
+
   const identityCard = (
     <Card padding="none">
       <div className="aspect-[4/3] w-full overflow-hidden rounded-t-xl">
@@ -60,49 +69,39 @@ export default function BuildingDetail() {
         />
       </div>
       <div className="p-4">
-        <div className="mb-3">
+        <div className="mb-4">
           <p className="text-base font-semibold text-text-primary leading-tight">{building.name}</p>
-          <p className="text-sm text-text-secondary mt-0.5">{building.type}</p>
+          <p className="text-sm text-text-secondary mt-0.5">{building.location}</p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
+          <div>
+            <p className="text-xs text-text-tertiary">State</p>
+            <p className="text-sm font-medium text-text-primary">{building.state}</p>
+          </div>
           <div>
             <p className="text-xs text-text-tertiary">SBU</p>
             <p className="text-sm font-medium text-text-primary">{building.sbu}</p>
           </div>
           <div>
-            <p className="text-xs text-text-tertiary">Building ID</p>
-            <p className="text-sm font-medium text-text-primary break-all">{building.buildingId}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary">Compliance Status</p>
-            <div className="mt-1">
-              <FacilityStatusBadge status={building.complianceStatus} />
-            </div>
+            <p className="text-xs text-text-tertiary mb-1">Compliance</p>
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${COMPLIANCE_STYLE[building.complianceStatus]}`}>
+              {COMPLIANCE_LABEL[building.complianceStatus]}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-light">
           <div>
-            <p className="text-sm font-medium text-text-primary">
-              {isActive ? 'Active' : 'Inactive'}
-            </p>
-            <p className="text-xs text-text-tertiary mt-0.5">
-              {isActive ? 'Building is operational' : 'Building is disabled'}
-            </p>
+            <p className="text-sm font-medium text-text-primary">{isActive ? 'Active' : 'Inactive'}</p>
+            <p className="text-xs text-text-tertiary mt-0.5">{isActive ? 'Business is operational' : 'Business is disabled'}</p>
           </div>
           <button
             onClick={() => toggleBuildingStatus(building.id)}
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-              isActive ? 'bg-green-500' : 'bg-surface-tertiary'
-            }`}
-            aria-label="Toggle building status"
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${isActive ? 'bg-green-500' : 'bg-surface-tertiary'}`}
+            aria-label="Toggle business status"
           >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                isActive ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
       </div>
@@ -111,113 +110,6 @@ export default function BuildingDetail() {
 
   const sectionCards = (
     <>
-      {/* Location & Identification */}
-      <Card>
-        <SectionLabel icon="ri-map-pin-2-line" title="Location & Identification" />
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
-          <DetailItem label="State" value={building.state} />
-          <DetailItem label="City" value={building.city} />
-          <DetailItem label="Location" value={building.location} />
-          {building.storeCode && <DetailItem label="Store Code" value={building.storeCode} />}
-          {building.description && (
-            <DetailItem label="Description" value={building.description} className="col-span-2" />
-          )}
-        </div>
-      </Card>
-
-      {/* Physical & Infrastructure */}
-      <Card>
-        <SectionLabel icon="ri-building-4-line" title="Physical & Infrastructure" />
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-3">
-          <DetailItem label="Address Line 1" value={building.address1} className="col-span-2" />
-          {building.address2 && (
-            <DetailItem label="Address Line 2" value={building.address2} className="col-span-2" />
-          )}
-          <DetailItem label="Pin Code" value={building.pinCode} />
-          <DetailItem label="Floors" value={`${building.floors}`} />
-          {building.area && (
-            <DetailItem label="Total Area" value={`${building.area.toLocaleString()} sq. ft`} />
-          )}
-          {building.yearOfConstruction && (
-            <DetailItem label="Year of Construction" value={`${building.yearOfConstruction}`} />
-          )}
-          {building.latitude && <DetailItem label="Latitude" value={`${building.latitude}`} />}
-          {building.longitude && <DetailItem label="Longitude" value={`${building.longitude}`} />}
-        </div>
-      </Card>
-
-      {/* Administration */}
-      <Card>
-        <SectionLabel icon="ri-settings-3-line" title="Administration" />
-        <div className="mt-3 space-y-4">
-
-          {/* Remarks / Notes */}
-          <div>
-            <p className="text-xs text-text-tertiary">Remarks / Notes</p>
-            <p className="text-sm text-text-primary mt-0.5">{building.remarks || '—'}</p>
-          </div>
-
-          {/* Documents */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Floor Plan */}
-            <div className="flex items-start justify-between gap-2 rounded-lg border border-border-light px-3 py-2.5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-medium text-text-primary">Floor Plan</p>
-                  {building.layoutPlanName && (
-                    <span className="text-xs text-text-tertiary">· 1 file</span>
-                  )}
-                </div>
-                {building.layoutPlanName ? (
-                  <p className="text-xs text-text-tertiary truncate mt-0.5" title={building.layoutPlanName}>
-                    {building.layoutPlanName}
-                  </p>
-                ) : (
-                  <p className="text-xs text-text-tertiary mt-0.5">Not uploaded</p>
-                )}
-              </div>
-              {building.layoutPlanName && (
-                <button className="shrink-0 text-text-tertiary hover:text-text-primary transition-colors mt-0.5">
-                  <i className="ri-download-2-line text-base" />
-                </button>
-              )}
-            </div>
-
-            {/* Compliance Doc */}
-            <div className="flex items-start justify-between gap-2 rounded-lg border border-border-light px-3 py-2.5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-medium text-text-primary">Compliance Doc</p>
-                  {building.complianceDocName && (
-                    <span className="text-xs text-text-tertiary">· 1 file</span>
-                  )}
-                </div>
-                {building.complianceDocName ? (
-                  <p className="text-xs text-text-tertiary truncate mt-0.5" title={building.complianceDocName}>
-                    {building.complianceDocName}
-                  </p>
-                ) : (
-                  <p className="text-xs text-text-tertiary mt-0.5">Not uploaded</p>
-                )}
-              </div>
-              {building.complianceDocName && (
-                <button className="shrink-0 text-text-tertiary hover:text-text-primary transition-colors mt-0.5">
-                  <i className="ri-download-2-line text-base" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Remarks */}
-          {building.remarks && (
-            <div>
-              <p className="text-xs text-text-tertiary">Remarks / Notes</p>
-              <p className="text-sm text-text-primary mt-0.5">{building.remarks}</p>
-            </div>
-          )}
-        </div>
-      </Card>
-
       {/* Compliance audit trail */}
       <Card>
         <SectionLabel icon="ri-shield-check-line" title="Compliance" />
@@ -237,7 +129,7 @@ export default function BuildingDetail() {
                       {MONTH_NAMES[record.month - 1]} {record.year}
                     </p>
                     <p className="text-xs text-text-tertiary mt-0.5">
-                      {record.totalMandatory} mandatory · {record.totalOptional} optional
+                      {record.checklist.filter(e => e.answer !== undefined).length} / {record.checklist.length} answered
                     </p>
                     <div className="text-xs text-text-tertiary mt-1 space-y-0.5">
                       {record.submittedAt && (
@@ -245,9 +137,6 @@ export default function BuildingDetail() {
                       )}
                       {record.approvedAt && (
                         <p>Approved {formatTs(record.approvedAt)}{record.approvedBy ? ` · ${record.approvedBy}` : ''}</p>
-                      )}
-                      {record.rejectionReason && (
-                        <p className="text-red-500">Rejected: {record.rejectionReason}</p>
                       )}
                     </div>
                   </div>
@@ -268,7 +157,7 @@ export default function BuildingDetail() {
     <div className="flex flex-col h-full">
       <PageHeader
         title={building.name}
-        breadcrumb={[{ label: 'My Buildings', path: '/facility/buildings' }]}
+        breadcrumb={[{ label: 'Businesses', path: '/facility/buildings' }]}
         onBack={() => navigate('/facility/buildings')}
         actions={
           <div className="flex items-center gap-2">
@@ -297,7 +186,7 @@ export default function BuildingDetail() {
           <i className="ri-arrow-left-line text-xl" />
         </button>
         <div className="flex-1 min-w-0 flex items-center gap-1 text-sm">
-          <span className="text-text-tertiary truncate">My Buildings</span>
+          <span className="text-text-tertiary truncate">Businesses</span>
           <span className="text-text-tertiary shrink-0">·</span>
           <span className="font-medium text-text-primary shrink-0">{building.name}</span>
         </div>
@@ -319,7 +208,7 @@ export default function BuildingDetail() {
         </div>
 
         {/* Desktop: two columns */}
-        <div className="hidden md:flex gap-6 px-6 py-6 max-w-5xl mx-auto items-start">
+        <div className="hidden md:flex gap-6 px-6 py-6 items-start">
           <div className="w-80 shrink-0 sticky top-6 self-start">
             {identityCard}
           </div>

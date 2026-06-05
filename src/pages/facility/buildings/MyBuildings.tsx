@@ -2,27 +2,30 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import PageHeader from '@/components/PageHeader'
-import Button from '@/components/Button'
-import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import EmptyState from '@/components/common/EmptyState'
-import type { ComplianceRecord, BuildingType, FacilityComplianceStatus, BuildingStatus } from '@/types/facility'
+import type { ComplianceRecord, FacilityComplianceStatus, BuildingStatus } from '@/types/facility'
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const COMPLIANCE_LABEL: Record<FacilityComplianceStatus, string> = {
+  pending:   'Pending',
+  draft:     'Draft',
+  submitted: 'In Progress',
+  approved:  'Completed',
+  overdue:   'Overdue',
+}
+
+const COMPLIANCE_STYLE: Record<FacilityComplianceStatus, string> = {
+  pending:   'bg-yellow-surface text-yellow-fg',
+  draft:     'bg-surface-secondary text-text-secondary',
+  submitted: 'bg-blue-surface text-blue-fg',
+  approved:  'bg-green-surface text-green-fg',
+  overdue:   'bg-red-surface text-red-fg',
+}
 
 const now = new Date()
 const CURRENT_MONTH = now.getMonth() + 1
 const CURRENT_YEAR = now.getFullYear()
-
-const TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'Type' },
-  { value: 'Branch Office',    label: 'Branch Office' },
-  { value: 'Parts Warehouse',  label: 'Parts Warehouse' },
-  { value: 'CRC',              label: 'CRC' },
-  { value: 'MRC',              label: 'MRC' },
-  { value: 'Repair Center',    label: 'Repair Center' },
-  { value: 'Executive Office', label: 'Executive Office' },
-  { value: 'HQ',               label: 'HQ' },
-]
 
 const STATUS_OPTIONS: { value: BuildingStatus | ''; label: string }[] = [
   { value: '', label: 'Status' },
@@ -34,8 +37,8 @@ const COMPLIANCE_OPTIONS: { value: FacilityComplianceStatus | ''; label: string 
   { value: '', label: 'Compliance' },
   { value: 'pending',   label: 'Pending' },
   { value: 'draft',     label: 'Draft' },
-  { value: 'submitted', label: 'Submitted' },
-  { value: 'approved',  label: 'Approved' },
+  { value: 'submitted', label: 'In Progress' },
+  { value: 'approved',  label: 'Completed' },
 ]
 
 function getLastCompliance(records: ComplianceRecord[], buildingId: string) {
@@ -65,13 +68,18 @@ export default function MyBuildings() {
   const complianceRecords = useFacilityStore((s) => s.complianceRecords)
 
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<BuildingType | ''>('')
+  const [locationFilter, setLocationFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<BuildingStatus | ''>('')
   const [complianceFilter, setComplianceFilter] = useState<FacilityComplianceStatus | ''>('')
 
+  const locationOptions = useMemo(() => {
+    const unique = [...new Set(buildings.map((b) => b.location))].sort()
+    return [{ value: '', label: 'Location' }, ...unique.map((l) => ({ value: l, label: l }))]
+  }, [buildings])
+
   const filtered = useMemo(() => {
     let result = [...buildings]
-    if (typeFilter) result = result.filter((b) => b.type === typeFilter)
+    if (locationFilter) result = result.filter((b) => b.location === locationFilter)
     if (statusFilter) result = result.filter((b) => b.status === statusFilter)
     if (complianceFilter) result = result.filter((b) => b.complianceStatus === complianceFilter)
     if (search.trim()) {
@@ -81,49 +89,39 @@ export default function MyBuildings() {
       )
     }
     return result
-  }, [buildings, typeFilter, statusFilter, complianceFilter, search])
+  }, [buildings, locationFilter, statusFilter, complianceFilter, search])
 
-  const hasActiveFilters = typeFilter !== '' || statusFilter !== '' || complianceFilter !== ''
+  const hasActiveFilters = locationFilter !== '' || statusFilter !== '' || complianceFilter !== ''
 
   function clearFilters() {
-    setTypeFilter('')
+    setLocationFilter('')
     setStatusFilter('')
     setComplianceFilter('')
   }
 
   return (
     <div className="flex flex-col h-full bg-surface-secondary">
-      <PageHeader
-        title="My Buildings"
-        actions={
-          <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/facility/onboarding/new')}>
-            New Building
-          </Button>
-        }
-      />
+      <PageHeader title="Businesses" />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 space-y-4">
         {/* Mobile header */}
-        <div className="flex items-center justify-between md:hidden">
-          <h2 className="text-base font-semibold text-text-primary">My Buildings</h2>
-          <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/facility/onboarding/new')}>
-            New Building
-          </Button>
+        <div className="md:hidden">
+          <h2 className="text-base font-semibold text-text-primary">Businesses</h2>
         </div>
 
         {/* ── Controls row (desktop only) ── */}
         <div className="hidden md:flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            {/* Type */}
+            {/* Location */}
             <div className="relative">
               <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as BuildingType | '')}
-                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${typeFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${locationFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
               >
-                {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {locationOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${typeFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${locationFilter ? 'text-brand' : 'text-text-tertiary'}`} />
             </div>
 
             {/* Status */}
@@ -189,7 +187,7 @@ export default function MyBuildings() {
           </div>
 
           {filtered.length === 0 ? (
-            <EmptyState icon="ri-building-2-line" title="No buildings match your search" className="py-12" titleClassName="text-sm" />
+            <EmptyState icon="ri-building-2-line" title="No businesses match your search" className="py-12" titleClassName="text-sm" />
           ) : (
             filtered.map((building) => {
               const last = getLastCompliance(complianceRecords, building.id)
@@ -205,17 +203,14 @@ export default function MyBuildings() {
                   onClick={() => navigate(`/facility/buildings/${building.id}`)}
                   className="bg-white border border-border-light rounded-xl p-4 cursor-pointer hover:shadow-sm transition-all duration-150"
                 >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">{building.name}</p>
-                      <p className="text-[11px] text-text-tertiary font-mono mt-0.5">{building.buildingId}</p>
-                    </div>
-                    <FacilityStatusBadge status={building.status} />
+                  <div className="mb-1">
+                    <p className="text-sm font-medium text-text-primary truncate">{building.name}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{building.location}</p>
                   </div>
 
                   <div className="flex items-center gap-2 mt-2 mb-3 flex-wrap">
-                    <span className="text-xs text-text-secondary bg-surface-secondary px-2 py-0.5 rounded-full">{building.type}</span>
-                    <span className="text-xs text-text-tertiary">{building.city} · {building.sbu}</span>
+                    <span className="text-xs text-text-secondary bg-surface-secondary px-2 py-0.5 rounded-full">{building.sbu}</span>
+                    <span className="text-xs text-text-tertiary">{building.location} · {building.city}</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-xs border-t border-border-light pt-3">
@@ -266,7 +261,7 @@ export default function MyBuildings() {
                 <thead>
                   <tr className="border-b border-border-light bg-surface/60">
                     <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 w-10">#</th>
-                    {['Building', 'Type', 'Floors / Area', 'Last Compliance', 'Next Due', 'Status', 'Action'].map((h) => (
+                    {['Business', 'Location', 'State', 'SBU', 'Last Compliance', 'Next Due', 'Compliance'].map((h) => (
                       <th key={h} className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 whitespace-nowrap">
                         {h}
                       </th>
@@ -279,7 +274,7 @@ export default function MyBuildings() {
                       <td colSpan={8}>
                         <EmptyState
                           icon={hasActiveFilters || search ? 'ri-filter-off-line' : 'ri-building-2-line'}
-                          title={hasActiveFilters || search ? 'No buildings match your filters' : 'No buildings found'}
+                          title={hasActiveFilters || search ? 'No businesses match your filters' : 'No businesses found'}
                           className="py-16"
                           titleClassName="text-sm"
                         />
@@ -290,9 +285,6 @@ export default function MyBuildings() {
                       const last = getLastCompliance(complianceRecords, building.id)
                       const nextDue = getNextDue(last)
                       const dueNow = isDueThisMonth(nextDue)
-                      const isPending = building.complianceStatus === 'pending'
-                      const isDraft = building.complianceStatus === 'draft'
-                      const currentRecord = getCurrentRecord(complianceRecords, building.id)
 
                       return (
                         <tr
@@ -305,7 +297,7 @@ export default function MyBuildings() {
                             {String(idx + 1).padStart(2, '0')}
                           </td>
 
-                          {/* Building + Location */}
+                          {/* Business */}
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-3">
                               {building.photoUrl ? (
@@ -321,24 +313,26 @@ export default function MyBuildings() {
                               )}
                               <div>
                                 <p className="text-sm font-medium text-text-primary leading-tight whitespace-nowrap group-hover:text-brand transition-colors">{building.name}</p>
-                                <p className="text-xs text-text-tertiary leading-tight mt-0.5 whitespace-nowrap">{building.city} · {building.sbu} · {building.state}</p>
+                                <p className={`text-xs font-medium leading-tight mt-0.5 whitespace-nowrap ${building.status === 'active' ? 'text-green-fg' : 'text-red-fg'}`}>
+                                  {building.status === 'active' ? 'Active' : 'Inactive'}
+                                </p>
                               </div>
                             </div>
                           </td>
 
-                          {/* Type */}
+                          {/* Location */}
                           <td className="px-4 py-3.5 whitespace-nowrap">
-                            <span className="text-xs text-text-secondary bg-surface-secondary px-2.5 py-1 rounded-full">
-                              {building.type}
-                            </span>
+                            <p className="text-sm text-text-primary leading-tight">{building.location}</p>
                           </td>
 
-                          {/* Floors / Area */}
+                          {/* State */}
                           <td className="px-4 py-3.5 whitespace-nowrap">
-                            <p className="text-sm text-text-primary leading-tight">{building.floors} floor{building.floors !== 1 ? 's' : ''}</p>
-                            {building.area && (
-                              <p className="text-xs text-text-tertiary leading-tight mt-0.5">{building.area.toLocaleString()} sqft</p>
-                            )}
+                            <p className="text-sm text-text-secondary">{building.state}</p>
+                          </td>
+
+                          {/* SBU */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <p className="text-sm text-text-secondary">{building.sbu}</p>
                           </td>
 
                           {/* Last Compliance */}
@@ -373,26 +367,11 @@ export default function MyBuildings() {
                             )}
                           </td>
 
-                          {/* Status */}
+                          {/* Compliance */}
                           <td className="px-4 py-3.5">
-                            <FacilityStatusBadge status={building.status} />
-                          </td>
-
-                          {/* Action */}
-                          <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                            {isPending && currentRecord && (
-                              <Button size="sm" variant="primary" onClick={() => navigate(`/facility/compliance/record/${currentRecord.id}`)}>
-                                Start
-                              </Button>
-                            )}
-                            {isDraft && currentRecord && (
-                              <Button size="sm" variant="secondary" onClick={() => navigate(`/facility/compliance/record/${currentRecord.id}`)}>
-                                Resume
-                              </Button>
-                            )}
-                            {!isPending && !isDraft && (
-                              <span className="text-sm text-text-tertiary">—</span>
-                            )}
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${COMPLIANCE_STYLE[building.complianceStatus]}`}>
+                              {COMPLIANCE_LABEL[building.complianceStatus]}
+                            </span>
                           </td>
                         </tr>
                       )
@@ -403,7 +382,7 @@ export default function MyBuildings() {
             </div>
           </div>
           {filtered.length > 0 && (
-            <p className="text-sm text-text-secondary mt-2">{filtered.length} building{filtered.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-text-secondary mt-2">{filtered.length} business{filtered.length !== 1 ? 'es' : ''}</p>
           )}
         </div>
       </div>

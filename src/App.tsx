@@ -18,8 +18,7 @@ import ManagerMyVisits from '@/pages/manager/MyVisits'
 import BuildingAdminDashboard from '@/pages/facility/dashboard/BuildingAdminDashboard'
 import MyBuildings from '@/pages/facility/buildings/MyBuildings'
 import BuildingDetail from '@/pages/facility/buildings/BuildingDetail'
-import OnboardingForm from '@/pages/facility/onboarding/OnboardingForm'
-import OnboardingStatus from '@/pages/facility/onboarding/OnboardingStatus'
+import OnboardingFormSBU from '@/pages/facility/onboarding/OnboardingFormSBU'
 import ComplianceHome from '@/pages/facility/compliance/ComplianceHome'
 import ComplianceDetail from '@/pages/facility/compliance/ComplianceDetail'
 import { useAuthStore } from '@/store/authStore'
@@ -81,11 +80,11 @@ export default function App() {
         <Route path="/facility/dashboard"              element={<BuildingAdminDashboard />} />
         <Route path="/facility/buildings"              element={<MyBuildings />} />
         <Route path="/facility/buildings/:buildingId"  element={<BuildingDetail />} />
-        <Route path="/facility/onboarding/new"         element={<OnboardingForm />} />
-        <Route path="/facility/onboarding/submitted"   element={<OnboardingStatus />} />
-        <Route path="/facility/onboarding/:requestId"  element={<OnboardingStatus />} />
         <Route path="/facility/compliance/record/:recordId" element={<ComplianceDetail />} />
         <Route path="/facility/compliance"                  element={<ComplianceHome />} />
+
+        {/* Facility — SBU Admin */}
+        <Route path="/sbu/onboarding/new" element={<OnboardingFormSBU />} />
       </Route>
     </Routes>
   )

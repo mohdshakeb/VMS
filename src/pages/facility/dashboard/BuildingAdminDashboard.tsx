@@ -1,10 +1,9 @@
-import { useNavigate, NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getNotificationsForRole, getUnreadCount } from '@/store/notificationStore'
 import KpiCardV2 from '@/components/KpiCardV2'
 import PageHeader from '@/components/PageHeader'
-import Button from '@/components/Button'
 import ComplianceCard from '@/components/facility/ComplianceCard'
 import EmptyState from '@/components/common/EmptyState'
 import CountBadge from '@/components/common/CountBadge'
@@ -32,7 +31,6 @@ const now = new Date()
 const MONTH_LABEL = now.toLocaleString('default', { month: 'long', year: 'numeric' })
 
 export default function BuildingAdminDashboard() {
-  const navigate = useNavigate()
   const buildings = useFacilityStore((s) => s.buildings)
   const complianceRecords = useFacilityStore((s) => s.complianceRecords)
   const { currentRole } = useAuthStore()
@@ -45,56 +43,34 @@ export default function BuildingAdminDashboard() {
 
   const dueThisMonth = buildings.filter((b) => b.complianceStatus === 'pending' || b.complianceStatus === 'draft').length
   const draftsPending = buildings.filter((b) => b.complianceStatus === 'draft').length
-  const submitted = buildings.filter((b) => b.complianceStatus === 'submitted').length
+  const submitted = buildings.filter((b) => b.complianceStatus === 'approved').length
 
   return (
     <div className="flex flex-col h-full bg-surface-secondary">
       <PageHeader
         title="Dashboard"
         actions={
-          <div className="flex items-center gap-2">
-            <NavLink
-              to="/notifications"
-              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
-            >
-              <i className="ri-notification-3-line text-xl text-text-secondary" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
-                  {unreadCount}
-                </span>
-              )}
-            </NavLink>
-            <Button
-              size="md"
-              icon="ri-add-large-fill"
-              onClick={() => navigate('/facility/onboarding/new')}
-              className="ml-1"
-            >
-              New Building
-            </Button>
-          </div>
+          <NavLink
+            to="/notifications"
+            className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
+          >
+            <i className="ri-notification-3-line text-xl text-text-secondary" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
+                {unreadCount}
+              </span>
+            )}
+          </NavLink>
         }
       />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 pt-4 pb-10 md:px-6 md:pt-6 flex flex-col gap-4 md:gap-5 min-h-full">
 
-          {/* Mobile quick actions */}
-          <div className="flex gap-2 md:hidden">
-            <Button
-              size="md"
-              icon="ri-add-large-fill"
-              fullWidth
-              onClick={() => navigate('/facility/onboarding/new')}
-            >
-              New Building
-            </Button>
-          </div>
-
           {/* KPI cards */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <KpiCardV2
-              label="My Buildings"
+              label="My Businesses"
               info="Assigned to you"
               value={buildings.length}
               icon="ri-building-2-line"
@@ -115,7 +91,7 @@ export default function BuildingAdminDashboard() {
               color="yellow"
             />
             <KpiCardV2
-              label="Submitted"
+              label="Completed"
               info="This month"
               value={submitted}
               icon="ri-checkbox-circle-line"
@@ -136,9 +112,9 @@ export default function BuildingAdminDashboard() {
                 </div>
                 <div className="p-3 space-y-2">
                   {buildings.map((building) => {
-                    const record = complianceRecords.find(
-                      (r) => r.buildingId === building.id && r.month === now.getMonth() + 1 && r.year === now.getFullYear()
-                    )
+                    const record = [...complianceRecords]
+                      .filter((r) => r.buildingId === building.id)
+                      .sort((a, b) => b.year - a.year || b.month - a.month)[0]
                     return (
                       <ComplianceCard
                         key={building.id}

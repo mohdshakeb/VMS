@@ -31,7 +31,7 @@ const navByRole: Record<Role, MobileNavItem[]> = {
   ],
   'building-admin': [
     { label: 'Home',       path: '/facility/dashboard',  icon: 'ri-home-2-line',       activeIcon: 'ri-home-2-fill' },
-    { label: 'Buildings',  path: '/facility/buildings',  icon: 'ri-building-2-line',   activeIcon: 'ri-building-2-fill' },
+    { label: 'Businesses', path: '/facility/buildings',  icon: 'ri-building-2-line',   activeIcon: 'ri-building-2-fill' },
     { label: 'Compliance', path: '/facility/compliance', icon: 'ri-camera-line',       activeIcon: 'ri-camera-fill' },
   ],
 }

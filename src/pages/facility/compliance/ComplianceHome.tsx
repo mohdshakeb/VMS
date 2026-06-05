@@ -15,9 +15,9 @@ const STATUS_OPTIONS: { value: FacilityComplianceStatus | ''; label: string }[] 
   { value: '',          label: 'Status' },
   { value: 'pending',   label: 'Pending' },
   { value: 'draft',     label: 'Draft' },
-  { value: 'submitted', label: 'Submitted' },
-  { value: 'approved',  label: 'Approved' },
-  { value: 'rejected',  label: 'Rejected' },
+  { value: 'submitted', label: 'In Progress' },
+  { value: 'approved',  label: 'Completed' },
+  { value: 'overdue',   label: 'Overdue' },
 ]
 
 function formatDate(ts?: string) {
@@ -25,12 +25,12 @@ function formatDate(ts?: string) {
   return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })
 }
 
-function uploadedCount(record: ComplianceRecord) {
-  return record.categories.filter((c) => c.photoUrl).length
+function answeredCount(record: ComplianceRecord) {
+  return record.checklist.filter((e) => e.answer !== undefined).length
 }
 
 function totalCount(record: ComplianceRecord) {
-  return record.totalMandatory + record.totalOptional
+  return record.checklist.length
 }
 
 export default function ComplianceHome() {
@@ -139,7 +139,7 @@ export default function ComplianceHome() {
                 onChange={(e) => setBuildingFilter(e.target.value)}
                 className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${buildingFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
               >
-                <option value="">Building</option>
+                <option value="">Business</option>
                 {buildingNames.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
               <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${buildingFilter ? 'text-brand' : 'text-text-tertiary'}`} />
@@ -209,37 +209,31 @@ export default function ComplianceHome() {
 
                   <div className="grid grid-cols-2 gap-3 text-xs border-t border-border-light pt-3">
                     <div>
-                      <p className="text-text-tertiary mb-0.5">Photos</p>
+                      <p className="text-text-tertiary mb-0.5">Progress</p>
                       <p className="font-medium text-text-secondary">
-                        {uploadedCount(record)} <span className="text-text-tertiary font-normal">/ {totalCount(record)}</span>
+                        {answeredCount(record)} <span className="text-text-tertiary font-normal">/ {totalCount(record)}</span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-text-tertiary mb-0.5">Submitted</p>
+                      <p className="text-text-tertiary mb-0.5">Completed</p>
                       <p className="font-medium text-text-secondary">{formatDate(record.submittedAt)}</p>
                     </div>
                     {record.submittedBy && (
                       <div>
-                        <p className="text-text-tertiary mb-0.5">By</p>
+                        <p className="text-text-tertiary mb-0.5">Completed By</p>
                         <p className="font-medium text-text-secondary">{record.submittedBy}</p>
                       </div>
                     )}
                     {record.approvedAt && (
                       <div>
-                        <p className="text-text-tertiary mb-0.5">Approved</p>
+                        <p className="text-text-tertiary mb-0.5">Reviewed</p>
                         <p className="font-medium text-text-secondary">{formatDate(record.approvedAt)}</p>
                       </div>
                     )}
                     {record.approvedBy && (
                       <div className="col-span-2">
-                        <p className="text-text-tertiary mb-0.5">Approved by</p>
+                        <p className="text-text-tertiary mb-0.5">Reviewed By</p>
                         <p className="font-medium text-text-secondary">{record.approvedBy}</p>
-                      </div>
-                    )}
-                    {record.rejectionReason && (
-                      <div className="col-span-2">
-                        <p className="text-text-tertiary mb-0.5">Rejection reason</p>
-                        <p className="font-medium text-red-fg">{record.rejectionReason}</p>
                       </div>
                     )}
                   </div>
@@ -259,8 +253,7 @@ export default function ComplianceHome() {
                     <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 w-10">#</th>
                     {[
                       'Building', 'Period', 'Type',
-                      'Photos', 'Status', 'Submitted', 'Submitted By',
-                      'Approved', 'Approved By',
+                      'Progress', 'Status', 'Completed By', 'Reviewed By',
                     ].map((h) => (
                       <th key={h} className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 whitespace-nowrap">
                         {h}
@@ -271,7 +264,7 @@ export default function ComplianceHome() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={10}>
+                      <td colSpan={8}>
                         <EmptyState
                           icon={hasActiveFilters || search ? 'ri-filter-off-line' : 'ri-file-list-3-line'}
                           title={hasActiveFilters || search ? 'No records match your filters' : 'No compliance records yet'}
@@ -334,9 +327,9 @@ export default function ComplianceHome() {
                             )}
                           </td>
 
-                          {/* Photos */}
+                          {/* Progress */}
                           <td className="px-4 py-3.5 whitespace-nowrap">
-                            <span className="text-sm text-text-secondary">{uploadedCount(record)}</span>
+                            <span className="text-sm text-text-secondary">{answeredCount(record)}</span>
                             <span className="text-sm text-text-tertiary"> / {totalCount(record)}</span>
                           </td>
 
@@ -345,28 +338,16 @@ export default function ComplianceHome() {
                             <FacilityStatusBadge status={record.status} />
                           </td>
 
-                          {/* Submitted date */}
-                          <td className="px-4 py-3.5 whitespace-nowrap">
-                            <p className="text-sm text-text-secondary leading-tight">{formatDate(record.submittedAt)}</p>
-                          </td>
-
-                          {/* Submitted By */}
+                          {/* Submitted By + date */}
                           <td className="px-4 py-3.5">
                             <p className="text-sm text-text-secondary leading-tight">{record.submittedBy ?? '—'}</p>
+                            {record.submittedAt && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{formatDate(record.submittedAt)}</p>}
                           </td>
 
-                          {/* Approved date */}
-                          <td className="px-4 py-3.5 whitespace-nowrap">
-                            {record.status === 'rejected' ? (
-                              <span className="text-xs text-red-fg">{record.rejectionReason ?? 'Rejected'}</span>
-                            ) : (
-                              <p className="text-sm text-text-secondary leading-tight">{formatDate(record.approvedAt)}</p>
-                            )}
-                          </td>
-
-                          {/* Approved By */}
+                          {/* Approved By + date */}
                           <td className="px-4 py-3.5">
                             <p className="text-sm text-text-secondary leading-tight">{record.approvedBy ?? '—'}</p>
+                            {record.approvedAt && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{formatDate(record.approvedAt)}</p>}
                           </td>
                         </tr>
                       )

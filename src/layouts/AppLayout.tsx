@@ -27,7 +27,7 @@ const roleLabels: Record<Role, string> = {
 }
 
 // Routes that take over the full screen on ALL viewports (no sidebar on desktop, no nav bars on mobile)
-const FULL_SCREEN_ROUTES = ['/front-desk/walk-in', '/front-desk/qr-code', '/employee/create-visit', '/facility/onboarding/new']
+const FULL_SCREEN_ROUTES = ['/front-desk/walk-in', '/front-desk/qr-code', '/employee/create-visit', '/sbu/onboarding/new']
 // Route prefixes that suppress mobile chrome (top bar + bottom nav) but keep the desktop sidebar
 const MOBILE_INNER_PREFIXES = ['/front-desk/visit/', '/employee/visit/']
 

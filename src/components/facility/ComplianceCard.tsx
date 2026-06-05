@@ -8,15 +8,6 @@ interface ComplianceCardProps {
   submittedAt?: string
 }
 
-const BUILDING_TYPE_ICON: Record<string, string> = {
-  'Branch Office':    'ri-building-2-line',
-  'Parts Warehouse':  'ri-store-2-line',
-  'CRC':              'ri-tools-line',
-  'MRC':              'ri-tools-line',
-  'Repair Center':    'ri-hammer-line',
-  'Executive Office': 'ri-building-line',
-  'HQ':               'ri-government-line',
-}
 
 export default function ComplianceCard({ building, recordId, submittedAt }: ComplianceCardProps) {
   const navigate = useNavigate()
@@ -45,8 +36,6 @@ export default function ComplianceCard({ building, recordId, submittedAt }: Comp
     timeLabel = 'May 2026 cycle'
   }
 
-  const buildingTypeIcon = BUILDING_TYPE_ICON[building.type] ?? 'ri-building-2-line'
-
   const MetaItems = () => (
     <>
       {timeLabel && (
@@ -56,12 +45,12 @@ export default function ComplianceCard({ building, recordId, submittedAt }: Comp
         </span>
       )}
       <span className="inline-flex items-center gap-1 shrink-0">
-        <i className={`${buildingTypeIcon} shrink-0 text-text-tertiary/80`} />
-        <span className="text-text-secondary">{building.type}</span>
+        <i className="ri-compass-3-line shrink-0 text-text-tertiary/80" />
+        <span className="text-text-secondary">{building.sbu}</span>
       </span>
       {isEditable && (
         <span className="inline-flex items-center gap-1 shrink-0">
-          <i className="ri-image-line shrink-0 text-text-tertiary/80" />
+          <i className="ri-list-check shrink-0 text-text-tertiary/80" />
           <span className="text-text-secondary">{building.complianceProgress}/{building.complianceTotal}</span>
         </span>
       )}

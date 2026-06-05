@@ -1,16 +1,10 @@
 import { create } from 'zustand'
 import { buildings as initialBuildings, complianceRecords as initialRecords } from '@/data/facilityData'
-import type { Building, ComplianceRecord, OnboardingFormData, OnboardingRequest } from '@/types/facility'
-
-interface ComplianceUploadState {
-  photos: Record<string, string>
-  savedAt?: string
-}
+import type { Building, ComplianceRecord, OnboardingFormData, OnboardingRequest, ChecklistAnswer } from '@/types/facility'
 
 interface FacilityState {
   buildings: Building[]
   complianceRecords: ComplianceRecord[]
-  complianceUploads: Record<string, ComplianceUploadState>
 
   onboardingFormData: OnboardingFormData
   onboardingCurrentStep: 1 | 2 | 3
@@ -25,11 +19,13 @@ interface FacilityState {
 
   toggleBuildingStatus: (buildingId: string) => void
 
-  setPhoto: (buildingId: string, categoryId: string, url: string) => void
-  removePhoto: (buildingId: string, categoryId: string) => void
-  saveComplianceDraft: (buildingId: string) => void
-  discardDraft: (buildingId: string) => void
-  submitCompliance: (buildingId: string) => void
+  setChecklistAnswer: (recordId: string, itemId: string, answer: ChecklistAnswer) => void
+  setChecklistRemarks: (recordId: string, itemId: string, remarks: string) => void
+  addChecklistPhoto: (recordId: string, itemId: string, url: string) => void
+  removeChecklistPhoto: (recordId: string, itemId: string, index: number) => void
+
+  saveComplianceDraft: (recordId: string) => void
+  submitCompliance: (recordId: string) => void
 
   showToast: (message: string) => void
   clearToast: () => void
@@ -60,35 +56,17 @@ const defaultFormData: OnboardingFormData = {
   complianceDocName: undefined,
 }
 
+function updateRecord(
+  records: ComplianceRecord[],
+  recordId: string,
+  fn: (r: ComplianceRecord) => ComplianceRecord
+): ComplianceRecord[] {
+  return records.map((r) => (r.id === recordId ? fn(r) : r))
+}
+
 export const useFacilityStore = create<FacilityState>((set, get) => ({
   buildings: initialBuildings,
   complianceRecords: initialRecords,
-  complianceUploads: {
-    // Pre-populate Chennai draft uploads from dummy data
-    'bld-1': {
-      photos: {
-        'cat-ext-1': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-ext-2': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-ext-3': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-ext-4': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-ext-5': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-off-1': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-off-2': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-        'cat-off-3': 'https://placehold.co/200x150/e2e8f0/64748b?text=Photo',
-      },
-      savedAt: new Date('2026-05-07T09:30:00').toISOString(),
-    },
-    'bld-3': {
-      photos: Object.fromEntries(
-        ['cat-wks-1','cat-wks-2','cat-wks-3','cat-wks-4','cat-ext-1','cat-ext-2','cat-ext-3','cat-ext-4','cat-ext-5','cat-ext-6',
-         'cat-off-3','cat-off-4','cat-elc-1','cat-elc-2','cat-elc-3','cat-elc-4','cat-elc-5','cat-elc-6',
-         'cat-frs-1','cat-frs-2','cat-frs-3','cat-frs-4','cat-frs-5','cat-frs-6','cat-frs-7','cat-frs-8','cat-frs-9',
-         'cat-env-1','cat-env-2','cat-env-3','cat-sec-1','cat-sec-2','cat-utl-1','cat-utl-2','cat-utl-3']
-          .map((id, i) => [id, `https://placehold.co/200x150/e2e8f0/64748b?text=Photo+${i + 1}`])
-      ),
-      savedAt: new Date('2026-05-11T11:00:00').toISOString(),
-    },
-  },
 
   onboardingFormData: defaultFormData,
   onboardingCurrentStep: 1,
@@ -117,66 +95,96 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
       ),
     })),
 
-  setPhoto: (buildingId, categoryId, url) =>
-    set((s) => {
-      const existing = s.complianceUploads[buildingId] ?? { photos: {} }
-      return {
-        complianceUploads: {
-          ...s.complianceUploads,
-          [buildingId]: { ...existing, photos: { ...existing.photos, [categoryId]: url } },
-        },
-      }
-    }),
+  setChecklistAnswer: (recordId, itemId, answer) =>
+    set((s) => ({
+      complianceRecords: updateRecord(s.complianceRecords, recordId, (r) => ({
+        ...r,
+        checklist: r.checklist.map((entry) => {
+          if (entry.itemId !== itemId) return entry
+          const clearPhotos = answer === 'no' || answer === 'na'
+          return {
+            ...entry,
+            answer,
+            photos: clearPhotos ? [] : entry.photos,
+            remarks: answer !== 'partial' ? undefined : entry.remarks,
+          }
+        }),
+      })),
+    })),
 
-  removePhoto: (buildingId, categoryId) =>
-    set((s) => {
-      const existing = s.complianceUploads[buildingId]
-      if (!existing) return {}
-      const { [categoryId]: _removed, ...rest } = existing.photos
-      return {
-        complianceUploads: {
-          ...s.complianceUploads,
-          [buildingId]: { ...existing, photos: rest },
-        },
-      }
-    }),
+  setChecklistRemarks: (recordId, itemId, remarks) =>
+    set((s) => ({
+      complianceRecords: updateRecord(s.complianceRecords, recordId, (r) => ({
+        ...r,
+        checklist: r.checklist.map((entry) =>
+          entry.itemId === itemId ? { ...entry, remarks } : entry
+        ),
+      })),
+    })),
 
-  saveComplianceDraft: (buildingId) => {
+  addChecklistPhoto: (recordId, itemId, url) =>
+    set((s) => ({
+      complianceRecords: updateRecord(s.complianceRecords, recordId, (r) => ({
+        ...r,
+        checklist: r.checklist.map((entry) => {
+          if (entry.itemId !== itemId || entry.photos.length >= 4) return entry
+          return { ...entry, photos: [...entry.photos, url] }
+        }),
+      })),
+    })),
+
+  removeChecklistPhoto: (recordId, itemId, index) =>
+    set((s) => ({
+      complianceRecords: updateRecord(s.complianceRecords, recordId, (r) => ({
+        ...r,
+        checklist: r.checklist.map((entry) => {
+          if (entry.itemId !== itemId) return entry
+          return { ...entry, photos: entry.photos.filter((_, i) => i !== index) }
+        }),
+      })),
+    })),
+
+  saveComplianceDraft: (recordId) => {
     set((s) => {
-      const existing = s.complianceUploads[buildingId] ?? { photos: {} }
-      const updatedBuildings = s.buildings.map((b) =>
-        b.id === buildingId ? { ...b, complianceStatus: 'draft' as const } : b
-      )
+      const record = s.complianceRecords.find((r) => r.id === recordId)
+      if (!record) return {}
+      const answered = record.checklist.filter((e) => e.answer !== undefined).length
+      const total = record.checklist.length
       return {
-        complianceUploads: {
-          ...s.complianceUploads,
-          [buildingId]: { ...existing, savedAt: new Date().toISOString() },
-        },
-        buildings: updatedBuildings,
+        complianceRecords: updateRecord(s.complianceRecords, recordId, (r) => ({
+          ...r,
+          status: 'draft',
+          savedAt: new Date().toISOString(),
+        })),
+        buildings: s.buildings.map((b) =>
+          b.id === record.buildingId
+            ? { ...b, complianceStatus: 'draft', complianceProgress: answered, complianceTotal: total, complianceDraftAge: 0 }
+            : b
+        ),
       }
     })
     get().showToast('Draft saved successfully')
   },
 
-  discardDraft: (buildingId) => {
+  submitCompliance: (recordId) => {
     set((s) => {
-      const { [buildingId]: _removed, ...remainingUploads } = s.complianceUploads
-      const updatedBuildings = s.buildings.map((b) =>
-        b.id === buildingId ? { ...b, complianceStatus: 'pending' as const, complianceProgress: 0, complianceDraftAge: undefined } : b
-      )
-      return { complianceUploads: remainingUploads, buildings: updatedBuildings }
+      const record = s.complianceRecords.find((r) => r.id === recordId)
+      if (!record) return {}
+      return {
+        complianceRecords: updateRecord(s.complianceRecords, recordId, (r) => ({
+          ...r,
+          status: 'submitted',
+          submittedAt: new Date().toISOString(),
+          submittedBy: 'Ravi Anand',
+        })),
+        buildings: s.buildings.map((b) =>
+          b.id === record.buildingId
+            ? { ...b, complianceStatus: 'submitted' }
+            : b
+        ),
+      }
     })
-    get().showToast('Draft discarded')
-  },
-
-  submitCompliance: (buildingId) => {
-    set((s) => {
-      const updatedBuildings = s.buildings.map((b) =>
-        b.id === buildingId ? { ...b, complianceStatus: 'submitted' as const } : b
-      )
-      return { buildings: updatedBuildings }
-    })
-    get().showToast('Compliance submitted successfully')
+    get().showToast('Compliance completed successfully')
   },
 
   showToast: (message) => {

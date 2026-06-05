@@ -10,7 +10,6 @@ import logoUrl from '@/assets/Logo.svg'
 const childToParentNav: Record<string, string> = {
   '/facility/buildings/':   '/facility/buildings',
   '/facility/compliance/':  '/facility/compliance',
-  '/facility/onboarding/':  '/facility/buildings',
 }
 
 function getActiveNavPath(pathname: string): string {
@@ -42,7 +41,7 @@ const navByRole: Record<Role, NavItem[]> = {
   ],
   'building-admin': [
     { label: 'Dashboard',     path: '/facility/dashboard',   icon: 'ri-home-2-line' },
-    { label: 'My Buildings',  path: '/facility/buildings',   icon: 'ri-building-2-line' },
+    { label: 'Businesses',    path: '/facility/buildings',   icon: 'ri-building-2-line' },
     { label: 'Compliance',    path: '/facility/compliance',  icon: 'ri-camera-line' },
   ],
 }
@@ -51,7 +50,7 @@ const roleLabels: Record<Role, string> = {
   'front-desk': 'Front Desk',
   employee: 'Employee',
   'central-admin': 'Central Admin',
-  'building-admin': 'Building Admin',
+  'building-admin': 'Facility Admin',
 }
 
 export default function Sidebar() {
