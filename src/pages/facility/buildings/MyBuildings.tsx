@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import PageHeader from '@/components/PageHeader'
 import EmptyState from '@/components/common/EmptyState'
+import Button from '@/components/Button'
 import type { ComplianceRecord, FacilityComplianceStatus, BuildingStatus } from '@/types/facility'
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
