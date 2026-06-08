@@ -27,9 +27,6 @@ const ANSWER_CONFIG: Record<ChecklistAnswer, { label: string; selected: string; 
   na:      { label: 'N/A',     selected: 'bg-brand-red-50 border-brand-red-100 text-brand font-semibold', unselected: 'bg-white border-border text-text-secondary hover:border-brand-red-100 hover:text-brand' },
 }
 
-function showPhotoUpload(answer?: ChecklistAnswer) {
-  return answer !== undefined && answer !== 'na'
-}
 
 function isEntryComplete(entry: ComplianceChecklistEntry) {
   if (entry.answer === undefined) return false

@@ -67,8 +67,7 @@ export default function LocationAdminDashboard() {
 
   const dueThisMonth = facilities.filter((f) => f.complianceStatus === 'pending' || f.complianceStatus === 'draft').length
   const draftsPending = facilities.filter((f) => f.complianceStatus === 'draft').length
-  const submitted = facilities.filter((f) => f.complianceStatus === 'submitted' || f.complianceStatus === 'updated').length
-  const overdue = facilities.filter((f) => f.complianceStatus === 'overdue').length
+const overdue = facilities.filter((f) => f.complianceStatus === 'overdue').length
 
   return (
     <div className="flex flex-col h-full bg-surface-secondary">

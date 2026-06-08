@@ -222,10 +222,6 @@ export function getCategoriesForFacilityType(buildingType: string) {
 // ─── Compliance checklist ─────────────────────────────────────────────────────
 
 const ALL_TYPES: FacilityType[] = ['Branch Office', 'Parts Warehouse', 'CRC', 'MRC', 'Repair Center', 'Executive Office', 'HQ']
-const OFFICE_TYPES: FacilityType[] = ['Branch Office', 'Executive Office', 'HQ']
-const WORKSHOP_TYPES: FacilityType[] = ['CRC', 'MRC', 'Repair Center']
-const HEAVY_TYPES: FacilityType[] = ['Parts Warehouse', 'CRC', 'MRC', 'Repair Center']
-const INSPECT_TYPES: FacilityType[] = ['CRC', 'Repair Center']
 
 export const CHECKLIST_ITEMS: ChecklistItem[] = [
   // ── Exterior ────────────────────────────────────────────────────────────────

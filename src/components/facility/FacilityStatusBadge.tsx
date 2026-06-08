@@ -1,4 +1,4 @@
-import type { FacilityComplianceStatus, BuildingStatus } from '@/types/facility'
+import type { FacilityComplianceStatus, FacilityStatus as BuildingStatus } from '@/types/facility'
 
 type FacilityStatus = FacilityComplianceStatus | BuildingStatus
 

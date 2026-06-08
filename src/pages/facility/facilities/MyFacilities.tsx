@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
@@ -7,7 +7,7 @@ import PageHeader from '@/components/PageHeader'
 import EmptyState from '@/components/common/EmptyState'
 import Button from '@/components/Button'
 import type { ComplianceRecord, FacilityComplianceStatus, FacilityStatus } from '@/types/facility'
-import { getComplianceDueDate, PROTOTYPE_NOW, CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
+import { getComplianceDueDate, CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -17,6 +17,7 @@ const COMPLIANCE_LABEL: Record<FacilityComplianceStatus, string> = {
   submitted: 'Submitted',
   updated:   'Updated',
   overdue:   'Overdue',
+  missed:    'Missed',
 }
 
 const COMPLIANCE_STYLE: Record<FacilityComplianceStatus, string> = {
@@ -25,10 +26,9 @@ const COMPLIANCE_STYLE: Record<FacilityComplianceStatus, string> = {
   submitted: 'bg-blue-surface text-blue-fg',
   updated:   'bg-purple-surface text-purple-fg',
   overdue:   'bg-red-surface text-red-fg',
+  missed:    'bg-surface-secondary text-text-tertiary',
 }
 
-const CURRENT_MONTH = PROTOTYPE_NOW.getMonth() + 1
-const CURRENT_YEAR = PROTOTYPE_NOW.getFullYear()
 const { month: PERIOD_MONTH, year: PERIOD_YEAR } = CURRENT_COMPLIANCE_PERIOD
 
 const SBU_OPTIONS: { value: string; label: string }[] = [
