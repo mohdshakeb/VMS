@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 interface BreadcrumbItem {
   label: string
   path?: string
+  onClick?: (e: React.MouseEvent) => void
 }
 
 interface PageHeaderProps {
@@ -31,7 +32,11 @@ export default function PageHeader({ title, titleNode, breadcrumb, onBack, actio
           <span key={i} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-text-tertiary text-sm">·</span>}
             {item.path ? (
-              <Link to={item.path} className="text-sm text-text-tertiary hover:text-text-secondary transition-colors">
+              <Link
+                to={item.path}
+                onClick={item.onClick}
+                className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+              >
                 {item.label}
               </Link>
             ) : (

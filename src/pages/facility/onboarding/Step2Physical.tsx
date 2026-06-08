@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { useFacilityStore } from '@/store/facilityStore'
 import { infraCategories } from '@/data/facilityData'
 import Modal from '@/components/Modal'
-import type { BuildingType, InfraApplicability } from '@/types/facility'
+import type { FacilityType, InfraApplicability } from '@/types/facility'
 
 
 const BUILDING_TYPES = ['Branch Office', 'Parts Warehouse', 'CRC', 'MRC', 'Repair Center', 'Executive Office', 'HQ']
 const ALL_GROUPS = ['External', 'Office', 'Workshop', 'Warehouse', 'Electrical', 'Fire & Safety', 'Environment', 'Security', 'Utilities']
 
 function getApplicability(cat: typeof infraCategories[0], buildingType: string): InfraApplicability {
-  return cat.applicability[buildingType as BuildingType] ?? 'not-applicable'
+  return cat.applicability[buildingType as FacilityType] ?? 'not-applicable'
 }
 
 export default function Step2Physical() {
@@ -19,7 +19,7 @@ export default function Step2Physical() {
   const [activeGroup, setActiveGroup] = useState('External')
   const [newCategoryName, setNewCategoryName] = useState('')
 
-  const buildingType = formData.buildingType
+  const buildingType = formData.facilityType
 
   const mandatoryIds = buildingType
     ? infraCategories.filter((c) => getApplicability(c, buildingType) === 'mandatory').map((c) => c.id)
@@ -57,7 +57,7 @@ export default function Step2Physical() {
     id: `custom-${i}`,
     name,
     group: 'Custom',
-    applicability: {} as Record<BuildingType, InfraApplicability>,
+    applicability: {} as Record<FacilityType, InfraApplicability>,
   }))
 
   const mandatoryCount = mandatoryIds.length
@@ -66,28 +66,28 @@ export default function Step2Physical() {
   return (
     <>
       <div className="space-y-4 mb-6">
-        {/* Building Name */}
+        {/* Facility Name */}
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1.5">
-            Building Name <span className="text-terminal-red">*</span>
+            Facility Name <span className="text-terminal-red">*</span>
           </label>
           <input
             type="text"
-            value={formData.buildingName}
-            onChange={(e) => setField('buildingName', e.target.value)}
+            value={formData.facilityName}
+            onChange={(e) => setField('facilityName', e.target.value)}
             placeholder="Unique within location"
             className="form-input"
           />
         </div>
 
-        {/* Building Type */}
+        {/* Facility Type */}
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1.5">
-            Building Type <span className="text-terminal-red">*</span>
+            Facility Type <span className="text-terminal-red">*</span>
           </label>
           <select
-            value={formData.buildingType}
-            onChange={(e) => setField('buildingType', e.target.value)}
+            value={formData.facilityType}
+            onChange={(e) => setField('facilityType', e.target.value)}
             className="form-input"
           >
             <option value="">Select building type</option>
@@ -97,7 +97,7 @@ export default function Step2Physical() {
 
         {/* Description */}
         <div>
-          <label className="block text-xs font-medium text-text-secondary mb-1.5">Building Description</label>
+          <label className="block text-xs font-medium text-text-secondary mb-1.5">Facility Description</label>
           <textarea
             value={formData.description}
             onChange={(e) => setField('description', e.target.value)}

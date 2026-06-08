@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
+import { useAuthStore } from '@/store/authStore'
+import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import PageHeader from '@/components/PageHeader'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import EmptyState from '@/components/common/EmptyState'
 import type { FacilityComplianceStatus, ComplianceRecord } from '@/types/facility'
+import { formatComplianceDueDate, getComplianceDueDate, PROTOTYPE_NOW } from '@/data/facilityData'
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -15,9 +18,10 @@ const STATUS_OPTIONS: { value: FacilityComplianceStatus | ''; label: string }[] 
   { value: '',          label: 'Status' },
   { value: 'pending',   label: 'Pending' },
   { value: 'draft',     label: 'Draft' },
-  { value: 'submitted', label: 'In Progress' },
-  { value: 'approved',  label: 'Completed' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'updated',   label: 'Updated' },
   { value: 'overdue',   label: 'Overdue' },
+  { value: 'missed',    label: 'Missed' },
 ]
 
 function formatDate(ts?: string) {
@@ -29,21 +33,33 @@ function answeredCount(record: ComplianceRecord) {
   return record.checklist.filter((e) => e.answer !== undefined).length
 }
 
+function isDueDatePast(record: ComplianceRecord) {
+  return PROTOTYPE_NOW > getComplianceDueDate(record.month, record.year)
+}
+
+function showDueUrgency(record: ComplianceRecord) {
+  return record.status !== 'submitted' && record.status !== 'updated' && isDueDatePast(record)
+}
+
 function totalCount(record: ComplianceRecord) {
   return record.checklist.length
 }
 
 export default function ComplianceHome() {
   const navigate = useNavigate()
-  const buildings = useFacilityStore((s) => s.buildings)
+  const { currentRole, currentEmployeeId } = useAuthStore()
+  const notifications = useNotificationStore((s) => s.notifications)
+  const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
+  const openNotificationsModal = useNotificationStore((s) => s.openNotificationsModal)
+  const facilities = useFacilityStore((s) => s.facilities)
   const allRecords = useFacilityStore((s) => s.complianceRecords)
 
   const baseRecords = useMemo(
     () =>
       [...allRecords].sort((a, b) => {
-        // Open records (pending/draft) always float to top, then sort by period desc
-        const aOpen = a.status === 'pending' || a.status === 'draft' ? 0 : 1
-        const bOpen = b.status === 'pending' || b.status === 'draft' ? 0 : 1
+        // Open records (pending/draft/submitted/updated) always float to top, then sort by period desc
+        const aOpen = ['pending', 'draft', 'overdue', 'submitted', 'updated'].includes(a.status) ? 0 : 1
+        const bOpen = ['pending', 'draft', 'overdue', 'submitted', 'updated'].includes(b.status) ? 0 : 1
         if (aOpen !== bOpen) return aOpen - bOpen
         return b.year - a.year || b.month - a.month
       }),
@@ -55,38 +71,38 @@ export default function ComplianceHome() {
     () => [...new Set(baseRecords.map((r) => r.year))].sort((a, b) => b - a),
     [baseRecords],
   )
-  const buildingNames = useMemo(
-    () => [...new Set(baseRecords.map((r) => r.buildingName))].sort(),
+  const facilityNames = useMemo(
+    () => [...new Set(baseRecords.map((r) => r.facilityName))].sort(),
     [baseRecords],
   )
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<FacilityComplianceStatus | ''>('')
   const [yearFilter, setYearFilter] = useState<number | ''>('')
-  const [buildingFilter, setBuildingFilter] = useState('')
+  const [facilityFilter, setFacilityFilter] = useState('')
 
   const filtered = useMemo(() => {
     let result = [...baseRecords]
     if (statusFilter) result = result.filter((r) => r.status === statusFilter)
     if (yearFilter !== '') result = result.filter((r) => r.year === yearFilter)
-    if (buildingFilter) result = result.filter((r) => r.buildingName === buildingFilter)
+    if (facilityFilter) result = result.filter((r) => r.facilityName === facilityFilter)
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter((r) => r.buildingName.toLowerCase().includes(q))
+      result = result.filter((r) => r.facilityName.toLowerCase().includes(q))
     }
     return result
-  }, [baseRecords, statusFilter, yearFilter, buildingFilter, search])
+  }, [baseRecords, statusFilter, yearFilter, facilityFilter, search])
 
-  const hasActiveFilters = statusFilter !== '' || yearFilter !== '' || buildingFilter !== ''
+  const hasActiveFilters = statusFilter !== '' || yearFilter !== '' || facilityFilter !== ''
 
   function clearFilters() {
     setStatusFilter('')
     setYearFilter('')
-    setBuildingFilter('')
+    setFacilityFilter('')
   }
 
-  function getBuildingDetails(buildingId: string) {
-    return buildings.find((b) => b.id === buildingId)
+  function getFacilityDetails(facilityId: string) {
+    return facilities.find((f) => f.id === facilityId)
   }
 
   function getRecordPath(record: ComplianceRecord) {
@@ -95,12 +111,24 @@ export default function ComplianceHome() {
 
   return (
     <div className="flex flex-col h-full bg-surface-secondary">
-      <PageHeader title="Compliance" />
+      <PageHeader
+        title="Compliance History"
+        actions={
+          <button onClick={openNotificationsModal} className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors">
+            <i className="ri-notification-3-line text-xl text-text-secondary" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 space-y-4">
         {/* Mobile header */}
         <div className="md:hidden">
-          <h2 className="text-base font-semibold text-text-primary">All Compliances</h2>
+          <h2 className="text-base font-semibold text-text-primary">All Records</h2>
           <p className="text-sm text-text-secondary mt-0.5">Pending, in-progress, and completed records.</p>
         </div>
 
@@ -135,14 +163,14 @@ export default function ComplianceHome() {
             {/* Building */}
             <div className="relative">
               <select
-                value={buildingFilter}
-                onChange={(e) => setBuildingFilter(e.target.value)}
-                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${buildingFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+                value={facilityFilter}
+                onChange={(e) => setFacilityFilter(e.target.value)}
+                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${facilityFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
               >
-                <option value="">Business</option>
-                {buildingNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                <option value="">Facility</option>
+                {facilityNames.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
-              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${buildingFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${facilityFilter ? 'text-brand' : 'text-text-tertiary'}`} />
             </div>
 
             {hasActiveFilters && (
@@ -161,7 +189,7 @@ export default function ComplianceHome() {
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none" />
             <input
               type="text"
-              placeholder="Search building..."
+              placeholder="Search facility..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-60 focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
@@ -176,7 +204,7 @@ export default function ComplianceHome() {
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none" />
             <input
               type="text"
-              placeholder="Search building..."
+              placeholder="Search facility..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-brand-light focus:border-brand-light placeholder:text-text-tertiary"
@@ -187,7 +215,7 @@ export default function ComplianceHome() {
             <EmptyState icon="ri-file-list-3-line" title="No records match your search" className="py-12" titleClassName="text-sm" />
           ) : (
             filtered.map((record) => {
-              const building = getBuildingDetails(record.buildingId)
+              const building = getFacilityDetails(record.facilityId)
               return (
                 <div
                   key={record.id}
@@ -195,7 +223,7 @@ export default function ComplianceHome() {
                   onClick={() => navigate(getRecordPath(record))}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="text-sm font-medium text-text-primary truncate">{record.buildingName}</p>
+                    <p className="text-sm font-medium text-text-primary truncate">{record.facilityName}</p>
                     <FacilityStatusBadge status={record.status} />
                   </div>
                   <p className="text-xs text-text-secondary mb-2">{MONTH_NAMES[record.month - 1]} {record.year}</p>
@@ -215,25 +243,16 @@ export default function ComplianceHome() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-text-tertiary mb-0.5">Completed</p>
-                      <p className="font-medium text-text-secondary">{formatDate(record.submittedAt)}</p>
+                      <p className="text-text-tertiary mb-0.5">Due Date</p>
+                      <p className={`font-medium ${showDueUrgency(record) ? 'text-red-fg' : 'text-text-secondary'}`}>
+                        {formatComplianceDueDate(record.month, record.year)}
+                      </p>
                     </div>
-                    {record.submittedBy && (
-                      <div>
-                        <p className="text-text-tertiary mb-0.5">Completed By</p>
-                        <p className="font-medium text-text-secondary">{record.submittedBy}</p>
-                      </div>
-                    )}
-                    {record.approvedAt && (
-                      <div>
-                        <p className="text-text-tertiary mb-0.5">Reviewed</p>
-                        <p className="font-medium text-text-secondary">{formatDate(record.approvedAt)}</p>
-                      </div>
-                    )}
-                    {record.approvedBy && (
+                    {(record.submittedBy || record.submittedAt) && (
                       <div className="col-span-2">
-                        <p className="text-text-tertiary mb-0.5">Reviewed By</p>
-                        <p className="font-medium text-text-secondary">{record.approvedBy}</p>
+                        <p className="text-text-tertiary mb-0.5">Last Updated</p>
+                        {record.submittedBy && <p className="font-medium text-text-secondary">{record.submittedBy}</p>}
+                        {record.submittedAt && <p className="text-text-tertiary mt-0.5">{formatDate(record.submittedAt)}</p>}
                       </div>
                     )}
                   </div>
@@ -252,8 +271,8 @@ export default function ComplianceHome() {
                   <tr className="border-b border-border-light bg-surface/60">
                     <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 w-10">#</th>
                     {[
-                      'Building', 'Period', 'Type',
-                      'Progress', 'Status', 'Completed By', 'Reviewed By',
+                      'Facility', 'Period',
+                      'Progress', 'Due Date', 'Status', 'Last Updated',
                     ].map((h) => (
                       <th key={h} className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 whitespace-nowrap">
                         {h}
@@ -275,7 +294,7 @@ export default function ComplianceHome() {
                     </tr>
                   ) : (
                     filtered.map((record, idx) => {
-                      const building = getBuildingDetails(record.buildingId)
+                      const building = getFacilityDetails(record.facilityId)
 
                       return (
                         <tr
@@ -294,7 +313,7 @@ export default function ComplianceHome() {
                               {building?.photoUrl ? (
                                 <img
                                   src={building.photoUrl}
-                                  alt={record.buildingName}
+                                  alt={record.facilityName}
                                   className="h-10 w-10 rounded-lg object-cover shrink-0 border border-border-light"
                                 />
                               ) : (
@@ -303,7 +322,7 @@ export default function ComplianceHome() {
                                 </div>
                               )}
                               <div>
-                                <p className="text-sm font-medium text-text-primary leading-tight whitespace-nowrap">{record.buildingName}</p>
+                                <p className="text-sm font-medium text-text-primary leading-tight whitespace-nowrap">{record.facilityName}</p>
                                 {building && (
                                   <p className="text-xs text-text-tertiary leading-tight mt-0.5 whitespace-nowrap">{building.city} · {building.sbu} · {building.state}</p>
                                 )}
@@ -316,21 +335,23 @@ export default function ComplianceHome() {
                             <p className="text-sm text-text-secondary leading-tight">{MONTH_NAMES[record.month - 1]} {record.year}</p>
                           </td>
 
-                          {/* Type */}
-                          <td className="px-4 py-3.5 whitespace-nowrap">
-                            {building ? (
-                              <span className="text-xs text-text-secondary bg-surface-secondary px-2.5 py-1 rounded-full">
-                                {building.type}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-text-tertiary">—</span>
-                            )}
-                          </td>
-
                           {/* Progress */}
                           <td className="px-4 py-3.5 whitespace-nowrap">
                             <span className="text-sm text-text-secondary">{answeredCount(record)}</span>
                             <span className="text-sm text-text-tertiary"> / {totalCount(record)}</span>
+                          </td>
+
+                          {/* Due Date */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {showDueUrgency(record) ? (
+                              <span className="text-sm text-red-fg font-medium">
+                                {formatComplianceDueDate(record.month, record.year)}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-text-tertiary">
+                                {formatComplianceDueDate(record.month, record.year)}
+                              </span>
+                            )}
                           </td>
 
                           {/* Status */}
@@ -338,16 +359,10 @@ export default function ComplianceHome() {
                             <FacilityStatusBadge status={record.status} />
                           </td>
 
-                          {/* Submitted By + date */}
+                          {/* Last Updated */}
                           <td className="px-4 py-3.5">
                             <p className="text-sm text-text-secondary leading-tight">{record.submittedBy ?? '—'}</p>
                             {record.submittedAt && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{formatDate(record.submittedAt)}</p>}
-                          </td>
-
-                          {/* Approved By + date */}
-                          <td className="px-4 py-3.5">
-                            <p className="text-sm text-text-secondary leading-tight">{record.approvedBy ?? '—'}</p>
-                            {record.approvedAt && <p className="text-xs text-text-tertiary leading-tight mt-0.5">{formatDate(record.approvedAt)}</p>}
                           </td>
                         </tr>
                       )

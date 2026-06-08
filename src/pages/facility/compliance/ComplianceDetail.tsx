@@ -7,6 +7,8 @@ import Button from '@/components/Button'
 import SectionLabel from '@/components/common/SectionLabel'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import type { ChecklistAnswer, ComplianceChecklistEntry } from '@/types/facility'
+import FacilityIdentityCard from '@/components/facility/FacilityIdentityCard'
+import { formatComplianceDueDate, getComplianceDueDate, isCurrentPeriod, PROTOTYPE_NOW } from '@/data/facilityData'
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -25,14 +27,33 @@ const ANSWER_CONFIG: Record<ChecklistAnswer, { label: string; selected: string; 
   na:      { label: 'N/A',     selected: 'bg-brand-red-50 border-brand-red-100 text-brand font-semibold', unselected: 'bg-white border-border text-text-secondary hover:border-brand-red-100 hover:text-brand' },
 }
 
-function needsPhotos(answer?: ChecklistAnswer) {
-  return answer === 'yes' || answer === 'partial'
+function showPhotoUpload(answer?: ChecklistAnswer) {
+  return answer !== undefined && answer !== 'na'
 }
 
 function isEntryComplete(entry: ComplianceChecklistEntry) {
   if (entry.answer === undefined) return false
-  if (needsPhotos(entry.answer)) return entry.photos.length >= 1
+  if (entry.isMandatory) return entry.photos.length >= 1
   return true
+}
+
+function renderLabel(label: string, isMandatory: boolean) {
+  const m = label.match(/^(\d+(?:\.\d+)*)\s+(.+)/)
+  if (!m) {
+    return (
+      <p className="text-sm text-text-primary leading-snug flex-1">
+        {label}{isMandatory && <span className="text-brand font-bold ml-0.5">*</span>}
+      </p>
+    )
+  }
+  return (
+    <div className="flex items-start gap-1 flex-1">
+      <span className="text-sm text-text-primary font-medium shrink-0 tabular-nums">{m[1]}</span>
+      <p className="text-sm text-text-primary leading-snug">
+        {m[2]}{isMandatory && <span className="text-brand font-bold ml-0.5">*</span>}
+      </p>
+    </div>
+  )
 }
 
 // ─── Editable item row ────────────────────────────────────────────────────────
@@ -43,27 +64,27 @@ function ChecklistItemRow({
   onRemarks,
   onAddPhoto,
   onRemovePhoto,
+  showValidation = false,
 }: {
   entry: ComplianceChecklistEntry
   onAnswer: (answer: ChecklistAnswer) => void
   onRemarks: (remarks: string) => void
   onAddPhoto: () => void
   onRemovePhoto: (index: number) => void
+  showValidation?: boolean
 }) {
   const answers: ChecklistAnswer[] = entry.isMandatory
     ? ['yes', 'partial', 'no']
     : ['yes', 'partial', 'no', 'na']
 
-  const photosRequired = needsPhotos(entry.answer)
-  const photosMissing = photosRequired && entry.photos.length === 0
+  // For mandatory items, always show extras; for optional items, only after a non-NA selection
+  const showExtras = entry.isMandatory || (entry.answer !== undefined && entry.answer !== 'na')
+  const isIncomplete = showValidation && !isEntryComplete(entry)
 
   return (
-    <div className="py-4 border-b border-border-light last:border-0">
+    <div className={`py-4 border-b border-border-light last:border-0 transition-colors ${isIncomplete ? 'bg-red-50/50 -mx-4 px-4' : ''}`}>
       <div className="flex items-start gap-1.5 mb-3">
-        <p className="text-sm text-text-primary leading-snug flex-1">
-          {entry.label}
-          {entry.isMandatory && <span className="text-brand font-bold ml-0.5">*</span>}
-        </p>
+        {renderLabel(entry.label, entry.isMandatory)}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -83,20 +104,12 @@ function ChecklistItemRow({
         })}
       </div>
 
-      {entry.answer === 'partial' && (
-        <textarea
-          value={entry.remarks ?? ''}
-          onChange={(e) => onRemarks(e.target.value)}
-          placeholder="Describe what's partially done or missing…"
-          rows={2}
-          className="mt-3 w-full text-sm px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/40 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 placeholder:text-text-tertiary resize-none"
-        />
-      )}
-
-      {photosRequired && (
+      {showExtras && (
         <div className="mt-3">
-          <p className={`text-xs mb-2 ${photosMissing ? 'text-red-500 font-medium' : 'text-text-tertiary'}`}>
-            {photosMissing ? 'At least 1 photo required' : `Photos (${entry.photos.length}/4)`}
+          <p className="text-xs mb-2 text-text-tertiary">
+            {entry.isMandatory
+              ? `Photos (${entry.photos.length}/4)`
+              : `Photos (${entry.photos.length}/4) — optional`}
           </p>
           <div className="grid grid-cols-4 gap-2">
             {entry.photos.map((url, i) => (
@@ -123,6 +136,16 @@ function ChecklistItemRow({
           </div>
         </div>
       )}
+
+      {showExtras && entry.answer !== 'na' && (
+        <textarea
+          value={entry.remarks ?? ''}
+          onChange={(e) => onRemarks(e.target.value)}
+          placeholder="Add a comment (optional)…"
+          rows={2}
+          className="mt-3 w-full text-sm px-3 py-2 rounded-xl border border-border bg-surface-secondary/30 focus:outline-none focus:ring-2 focus:ring-border focus:border-border placeholder:text-text-tertiary resize-none"
+        />
+      )}
     </div>
   )
 }
@@ -136,10 +159,7 @@ function ChecklistItemRowReadOnly({ entry }: { entry: ComplianceChecklistEntry }
   return (
     <div className="py-4 border-b border-border-light last:border-0">
       <div className="flex items-start justify-between gap-3 mb-2">
-        <p className="text-sm text-text-primary leading-snug flex-1 min-w-0">
-          {entry.label}
-          {entry.isMandatory && <span className="text-brand font-bold ml-0.5">*</span>}
-        </p>
+        {renderLabel(entry.label, entry.isMandatory)}
         <span className={`shrink-0 text-xs px-2.5 py-1 rounded-lg border ${cfg.selected}`}>
           {cfg.label}
         </span>
@@ -170,21 +190,27 @@ export default function ComplianceDetail() {
   const { recordId } = useParams<{ recordId: string }>()
   const navigate = useNavigate()
   const records = useFacilityStore((s) => s.complianceRecords)
-  const buildings = useFacilityStore((s) => s.buildings)
+  const facilities = useFacilityStore((s) => s.facilities)
   const setChecklistAnswer = useFacilityStore((s) => s.setChecklistAnswer)
   const setChecklistRemarks = useFacilityStore((s) => s.setChecklistRemarks)
   const addChecklistPhoto = useFacilityStore((s) => s.addChecklistPhoto)
   const removeChecklistPhoto = useFacilityStore((s) => s.removeChecklistPhoto)
+  const clearCompliance = useFacilityStore((s) => s.clearCompliance)
   const saveComplianceDraft = useFacilityStore((s) => s.saveComplianceDraft)
   const submitCompliance = useFacilityStore((s) => s.submitCompliance)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingItemId, setPendingItemId] = useState<string | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
+  const [pendingNav, setPendingNav] = useState<string | number | null>(null)
+  const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showOverflow, setShowOverflow] = useState(false)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const record = records.find((r) => r.id === recordId)
-  const building = record ? buildings.find((b) => b.id === record.buildingId) : undefined
+  const building = record ? facilities.find((f) => f.id === record.facilityId) : undefined
 
   const sections = record ? [...new Set(record.checklist.map((e) => e.section))] : []
   const [activeSection, setActiveSection] = useState<string>(sections[0] ?? '')
@@ -197,7 +223,7 @@ export default function ComplianceDetail() {
     )
   }
 
-  const isEditable = record.status === 'pending' || record.status === 'draft'
+  const isEditable = (record.status === 'pending' || record.status === 'draft' || record.status === 'submitted' || record.status === 'updated' || record.status === 'overdue') && isCurrentPeriod(record.month, record.year)
   const period = `${MONTH_NAMES[record.month - 1]} ${record.year}`
 
   const totalItems = record.checklist.length
@@ -214,21 +240,41 @@ export default function ComplianceDetail() {
     const file = e.target.files?.[0]
     if (!file || !pendingItemId || !recordId) return
     const url = URL.createObjectURL(file)
+    setIsDirty(true)
     addChecklistPhoto(recordId, pendingItemId, url)
     setPendingItemId(null)
     e.target.value = ''
   }
 
+  function handleClear() {
+    if (!recordId) return
+    clearCompliance(recordId)
+    setSubmitAttempted(false)
+    setIsDirty(false)
+    setShowClearConfirm(false)
+  }
+
   function handleSaveDraft() {
     if (!recordId) return
     saveComplianceDraft(recordId)
+    setIsDirty(false)
     navigate('/facility/compliance')
   }
 
   function handleSubmit() {
-    if (!recordId || !canSubmit) return
+    if (!recordId) return
+    if (!canSubmit) {
+      setSubmitAttempted(true)
+      return
+    }
     submitCompliance(recordId)
+    setIsDirty(false)
     navigate('/facility/compliance')
+  }
+
+  function handleNavAway(target: string | number) {
+    if (isDirty) { setPendingNav(target); return }
+    navigate(target as any)
   }
 
   function scrollToSection(section: string) {
@@ -258,65 +304,50 @@ export default function ComplianceDetail() {
     if (closestSection) setActiveSection(closestSection)
   }, [sections])
 
-  const initials = record.buildingName.split(/[\s-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('')
-
   // ─── Detail card ─────────────────────────────────────────────────────────────
 
+  const dueDate = getComplianceDueDate(record.month, record.year)
+  const isPastDue = PROTOTYPE_NOW > dueDate
+  const isOverdueRecord = record.status === 'overdue'
+  const isMissedRecord = record.status === 'missed'
+
+  const complianceFields = [
+    { label: 'Period', value: period },
+    {
+      label: 'Due date',
+      value: (
+        <span className={`text-sm font-medium ${isOverdueRecord || isMissedRecord ? 'text-red-fg' : isPastDue && record.status !== 'submitted' && record.status !== 'updated' ? 'text-red-fg' : 'text-text-primary'}`}>
+          {formatComplianceDueDate(record.month, record.year)}
+          {isMissedRecord && <span className="ml-1.5 text-xs font-normal">— Missed</span>}
+          {isOverdueRecord && <span className="ml-1.5 text-xs font-normal">— Overdue</span>}
+        </span>
+      ),
+    },
+    { label: 'Progress', value: `${answeredItems} / ${totalItems} answered` },
+    ...(record.submittedBy || record.submittedAt ? [{
+      label: 'Last updated',
+      value: (
+        <div>
+          {record.submittedBy && <p className="text-sm font-medium text-text-primary">{record.submittedBy}</p>}
+          {record.submittedAt && <p className="text-xs text-text-tertiary mt-0.5">{formatDate(record.submittedAt)}</p>}
+        </div>
+      ),
+    }] : []),
+    {
+      label: 'Status',
+      value: <FacilityStatusBadge status={record.status} />,
+    },
+  ]
+
   const detailCard = (
-    <Card>
-      <div className="flex items-center gap-3 mb-4">
-        {building?.photoUrl ? (
-          <img src={building.photoUrl} alt={building.name} className="h-14 w-14 rounded-full object-cover border border-border shrink-0" />
-        ) : (
-          <div className="h-14 w-14 rounded-full bg-brand-red-50 flex items-center justify-center text-base font-semibold text-brand border border-brand-red-100 shrink-0">
-            {initials}
-          </div>
-        )}
-        <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-base font-semibold text-text-primary leading-tight truncate">{record.buildingName}</p>
-            {building && <p className="text-sm text-text-secondary mt-0.5">{building.location}</p>}
-          </div>
-          <FacilityStatusBadge status={record.status} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm pt-3 border-t border-border-light">
-        <div>
-          <p className="text-xs text-text-tertiary">Period</p>
-          <p className="text-sm font-medium text-text-primary mt-0.5">{period}</p>
-        </div>
-        <div>
-          <p className="text-xs text-text-tertiary">Progress</p>
-          <p className="text-sm font-medium text-text-primary mt-0.5">{answeredItems} / {totalItems} answered</p>
-        </div>
-        {record.submittedAt && (
-          <div>
-            <p className="text-xs text-text-tertiary">Completed</p>
-            <p className="text-sm font-medium text-text-primary mt-0.5">{formatDate(record.submittedAt)}</p>
-          </div>
-        )}
-        {record.submittedBy && (
-          <div>
-            <p className="text-xs text-text-tertiary">Completed By</p>
-            <p className="text-sm font-medium text-text-primary mt-0.5">{record.submittedBy}</p>
-          </div>
-        )}
-        {record.approvedAt && (
-          <div>
-            <p className="text-xs text-text-tertiary">Reviewed</p>
-            <p className="text-sm font-medium text-text-primary mt-0.5">{formatDate(record.approvedAt)}</p>
-          </div>
-        )}
-        {record.approvedBy && (
-          <div>
-            <p className="text-xs text-text-tertiary">Reviewed By</p>
-            <p className="text-sm font-medium text-text-primary mt-0.5">{record.approvedBy}</p>
-          </div>
-        )}
-      </div>
-
-    </Card>
+    <FacilityIdentityCard
+      photoUrl={building?.photoUrl}
+      name={record.facilityName}
+      location={building?.location}
+      fields={complianceFields}
+      hidePhoto
+      showAvatar
+    />
   )
 
   // ─── Section nav ──────────────────────────────────────────────────────────────
@@ -324,7 +355,6 @@ export default function ComplianceDetail() {
   const sectionNav = (
     <Card padding="none">
       <div className="p-3">
-        <p className="text-xs font-medium text-text-tertiary uppercase tracking-wider px-1 mb-2">Sections</p>
         <nav className="space-y-0.5">
           {sections.map((section) => {
             const entries = record.checklist.filter((e) => e.section === section)
@@ -355,15 +385,44 @@ export default function ComplianceDetail() {
     </Card>
   )
 
-  // ─── Checklist sections (flat) ────────────────────────────────────────────────
+  // ─── Checklist sections (with subsections) ───────────────────────────────────
+
+  const incompleteCount = mandatoryEntries.filter((e) => !isEntryComplete(e)).length
 
   const checklistSections = (
     <div className="space-y-4">
+      {isOverdueRecord && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
+          <i className="ri-alarm-warning-line text-red-500 text-base shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">
+            This compliance was due on <strong>{formatComplianceDueDate(record.month, record.year)}</strong>. It can still be submitted late — complete the checklist and submit to clear the overdue status.
+          </p>
+        </div>
+      )}
+      {isMissedRecord && (
+        <div className="rounded-xl bg-surface-secondary border border-border px-4 py-3 flex items-start gap-2.5">
+          <i className="ri-close-circle-line text-text-tertiary text-base shrink-0 mt-0.5" />
+          <p className="text-sm text-text-secondary">
+            This compliance period was <strong>missed</strong> — the due date of <strong>{formatComplianceDueDate(record.month, record.year)}</strong> has passed and no submission was made. No further action can be taken on this record.
+          </p>
+        </div>
+      )}
+      {submitAttempted && !canSubmit && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
+          <i className="ri-error-warning-line text-red-500 text-base shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">
+            {incompleteCount} mandatory {incompleteCount === 1 ? 'item is' : 'items are'} incomplete. Each required item needs an answer and at least one photo.
+          </p>
+        </div>
+      )}
       {sections.map((section) => {
         const entries = record.checklist.filter((e) => e.section === section)
         const answered = isEditable
           ? entries.filter((e) => e.answer !== undefined).length
           : entries.filter(isEntryComplete).length
+
+        const subsections = [...new Set(entries.map((e) => e.subsection ?? ''))]
+        const hasSubsections = subsections.some((s) => s !== '')
 
         return (
           <div
@@ -377,20 +436,50 @@ export default function ComplianceDetail() {
                 <span className="text-xs text-text-tertiary tabular-nums">{answered}/{entries.length}</span>
               </div>
               <div className="mt-1">
-                {isEditable
-                  ? entries.map((entry) => (
-                      <ChecklistItemRow
-                        key={entry.itemId}
-                        entry={entry}
-                        onAnswer={(ans) => setChecklistAnswer(record.id, entry.itemId, ans)}
-                        onRemarks={(rem) => setChecklistRemarks(record.id, entry.itemId, rem)}
-                        onAddPhoto={() => handleAddPhoto(entry.itemId)}
-                        onRemovePhoto={(i) => removeChecklistPhoto(record.id, entry.itemId, i)}
-                      />
-                    ))
-                  : entries.map((entry) => (
-                      <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
-                    ))
+                {hasSubsections
+                  ? subsections.map((sub, idx) => {
+                      const subEntries = entries.filter((e) => (e.subsection ?? '') === sub)
+                      return (
+                        <div key={sub} className={idx > 0 ? 'mt-6 pt-4 border-t border-border-light' : ''}>
+                          {sub && (
+                            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider pb-2">
+                              {sub}
+                            </p>
+                          )}
+                          {isEditable
+                            ? subEntries.map((entry) => (
+                                <ChecklistItemRow
+                                  key={entry.itemId}
+                                  entry={entry}
+                                  showValidation={submitAttempted}
+                                  onAnswer={(ans) => { setIsDirty(true); setChecklistAnswer(record.id, entry.itemId, ans) }}
+                                  onRemarks={(rem) => { setIsDirty(true); setChecklistRemarks(record.id, entry.itemId, rem) }}
+                                  onAddPhoto={() => handleAddPhoto(entry.itemId)}
+                                  onRemovePhoto={(i) => { setIsDirty(true); removeChecklistPhoto(record.id, entry.itemId, i) }}
+                                />
+                              ))
+                            : subEntries.map((entry) => (
+                                <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
+                              ))
+                          }
+                        </div>
+                      )
+                    })
+                  : isEditable
+                    ? entries.map((entry) => (
+                        <ChecklistItemRow
+                          key={entry.itemId}
+                          entry={entry}
+                          showValidation={submitAttempted}
+                          onAnswer={(ans) => { setIsDirty(true); setChecklistAnswer(record.id, entry.itemId, ans) }}
+                          onRemarks={(rem) => { setIsDirty(true); setChecklistRemarks(record.id, entry.itemId, rem) }}
+                          onAddPhoto={() => handleAddPhoto(entry.itemId)}
+                          onRemovePhoto={(i) => { setIsDirty(true); removeChecklistPhoto(record.id, entry.itemId, i) }}
+                        />
+                      ))
+                    : entries.map((entry) => (
+                        <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
+                      ))
                 }
               </div>
             </Card>
@@ -403,20 +492,44 @@ export default function ComplianceDetail() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title={record.buildingName}
-        breadcrumb={[{ label: 'Compliance', path: '/facility/compliance' }]}
-        onBack={() => navigate(-1)}
+        title={record.facilityName}
+        breadcrumb={[{ label: 'Compliance' }]}
+        onBack={() => handleNavAway(-1)}
         actions={isEditable ? (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={handleSaveDraft}>Save draft</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={!canSubmit}>Submit</Button>
+            <Button size="sm" onClick={handleSubmit}>Submit</Button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowOverflow((v) => !v)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-surface-secondary/50 transition-colors"
+              >
+                <i className="ri-more-2-fill text-base" />
+              </button>
+              {showOverflow && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setShowOverflow(false)} />
+                  <div className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[140px]">
+                    <button
+                      type="button"
+                      onClick={() => { setShowOverflow(false); setShowClearConfirm(true) }}
+                      className="w-full text-left px-3.5 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    >
+                      <i className="ri-refresh-line text-base" />
+                      Clear all
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         ) : undefined}
       />
 
       <header className="md:hidden shrink-0 flex items-center gap-2 px-3 py-2.5 bg-white border-b border-border">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => handleNavAway(-1)}
           className="flex items-center justify-center w-9 h-9 rounded-xl text-text-secondary active:bg-surface-secondary transition-colors -ml-1 shrink-0"
         >
           <i className="ri-arrow-left-line text-xl" />
@@ -424,7 +537,7 @@ export default function ComplianceDetail() {
         <div className="flex-1 min-w-0 flex items-center gap-1 text-sm">
           <span className="text-text-tertiary truncate">Compliance</span>
           <span className="text-text-tertiary shrink-0">·</span>
-          <span className="font-medium text-text-primary shrink-0 truncate">{record.buildingName}</span>
+          <span className="font-medium text-text-primary shrink-0 truncate">{record.facilityName}</span>
         </div>
         <FacilityStatusBadge status={record.status} />
       </header>
@@ -449,9 +562,33 @@ export default function ComplianceDetail() {
       </div>
 
       {isEditable && (
-        <div className="md:hidden shrink-0 px-4 py-3 border-t border-border-light bg-white flex items-center gap-3">
+        <div className="md:hidden shrink-0 px-4 py-3 border-t border-border-light bg-white flex items-center gap-2">
           <Button size="md" variant="secondary" fullWidth onClick={handleSaveDraft}>Save draft</Button>
-          <Button size="md" fullWidth onClick={handleSubmit} disabled={!canSubmit}>Submit</Button>
+          <Button size="md" fullWidth onClick={handleSubmit}>Submit</Button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowOverflow((v) => !v)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl border border-border text-text-secondary hover:bg-surface-secondary/50 transition-colors"
+            >
+              <i className="ri-more-2-fill text-base" />
+            </button>
+            {showOverflow && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowOverflow(false)} />
+                <div className="absolute right-0 bottom-full mb-1.5 z-40 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[140px]">
+                  <button
+                    type="button"
+                    onClick={() => { setShowOverflow(false); setShowClearConfirm(true) }}
+                    className="w-full text-left px-3.5 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <i className="ri-refresh-line text-base" />
+                    Clear all
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -463,6 +600,65 @@ export default function ComplianceDetail() {
           className="hidden"
           onChange={handleFileChange}
         />
+      )}
+
+      {pendingNav !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPendingNav(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                <i className="ri-save-3-line text-amber-500 text-lg" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-text-primary">Unsaved changes</p>
+                <p className="text-sm text-text-secondary mt-1">Save a draft to continue later, or discard your changes.</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 pt-1">
+              <Button
+                size="md"
+                fullWidth
+                onClick={() => {
+                  if (recordId) saveComplianceDraft(recordId)
+                  setIsDirty(false)
+                  navigate(pendingNav as any)
+                }}
+              >
+                Save draft
+              </Button>
+              <Button
+                size="md"
+                variant="secondary"
+                fullWidth
+                onClick={() => { setIsDirty(false); navigate(pendingNav as any) }}
+              >
+                Discard changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowClearConfirm(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <i className="ri-refresh-line text-brand text-lg" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-text-primary">Start over?</p>
+                <p className="text-sm text-text-secondary mt-1">All answers, photos, and comments will be cleared. This cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="md" variant="secondary" fullWidth onClick={() => setShowClearConfirm(false)}>Cancel</Button>
+              <Button size="md" fullWidth onClick={handleClear}>Clear all</Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -20,14 +20,14 @@ export default function OnboardingStatus() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Onboarding Request"
-        breadcrumb={[{ label: 'My Buildings', path: '/facility/buildings' }]}
-        onBack={() => navigate('/facility/buildings')}
+        breadcrumb={[{ label: 'My Facilities', path: '/facility/facilities' }]}
+        onBack={() => navigate('/facility/facilities')}
       />
 
       {/* Mobile back header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border-light md:hidden">
         <button
-          onClick={() => navigate('/facility/buildings')}
+          onClick={() => navigate('/facility/facilities')}
           className="flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-surface-secondary transition-colors"
         >
           <i className="ri-arrow-left-line text-lg" />
@@ -44,12 +44,12 @@ export default function OnboardingStatus() {
             <div className="bg-white border border-border-light rounded-xl p-4 space-y-3">
               <div>
                 <p className="text-xs text-text-tertiary">Building</p>
-                <p className="text-sm font-semibold text-text-primary">{request.buildingName}</p>
+                <p className="text-sm font-semibold text-text-primary">{request.facilityName}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-text-tertiary">Type</p>
-                  <p className="text-sm font-medium text-text-primary">{request.buildingType}</p>
+                  <p className="text-sm font-medium text-text-primary">{request.facilityType}</p>
                 </div>
                 <div>
                   <p className="text-xs text-text-tertiary">SBU</p>

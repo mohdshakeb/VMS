@@ -8,6 +8,7 @@ interface MobileTopBarProps {
   onLocationPress: () => void
   onProfilePress: () => void
   hideLocationAndQr?: boolean
+  onNotificationPress?: () => void
 }
 
 export default function MobileTopBar({
@@ -17,6 +18,7 @@ export default function MobileTopBar({
   onLocationPress,
   onProfilePress,
   hideLocationAndQr = false,
+  onNotificationPress,
 }: MobileTopBarProps) {
   const navigate = useNavigate()
   return (
@@ -48,14 +50,25 @@ export default function MobileTopBar({
             <i className="ri-qr-code-line text-xl" />
           </button>
         )}
-        <NavLink to="/notifications" className="relative p-2">
-          <i className="ri-notification-3-line text-xl text-text-secondary" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
-              {unreadCount}
-            </span>
-          )}
-        </NavLink>
+        {onNotificationPress ? (
+          <button onClick={onNotificationPress} className="relative p-2">
+            <i className="ri-notification-3-line text-xl text-text-secondary" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        ) : (
+          <NavLink to="/notifications" className="relative p-2">
+            <i className="ri-notification-3-line text-xl text-text-secondary" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </NavLink>
+        )}
         <button
           onClick={onProfilePress}
           className="h-8 w-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0 active:bg-surface-tertiary transition-colors duration-150"

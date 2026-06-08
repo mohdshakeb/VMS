@@ -6,7 +6,7 @@ import Button from '@/components/Button'
 import logoBlackUrl from '@/assets/logoBlack.svg'
 import buildingUrl from '@/assets/building.png'
 import { GMMCO_PATTERN_URI } from '@/components/visit-form/VisitFormShared'
-import type { BuildingType } from '@/types/facility'
+import type { FacilityType } from '@/types/facility'
 
 const BUILDING_TYPES = ['Branch Office', 'Parts Warehouse', 'CRC', 'MRC', 'Repair Center', 'Executive Office', 'HQ']
 
@@ -91,8 +91,8 @@ export default function OnboardingFormSBU() {
     const now = new Date().toISOString()
     submitOnboarding({
       id: `onb-${Date.now()}`,
-      buildingName: form.businessName,
-      buildingType: form.businessType as BuildingType,
+      facilityName: form.businessName,
+      facilityType: form.businessType as FacilityType,
       sbu: form.sbu,
       state: form.state,
       city: form.city,
@@ -112,7 +112,7 @@ export default function OnboardingFormSBU() {
       ],
     })
     showToast('Business added successfully')
-    navigate('/facility/buildings')
+    navigate('/facility/facilities')
   }
 
   const generatedId = canSubmit
@@ -126,7 +126,7 @@ export default function OnboardingFormSBU() {
         <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white border-b border-border shrink-0">
           <button
             type="button"
-            onClick={() => navigate('/facility/buildings')}
+            onClick={() => navigate('/facility/facilities')}
             className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors -ml-1 px-1 py-1 rounded-md"
           >
             <i className="ri-arrow-left-line text-lg" />
@@ -134,7 +134,7 @@ export default function OnboardingFormSBU() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/facility/buildings')}
+            onClick={() => navigate('/facility/facilities')}
             className="text-sm font-medium text-brand hover:opacity-75 transition-opacity px-1 py-1"
           >
             Cancel
@@ -282,7 +282,7 @@ export default function OnboardingFormSBU() {
       <div className="md:hidden flex flex-col h-full">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border-light">
           <button
-            onClick={() => navigate('/facility/buildings')}
+            onClick={() => navigate('/facility/facilities')}
             className="flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-surface-secondary transition-colors"
           >
             <i className="ri-arrow-left-line text-lg" />

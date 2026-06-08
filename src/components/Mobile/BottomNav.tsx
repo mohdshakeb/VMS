@@ -5,7 +5,7 @@ const ctaByRole: Partial<Record<Role, { label: string; path: string; icon: strin
   'front-desk': { label: 'Walk-in', path: '/front-desk/walk-in', icon: 'ri-user-add-line' },
   employee: { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
   'central-admin': { label: 'New Visit', path: '/employee/create-visit', icon: 'ri-calendar-add-line' },
-  // building-admin has no CTA — compliance starts from dashboard
+  // location-admin has no CTA — compliance starts from dashboard
 }
 
 interface MobileNavItem {
@@ -29,10 +29,10 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'Insights', path: '/manager/dashboard', icon: 'ri-bar-chart-box-line', activeIcon: 'ri-bar-chart-box-fill' },
     { label: 'History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
   ],
-  'building-admin': [
-    { label: 'Home',       path: '/facility/dashboard',  icon: 'ri-home-2-line',       activeIcon: 'ri-home-2-fill' },
-    { label: 'Businesses', path: '/facility/buildings',  icon: 'ri-building-2-line',   activeIcon: 'ri-building-2-fill' },
-    { label: 'Compliance', path: '/facility/compliance', icon: 'ri-camera-line',       activeIcon: 'ri-camera-fill' },
+  'location-admin': [
+    { label: 'Home',       path: '/facility/dashboard',   icon: 'ri-home-2-line',     activeIcon: 'ri-home-2-fill' },
+    { label: 'Facilities', path: '/facility/facilities',  icon: 'ri-building-2-line', activeIcon: 'ri-building-2-fill' },
+    { label: 'History',    path: '/facility/compliance',  icon: 'ri-camera-line',     activeIcon: 'ri-camera-fill' },
   ],
 }
 
@@ -41,7 +41,7 @@ interface BottomNavProps {
 }
 
 export default function BottomNav({ role }: BottomNavProps) {
-  const items = navByRole[role]
+  const items = navByRole[role] ?? []
 
   return (
     <nav className="bg-chrome-bg shrink-0 px-3 py-2">

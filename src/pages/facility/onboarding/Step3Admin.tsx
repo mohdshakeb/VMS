@@ -9,14 +9,14 @@ export default function Step3Admin() {
 
   return (
     <div className="space-y-4">
-        {/* Building Status */}
+        {/* Facility Status */}
         <div>
           <label className="block text-xs font-medium text-text-secondary mb-1.5">
-            Building Status <span className="text-terminal-red">*</span>
+            Facility Status <span className="text-terminal-red">*</span>
           </label>
           <select
-            value={formData.buildingStatus}
-            onChange={(e) => setField('buildingStatus', e.target.value)}
+            value={formData.facilityStatus}
+            onChange={(e) => setField('facilityStatus', e.target.value)}
             className="form-input"
           >
             <option value="Active">Active</option>

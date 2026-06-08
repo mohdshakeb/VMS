@@ -7,13 +7,21 @@ export type NotificationType =
   | 'visitor-arrived'
   | 'visitor-checked-out'
   | 'new-pending-request'
+  | 'compliance-window-open'
+  | 'compliance-deadline-reminder'
+  | 'compliance-submitted'
+  | 'compliance-overdue'
+  | 'compliance-missed'
+  | 'sbu-edited'
 
 export interface Notification {
   id: string
   type: NotificationType
   title: string
   message: string
-  visitId: string
+  visitId?: string
+  facilityId?: string
+  recordId?: string
   recipientRole: Role
   recipientId?: string
   read: boolean

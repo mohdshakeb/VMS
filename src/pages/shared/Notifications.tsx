@@ -14,6 +14,12 @@ const typeIcons: Record<string, string> = {
   'visitor-arrived': 'ri-map-pin-user-line',
   'visitor-checked-out': 'ri-logout-box-line',
   'new-pending-request': 'ri-file-add-line',
+  'compliance-window-open': 'ri-calendar-check-line',
+  'compliance-deadline-reminder': 'ri-alarm-warning-line',
+  'compliance-submitted': 'ri-shield-check-line',
+  'compliance-overdue': 'ri-error-warning-line',
+  'compliance-missed': 'ri-close-circle-line',
+  'sbu-edited': 'ri-edit-2-line',
 }
 
 const typeColors: Record<string, string> = {
@@ -23,6 +29,12 @@ const typeColors: Record<string, string> = {
   'visitor-arrived': 'text-on-premises bg-on-premises-surface',
   'visitor-checked-out': 'text-completed bg-completed-surface',
   'new-pending-request': 'text-active bg-active-surface',
+  'compliance-window-open': 'text-active bg-active-surface',
+  'compliance-deadline-reminder': 'text-pending bg-pending-surface',
+  'compliance-submitted': 'text-confirmed bg-confirmed-surface',
+  'compliance-overdue': 'text-rejected bg-rejected-surface',
+  'compliance-missed': 'text-rejected bg-rejected-surface',
+  'sbu-edited': 'text-pending bg-pending-surface',
 }
 
 export default function Notifications() {
@@ -47,6 +59,22 @@ export default function Notifications() {
       navigate(`/employee/approve/${notification.visitId}`)
     } else if (notification.type === 'visit-confirmed' && currentRole === 'front-desk') {
       navigate('/front-desk/dashboard')
+    } else if (
+      notification.type === 'compliance-submitted' ||
+      notification.type === 'sbu-edited' ||
+      notification.type === 'compliance-overdue' ||
+      notification.type === 'compliance-missed'
+    ) {
+      if (notification.recordId) {
+        navigate(`/facility/compliance/record/${notification.recordId}`)
+      } else {
+        navigate('/facility/compliance')
+      }
+    } else if (
+      notification.type === 'compliance-window-open' ||
+      notification.type === 'compliance-deadline-reminder'
+    ) {
+      navigate('/facility/compliance')
     }
   }
 

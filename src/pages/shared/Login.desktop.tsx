@@ -19,7 +19,7 @@ const ROLE_ROUTES: Record<string, string> = {
   employee:         '/employee/visits',
   'front-desk':     '/front-desk/dashboard',
   'central-admin':  '/manager/dashboard',
-  'building-admin': '/facility/dashboard',
+  'location-admin': '/facility/dashboard',
 }
 
 export default function LoginDesktop() {

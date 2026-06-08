@@ -7,7 +7,7 @@ const CREDENTIAL_MAP: Record<string, { role: Role; employeeId: string }> = {
   'employee@gmmco.com': { role: 'employee', employeeId: 'emp-1' },
   'frontdesk@gmmco.com': { role: 'front-desk', employeeId: 'emp-7' },
   'manager@gmmco.com': { role: 'central-admin', employeeId: 'emp-5' },
-  'facilityadmin@gmmco.com': { role: 'building-admin', employeeId: 'emp-ra' },
+  'facilityadmin@gmmco.com': { role: 'location-admin', employeeId: 'emp-ra' },
 }
 
 interface AuthState {
@@ -55,12 +55,15 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'vms-auth',
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown) => {
         const s = persisted as Record<string, unknown>
         if (s.currentRole === 'branch-admin') {
           s.currentRole = 'central-admin'
           s.currentLocationId = 'all'
+        }
+        if (s.currentRole === 'building-admin') {
+          s.currentRole = 'location-admin'
         }
         return s
       },

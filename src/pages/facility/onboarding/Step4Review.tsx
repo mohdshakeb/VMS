@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import { infraCategories } from '@/data/facilityData'
-import type { BuildingType, InfraApplicability } from '@/types/facility'
+import type { FacilityType, InfraApplicability } from '@/types/facility'
 
 const TYPE_CODES: Record<string, string> = {
   'Branch Office':    'BO',
@@ -55,7 +55,7 @@ export default function Step4Review({ onClose, onEdit }: Props) {
   const showToast = useFacilityStore((s) => s.showToast)
 
   const generatedId = buildingIdFrom(
-    formData.buildingType,
+    formData.facilityType,
     formData.state,
     formData.city,
     formData.location,
@@ -64,7 +64,7 @@ export default function Step4Review({ onClose, onEdit }: Props) {
 
   const selectedCats = infraCategories.filter((c) => formData.selectedCategories.includes(c.id))
   const mandatoryCount = selectedCats.filter(
-    (c) => c.applicability[formData.buildingType as BuildingType] === 'mandatory' as InfraApplicability
+    (c) => c.applicability[formData.facilityType as FacilityType] === 'mandatory' as InfraApplicability
   ).length
   const optionalCount = selectedCats.length - mandatoryCount + (formData.customCategories?.length ?? 0)
   const totalCount = selectedCats.length + (formData.customCategories?.length ?? 0)
@@ -73,8 +73,8 @@ export default function Step4Review({ onClose, onEdit }: Props) {
     const now = new Date().toISOString()
     submitOnboarding({
       id: `onb-${Date.now()}`,
-      buildingName: formData.buildingName,
-      buildingType: formData.buildingType as BuildingType,
+      facilityName: formData.facilityName,
+      facilityType: formData.facilityType as FacilityType,
       sbu: formData.sbu,
       state: formData.state,
       city: formData.city,
@@ -90,7 +90,7 @@ export default function Step4Review({ onClose, onEdit }: Props) {
       timeline: [
         { stage: 1, label: 'Request submitted', status: 'done', timestamp: now },
         { stage: 2, label: 'SBU Admin review', sublabel: `Pending — ${formData.sbu} SBU`, status: 'active' },
-        { stage: 3, label: 'Building activated', sublabel: 'Awaiting approval', status: 'pending' },
+        { stage: 3, label: 'Facility activated', sublabel: 'Awaiting approval', status: 'pending' },
       ],
     })
     showToast('Onboarding request submitted')
@@ -100,11 +100,11 @@ export default function Step4Review({ onClose, onEdit }: Props) {
   return (
     <div className="px-4 py-5 md:px-6 md:py-5 max-w-xl">
 
-      {/* Generated Building ID */}
+      {/* Generated Facility ID */}
       <div className="flex items-center gap-3 bg-surface-secondary rounded-xl px-4 py-3 mb-5">
         <i className="ri-qr-code-line text-xl text-text-secondary" />
         <div>
-          <p className="text-xs text-text-tertiary">Building ID</p>
+          <p className="text-xs text-text-tertiary">Facility ID</p>
           <p className="text-sm font-mono font-medium text-text-secondary">{generatedId}</p>
         </div>
       </div>
@@ -121,8 +121,8 @@ export default function Step4Review({ onClose, onEdit }: Props) {
             <ReadonlyRow label="State" value={formData.state} />
             <ReadonlyRow label="City" value={formData.city} />
             <ReadonlyRow label="Location" value={formData.location} />
-            <ReadonlyRow label="Building Type" value={formData.buildingType} />
-            <ReadonlyRow label="Building Name" value={formData.buildingName} />
+            <ReadonlyRow label="Facility Type" value={formData.facilityType} />
+            <ReadonlyRow label="Facility Name" value={formData.facilityName} />
             {formData.storeCode && <ReadonlyRow label="Store Code" value={formData.storeCode} />}
             {formData.description && <ReadonlyRow label="Description" value={formData.description} />}
           </div>
@@ -152,7 +152,7 @@ export default function Step4Review({ onClose, onEdit }: Props) {
             <button onClick={() => onEdit(3)} className="text-xs text-brand hover:text-brand-hover transition-colors font-medium">Edit</button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <ReadonlyRow label="Building Status" value={formData.buildingStatus} />
+            <ReadonlyRow label="Facility Status" value={formData.facilityStatus} />
             {formData.remarks && <ReadonlyRow label="Remarks" value={formData.remarks} />}
             {formData.layoutPlanName && <ReadonlyRow label="Layout Plan" value={formData.layoutPlanName} />}
             {formData.complianceDocName && <ReadonlyRow label="Compliance Docs" value={formData.complianceDocName} />}

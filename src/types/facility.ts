@@ -1,19 +1,21 @@
-export type FacilityComplianceStatus = 'pending' | 'draft' | 'submitted' | 'approved' | 'overdue'
-export type BuildingStatus = 'active' | 'inactive'
-export type BuildingType = 'Branch Office' | 'Parts Warehouse' | 'CRC' | 'MRC' | 'Repair Center' | 'Executive Office' | 'HQ'
+export type FacilityComplianceStatus = 'pending' | 'draft' | 'submitted' | 'updated' | 'overdue' | 'missed'
+export type FacilityStatus = 'active' | 'inactive'
+export type FacilityType = 'Branch Office' | 'Parts Warehouse' | 'CRC' | 'MRC' | 'Repair Center' | 'Executive Office' | 'HQ'
 export type InfraApplicability = 'mandatory' | 'optional' | 'not-applicable'
 export type ChecklistAnswer = 'yes' | 'partial' | 'no' | 'na'
 
 export interface ChecklistItem {
   id: string
   section: string
+  subsection?: string
   label: string
-  mandatoryFor: BuildingType[]
+  mandatoryFor: FacilityType[]
 }
 
 export interface ComplianceChecklistEntry {
   itemId: string
   section: string
+  subsection?: string
   label: string
   isMandatory: boolean
   answer?: ChecklistAnswer
@@ -21,11 +23,11 @@ export interface ComplianceChecklistEntry {
   photos: string[]
 }
 
-export interface Building {
+export interface Facility {
   id: string
-  buildingId: string
+  facilityId: string
   name: string
-  type: BuildingType
+  type: FacilityType
   sbu: string
   state: string
   city: string
@@ -40,11 +42,12 @@ export interface Building {
   longitude?: number
   storeCode?: string
   description?: string
-  status: BuildingStatus
+  status: FacilityStatus
   remarks?: string
   photoUrl?: string
   layoutPlanName?: string
   complianceDocName?: string
+  locationAdmin?: string
   complianceStatus: FacilityComplianceStatus
   complianceProgress: number
   complianceTotal: number
@@ -55,13 +58,13 @@ export interface InfraCategory {
   id: string
   name: string
   group: string
-  applicability: Record<BuildingType, InfraApplicability>
+  applicability: Record<FacilityType, InfraApplicability>
 }
 
 export interface ComplianceRecord {
   id: string
-  buildingId: string
-  buildingName: string
+  facilityId: string
+  facilityName: string
   month: number
   year: number
   status: FacilityComplianceStatus
@@ -85,8 +88,8 @@ export interface OnboardingTimelineEvent {
 
 export interface OnboardingRequest {
   id: string
-  buildingName: string
-  buildingType: BuildingType
+  facilityName: string
+  facilityType: FacilityType
   sbu: string
   state: string
   city: string
@@ -108,9 +111,9 @@ export interface OnboardingFormData {
   state: string
   city: string
   location: string
-  buildingType: string
+  facilityType: string
   storeCode: string
-  buildingName: string
+  facilityName: string
   description: string
   address1: string
   address2: string
@@ -122,7 +125,7 @@ export interface OnboardingFormData {
   longitude: string
   selectedCategories: string[]
   customCategories: string[]
-  buildingStatus: string
+  facilityStatus: string
   remarks: string
   layoutPlanName?: string
   complianceDocName?: string

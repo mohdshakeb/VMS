@@ -5,7 +5,8 @@ import Card from '@/components/Card'
 import Button from '@/components/Button'
 import SectionLabel from '@/components/common/SectionLabel'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
-import buildingPlaceholder from '@/assets/building.png'
+import FacilityIdentityCard from '@/components/facility/FacilityIdentityCard'
+import { PROTOTYPE_NOW } from '@/data/facilityData'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -18,94 +19,80 @@ function formatTs(ts?: string) {
   return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })
 }
 
-export default function BuildingDetail() {
-  const { buildingId } = useParams<{ buildingId: string }>()
+export default function FacilityDetail() {
+  const { facilityId } = useParams<{ facilityId: string }>()
   const navigate = useNavigate()
-  const buildings = useFacilityStore((s) => s.buildings)
+  const facilities = useFacilityStore((s) => s.facilities)
   const allRecords = useFacilityStore((s) => s.complianceRecords)
-  const toggleBuildingStatus = useFacilityStore((s) => s.toggleBuildingStatus)
+  const toggleFacilityStatus = useFacilityStore((s) => s.toggleFacilityStatus)
 
-  const building = buildings.find((b) => b.id === buildingId)
+  const facility = facilities.find((f) => f.id === facilityId)
 
-  if (!building) {
+  if (!facility) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <p className="text-sm text-text-secondary">Business not found.</p>
+        <p className="text-sm text-text-secondary">Facility not found.</p>
       </div>
     )
   }
 
-  const photoSrc = building.photoUrl ?? buildingPlaceholder
-  const isComplianceDue = building.complianceStatus === 'pending' || building.complianceStatus === 'overdue'
-  const isActive = building.status === 'active'
+  const isComplianceDue = facility.complianceStatus === 'pending' || facility.complianceStatus === 'overdue'
+  const isActive = facility.status === 'active'
 
-  const buildingRecords = allRecords
-    .filter((r) => r.buildingId === building.id)
+  const facilityRecords = allRecords
+    .filter((r) => r.facilityId === facility.id)
     .sort((a, b) => b.year - a.year || b.month - a.month)
 
-  const now = new Date()
   const currentRecord = allRecords.find(
-    (r) => r.buildingId === building.id && r.month === now.getMonth() + 1 && r.year === now.getFullYear()
+    (r) => r.facilityId === facility.id && r.month === PROTOTYPE_NOW.getMonth() + 1 && r.year === PROTOTYPE_NOW.getFullYear()
   )
 
   const COMPLIANCE_LABEL: Record<string, string> = {
-    pending: 'Pending', draft: 'Draft', submitted: 'In Progress',
-    approved: 'Completed', overdue: 'Overdue',
+    pending: 'Pending', draft: 'Draft', submitted: 'Submitted', updated: 'Updated',
+    overdue: 'Overdue',
   }
   const COMPLIANCE_STYLE: Record<string, string> = {
     pending: 'bg-yellow-surface text-yellow-fg', draft: 'bg-surface-secondary text-text-secondary',
-    submitted: 'bg-blue-surface text-blue-fg', approved: 'bg-green-surface text-green-fg',
+    submitted: 'bg-blue-surface text-blue-fg', updated: 'bg-purple-surface text-purple-fg',
     overdue: 'bg-red-surface text-red-fg',
   }
 
+  const address = [facility.address1, facility.address2].filter(Boolean).join(', ') + ', ' + facility.city + ' – ' + facility.pinCode
+
   const identityCard = (
-    <Card padding="none">
-      <div className="aspect-[4/3] w-full overflow-hidden rounded-t-xl">
-        <img
-          src={photoSrc}
-          alt={building.name}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = buildingPlaceholder }}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4">
-        <div className="mb-4">
-          <p className="text-base font-semibold text-text-primary leading-tight">{building.name}</p>
-          <p className="text-sm text-text-secondary mt-0.5">{building.location}</p>
-        </div>
-
-        <div className="space-y-2.5">
-          <div>
-            <p className="text-xs text-text-tertiary">State</p>
-            <p className="text-sm font-medium text-text-primary">{building.state}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary">SBU</p>
-            <p className="text-sm font-medium text-text-primary">{building.sbu}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary mb-1">Compliance</p>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${COMPLIANCE_STYLE[building.complianceStatus]}`}>
-              {COMPLIANCE_LABEL[building.complianceStatus]}
+    <FacilityIdentityCard
+      photoUrl={facility.photoUrl}
+      name={facility.name}
+      location={facility.location}
+      fields={[
+        { label: 'State', value: facility.state },
+        { label: 'SBU', value: facility.sbu },
+        { label: 'Address', value: address },
+        {
+          label: 'Compliance',
+          value: (
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${COMPLIANCE_STYLE[facility.complianceStatus]}`}>
+              {COMPLIANCE_LABEL[facility.complianceStatus]}
             </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-light">
+          ),
+        },
+      ]}
+      footer={
+        <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-text-primary">{isActive ? 'Active' : 'Inactive'}</p>
-            <p className="text-xs text-text-tertiary mt-0.5">{isActive ? 'Business is operational' : 'Business is disabled'}</p>
+            <p className="text-xs text-text-tertiary mt-0.5">{isActive ? 'Facility is operational' : 'Facility is disabled'}</p>
           </div>
           <button
-            onClick={() => toggleBuildingStatus(building.id)}
+            onClick={() => toggleFacilityStatus(facility.id)}
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${isActive ? 'bg-green-500' : 'bg-surface-tertiary'}`}
-            aria-label="Toggle business status"
+            aria-label="Toggle facility status"
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
-      </div>
-    </Card>
+      }
+    />
   )
 
   const sectionCards = (
@@ -113,11 +100,11 @@ export default function BuildingDetail() {
       {/* Compliance audit trail */}
       <Card>
         <SectionLabel icon="ri-shield-check-line" title="Compliance" />
-        {buildingRecords.length === 0 ? (
+        {facilityRecords.length === 0 ? (
           <p className="text-sm text-text-tertiary mt-3">No compliance records yet.</p>
         ) : (
           <div className="mt-3 divide-y divide-border-light">
-            {buildingRecords.map((record) => (
+            {facilityRecords.map((record) => (
               <button
                 key={record.id}
                 onClick={() => navigate(getRecordPath(record))}
@@ -134,9 +121,6 @@ export default function BuildingDetail() {
                     <div className="text-xs text-text-tertiary mt-1 space-y-0.5">
                       {record.submittedAt && (
                         <p>Submitted {formatTs(record.submittedAt)}{record.submittedBy ? ` by ${record.submittedBy}` : ''}</p>
-                      )}
-                      {record.approvedAt && (
-                        <p>Approved {formatTs(record.approvedAt)}{record.approvedBy ? ` · ${record.approvedBy}` : ''}</p>
                       )}
                     </div>
                   </div>
@@ -156,14 +140,11 @@ export default function BuildingDetail() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title={building.name}
-        breadcrumb={[{ label: 'Businesses', path: '/facility/buildings' }]}
-        onBack={() => navigate('/facility/buildings')}
+        title={facility.name}
+        breadcrumb={[{ label: 'Facilities', path: '/facility/facilities' }]}
+        onBack={() => navigate('/facility/facilities')}
         actions={
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" icon="ri-edit-line">
-              Edit
-            </Button>
             {isComplianceDue && currentRecord && (
               <Button
                 size="sm"
@@ -180,15 +161,15 @@ export default function BuildingDetail() {
       {/* Mobile header */}
       <header className="md:hidden shrink-0 flex items-center gap-2 px-3 py-2.5 bg-white border-b border-border">
         <button
-          onClick={() => navigate('/facility/buildings')}
+          onClick={() => navigate('/facility/facilities')}
           className="flex items-center justify-center w-9 h-9 rounded-xl text-text-secondary active:bg-surface-secondary transition-colors -ml-1 shrink-0"
         >
           <i className="ri-arrow-left-line text-xl" />
         </button>
         <div className="flex-1 min-w-0 flex items-center gap-1 text-sm">
-          <span className="text-text-tertiary truncate">Businesses</span>
+          <span className="text-text-tertiary truncate">Facilities</span>
           <span className="text-text-tertiary shrink-0">·</span>
-          <span className="font-medium text-text-primary shrink-0">{building.name}</span>
+          <span className="font-medium text-text-primary shrink-0">{facility.name}</span>
         </div>
         {isComplianceDue && currentRecord && (
           <button

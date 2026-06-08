@@ -15,9 +15,9 @@ import QRCodePage from '@/pages/frontdesk/QRCodePage'
 import ManagerDashboard from '@/pages/manager/Dashboard'
 import ManagerVisitHistory from '@/pages/manager/VisitHistory'
 import ManagerMyVisits from '@/pages/manager/MyVisits'
-import BuildingAdminDashboard from '@/pages/facility/dashboard/BuildingAdminDashboard'
-import MyBuildings from '@/pages/facility/buildings/MyBuildings'
-import BuildingDetail from '@/pages/facility/buildings/BuildingDetail'
+import LocationAdminDashboard from '@/pages/facility/dashboard/LocationAdminDashboard'
+import MyFacilities from '@/pages/facility/facilities/MyFacilities'
+import FacilityDetail from '@/pages/facility/facilities/FacilityDetail'
 import OnboardingFormSBU from '@/pages/facility/onboarding/OnboardingFormSBU'
 import ComplianceHome from '@/pages/facility/compliance/ComplianceHome'
 import ComplianceDetail from '@/pages/facility/compliance/ComplianceDetail'
@@ -28,7 +28,7 @@ const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/dashboard',
   'central-admin': '/manager/dashboard',
-  'building-admin': '/facility/dashboard',
+  'location-admin': '/facility/dashboard',
 }
 
 function PrivateLayout() {
@@ -76,10 +76,10 @@ export default function App() {
         <Route path="/manager/visit-history" element={<ManagerVisitHistory />} />
         <Route path="/manager/my-visits"     element={<ManagerMyVisits />} />
 
-        {/* Facility — Building Admin */}
-        <Route path="/facility/dashboard"              element={<BuildingAdminDashboard />} />
-        <Route path="/facility/buildings"              element={<MyBuildings />} />
-        <Route path="/facility/buildings/:buildingId"  element={<BuildingDetail />} />
+        {/* Facility — Location Admin */}
+        <Route path="/facility/dashboard"               element={<LocationAdminDashboard />} />
+        <Route path="/facility/facilities"              element={<MyFacilities />} />
+        <Route path="/facility/facilities/:facilityId"  element={<FacilityDetail />} />
         <Route path="/facility/compliance/record/:recordId" element={<ComplianceDetail />} />
         <Route path="/facility/compliance"                  element={<ComplianceHome />} />
 
@@ -89,4 +89,3 @@ export default function App() {
     </Routes>
   )
 }
-

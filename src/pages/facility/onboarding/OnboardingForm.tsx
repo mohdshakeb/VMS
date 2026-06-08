@@ -7,7 +7,7 @@ import SectionLabel from '@/components/common/SectionLabel'
 import Button from '@/components/Button'
 import logoBlackUrl from '@/assets/logoBlack.svg'
 import buildingUrl from '@/assets/building.png'
-import type { BuildingType } from '@/types/facility'
+import type { FacilityType } from '@/types/facility'
 import Step1Location from './Step1Location'
 import Step2Physical from './Step2Physical'
 import Step3Admin from './Step3Admin'
@@ -68,28 +68,28 @@ export default function OnboardingForm() {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [patternOffset, setPatternOffset] = useState(0)
 
-  const canProceed1 = !!(formData.buildingName && formData.buildingType && formData.floors)
+  const canProceed1 = !!(formData.facilityName && formData.facilityType && formData.floors)
   const canProceed2 = !!(formData.sbu && formData.state && formData.city && formData.location && formData.address1 && formData.pinCode)
-  const canProceed3 = !!formData.buildingStatus
+  const canProceed3 = !!formData.facilityStatus
   const canProceed = currentStep === 1 ? canProceed1 : currentStep === 2 ? canProceed2 : canProceed3
 
   function handleBack() {
-    if (currentStep === 1) navigate('/facility/buildings')
+    if (currentStep === 1) navigate('/facility/facilities')
     else setStep((currentStep - 1) as 1 | 2 | 3)
   }
 
   function handleNext() {
     if (currentStep === 1) {
       const mandatoryIds = infraCategories
-        .filter((c) => (c.applicability[formData.buildingType as BuildingType] ?? 'not-applicable') === 'mandatory')
+        .filter((c) => (c.applicability[formData.facilityType as FacilityType] ?? 'not-applicable') === 'mandatory')
         .map((c) => c.id)
       const optionalIds = infraCategories
-        .filter((c) => (c.applicability[formData.buildingType as BuildingType] ?? 'not-applicable') === 'optional')
+        .filter((c) => (c.applicability[formData.facilityType as FacilityType] ?? 'not-applicable') === 'optional')
         .map((c) => c.id)
       const resolved =
         formData.selectedCategories.length > 0
           ? formData.selectedCategories
-          : formData.buildingType
+          : formData.facilityType
           ? [...mandatoryIds, ...optionalIds]
           : []
       setField('selectedCategories', resolved)
@@ -121,14 +121,14 @@ export default function OnboardingForm() {
             className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors -ml-1 px-1 py-1 rounded-md"
           >
             <i className="ri-arrow-left-line text-lg" />
-            <span className="font-medium">New Building</span>
+            <span className="font-medium">New Facility</span>
           </button>
 
           <OnboardingHeaderStepper currentStep={currentStep} />
 
           <button
             type="button"
-            onClick={() => navigate('/facility/buildings')}
+            onClick={() => navigate('/facility/facilities')}
             className="text-sm font-medium text-brand hover:opacity-75 transition-opacity px-1 py-1"
           >
             Cancel
@@ -234,7 +234,7 @@ export default function OnboardingForm() {
           >
             <i className="ri-arrow-left-line text-lg" />
           </button>
-          <h2 className="text-sm font-medium text-text-primary">New Building Onboarding</h2>
+          <h2 className="text-sm font-medium text-text-primary">New Facility Onboarding</h2>
         </div>
 
         <div className="px-4 py-3 border-b border-border-light">

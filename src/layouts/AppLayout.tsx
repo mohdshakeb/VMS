@@ -11,19 +11,20 @@ import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
 import BottomSheet from '@/components/Mobile/BottomSheet'
 import MobileTopBar from '@/components/Mobile/MobileTopBar'
+import NotificationsModal from '@/components/facility/NotificationsModal'
 
 const roleHomeRoutes: Record<Role, string> = {
   'front-desk': '/front-desk/dashboard',
   employee: '/employee/dashboard',
   'central-admin': '/manager/dashboard',
-  'building-admin': '/facility/dashboard',
+  'location-admin': '/facility/dashboard',
 }
 
 const roleLabels: Record<Role, string> = {
   'front-desk': 'Front Desk',
   employee: 'Employee',
   'central-admin': 'Central Admin',
-  'building-admin': 'Building Admin',
+  'location-admin': 'Location Admin',
 }
 
 // Routes that take over the full screen on ALL viewports (no sidebar on desktop, no nav bars on mobile)
@@ -39,6 +40,7 @@ export default function AppLayout() {
   const isMobileInner = MOBILE_INNER_PREFIXES.some((p) => location.pathname.startsWith(p))
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
+  const openNotificationsModal = useNotificationStore((s) => s.openNotificationsModal)
   const { toastMessage, clearToast } = useVisitStore()
   const facilityToast = useFacilityStore((s) => s.toastMessage)
   const activeToast = toastMessage ?? facilityToast
@@ -136,7 +138,8 @@ export default function AppLayout() {
               unreadCount={unreadCount}
               onLocationPress={openLocationSheet}
               onProfilePress={openProfileSheet}
-              hideLocationAndQr={currentRole === 'employee' || currentRole === 'building-admin'}
+              hideLocationAndQr={currentRole === 'employee' || currentRole === 'location-admin'}
+              onNotificationPress={currentRole === 'location-admin' ? openNotificationsModal : undefined}
             />
           )}
 
@@ -202,6 +205,9 @@ export default function AppLayout() {
           ))}
         </div>
       </BottomSheet>
+
+      {/* Notifications modal — facility/location-admin only */}
+      {currentRole === 'location-admin' && <NotificationsModal />}
 
       {/* Profile bottom sheet — mobile only */}
       <BottomSheet
