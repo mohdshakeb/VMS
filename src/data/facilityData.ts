@@ -6,8 +6,6 @@ import type {
   ComplianceChecklistEntry,
   ChecklistAnswer,
   ComplianceRecord,
-  OnboardingRequest,
-  FacilityNotification,
 } from '@/types/facility'
 
 // ─── Prototype-frozen clock ───────────────────────────────────────────────────
@@ -542,74 +540,6 @@ export const complianceRecords: ComplianceRecord[] = [
   },
 ]
 
-// ─── Onboarding request (dummy — in SBU Admin review) ────────────────────────
-
-export const dummyOnboardingRequest: OnboardingRequest = {
-  id: 'onb-1',
-  facilityName: 'Branch Office',
-  facilityType: 'Branch Office',
-  sbu: 'South',
-  state: 'Tamil Nadu',
-  city: 'Chennai',
-  location: 'Nungambakkam - Chennai',
-  address1: '5 Nungambakkam High Road',
-  pinCode: '600034',
-  floors: 2,
-  categoryCount: 12,
-  status: 'sbu-review',
-  submittedAt: '2026-05-06T14:00:00',
-  submittedBy: 'Ravi Anand',
-  submittedById: 'EMP-4821',
-  timeline: [
-    {
-      stage: 1,
-      label: 'Request submitted',
-      status: 'done',
-      timestamp: '2026-05-06T14:00:00',
-    },
-    {
-      stage: 2,
-      label: 'SBU Admin review',
-      sublabel: 'Pending — South SBU',
-      status: 'active',
-    },
-    {
-      stage: 3,
-      label: 'Business activated',
-      sublabel: 'Awaiting approval',
-      status: 'pending',
-    },
-  ],
-}
-
-// ─── Notifications ────────────────────────────────────────────────────────────
-
-export const facilityNotifications: FacilityNotification[] = [
-  {
-    id: 'fn-1',
-    message: 'Your draft for Branch Office - Chennai is 31 days old. Submit before 7 June to avoid missing the cut-off.',
-    timestamp: '2026-05-07T09:30:00',
-    type: 'warning',
-  },
-  {
-    id: 'fn-2',
-    message: 'Repair Center - Madurai compliance submitted successfully.',
-    timestamp: '2026-06-03T11:15:00',
-    type: 'success',
-  },
-  {
-    id: 'fn-3',
-    message: 'New compliance cycle started for May 2026. 3 businesses require checklist completion.',
-    timestamp: '2026-04-30T09:00:00',
-    type: 'info',
-  },
-  {
-    id: 'fn-4',
-    message: 'Parts Warehouse - Ahmedabad compliance for May 2026 is pending. Checklist due by 7 Jun 2026.',
-    timestamp: '2026-05-08T09:00:00',
-    type: 'info',
-  },
-]
 
 // ─── Cascade data: SBU → State → City → Location ─────────────────────────────
 

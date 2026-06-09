@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Visit, VisitStatus, Purpose, VisitType, EntryPath, BusinessSegment, VisitorPriority } from '@/types/visit'
+import type { Visit, Purpose, VisitType, EntryPath, BusinessSegment, VisitorPriority } from '@/types/visit'
 import { visits as seedVisits } from '@/data/visits'
 import { useNotificationStore } from './notificationStore'
 import { generateId, getLocalDateString } from '@/utils/helpers'
@@ -326,16 +326,6 @@ export const useVisitStore = create<VisitState>((set, get) => ({
 }))
 
 // Standalone selectors
-export function getTodaysVisits(visits: Visit[], locationId: string): Visit[] {
-  const today = getLocalDateString()
-  return visits.filter((v) => v.scheduledDate === today && v.locationId === locationId)
-}
-
-export function getVisitsByStatus(visits: Visit[], status: VisitStatus, locationId: string): Visit[] {
-  const today = getLocalDateString()
-  return visits.filter((v) => v.status === status && v.scheduledDate === today && v.locationId === locationId)
-}
-
 export function getPendingApprovals(visits: Visit[], employeeId: string): Visit[] {
   return visits.filter((v) => v.status === 'pending-approval' && v.hostEmployeeId === employeeId)
 }

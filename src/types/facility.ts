@@ -130,10 +130,3 @@ export interface OnboardingFormData {
   layoutPlanName?: string
   complianceDocName?: string
 }
-
-export interface FacilityNotification {
-  id: string
-  message: string
-  timestamp: string
-  type: 'warning' | 'success' | 'info'
-}
