@@ -42,14 +42,15 @@ interface BottomNavProps {
 
 export default function BottomNav({ role }: BottomNavProps) {
   const items = navByRole[role] ?? []
+  const hasCTA = Boolean(ctaByRole[role])
 
   return (
     <nav className="bg-chrome-bg shrink-0 px-3 py-2">
       <div className="flex items-center gap-2">
         {items.map((item) => (
-          <NavLink key={item.path} to={item.path}>
+          <NavLink key={item.path} to={item.path} className={hasCTA ? '' : 'flex-1'}>
             {({ isActive }) => (
-              <div className="flex flex-col items-center gap-1 px-2 py-1.5">
+              <div className={`flex flex-col items-center gap-1 py-1.5 ${hasCTA ? 'px-2' : 'w-full px-1'}`}>
                 <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-colors duration-150 ${isActive ? 'bg-chrome-active-bg' : ''}`}>
                   <i className={`text-xl leading-none ${isActive ? `${item.activeIcon} text-chrome-active-text` : `${item.icon} text-chrome-text-muted`}`} />
                 </div>

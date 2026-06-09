@@ -10,6 +10,7 @@ interface BottomSheetProps {
   children: ReactNode
   footer?: ReactNode
   mobileOnly?: boolean
+  headerAction?: ReactNode
 }
 
 export default function BottomSheet({
@@ -22,6 +23,7 @@ export default function BottomSheet({
   children,
   footer,
   mobileOnly = true,
+  headerAction,
 }: BottomSheetProps) {
   useEffect(() => {
     if (mounted) {
@@ -74,6 +76,7 @@ export default function BottomSheet({
                 {subtitle && <p className="text-xs text-text-tertiary mt-0.5">{subtitle}</p>}
               </div>
             </div>
+            {headerAction && <div className="shrink-0 mr-1">{headerAction}</div>}
             <button
               onClick={onClose}
               className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-secondary hover:text-text-primary transition-colors -mr-1 shrink-0"

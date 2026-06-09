@@ -4,6 +4,7 @@ import { useFacilityStore } from '@/store/facilityStore'
 import PageHeader from '@/components/PageHeader'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
+import Modal from '@/components/Modal'
 import SectionLabel from '@/components/common/SectionLabel'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import type { ChecklistAnswer, ComplianceChecklistEntry } from '@/types/facility'
@@ -202,6 +203,8 @@ export default function ComplianceDetail() {
   const [pendingNav, setPendingNav] = useState<string | number | null>(null)
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showSubmitSuccess, setShowSubmitSuccess] = useState(false)
+  const [showDraftSaved, setShowDraftSaved] = useState(false)
   const [showOverflow, setShowOverflow] = useState(false)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -255,7 +258,7 @@ export default function ComplianceDetail() {
     if (!recordId) return
     saveComplianceDraft(recordId)
     setIsDirty(false)
-    navigate('/facility/compliance')
+    setShowDraftSaved(true)
   }
 
   function handleSubmit() {
@@ -266,7 +269,7 @@ export default function ComplianceDetail() {
     }
     submitCompliance(recordId)
     setIsDirty(false)
-    navigate('/facility/compliance')
+    setShowSubmitSuccess(true)
   }
 
   function handleNavAway(target: string | number) {
@@ -599,64 +602,85 @@ export default function ComplianceDetail() {
         />
       )}
 
-      {pendingNav !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPendingNav(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                <i className="ri-save-3-line text-amber-500 text-lg" />
-              </div>
-              <div>
-                <p className="text-base font-semibold text-text-primary">Unsaved changes</p>
-                <p className="text-sm text-text-secondary mt-1">Save a draft to continue later, or discard your changes.</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 pt-1">
-              <Button
-                size="md"
-                fullWidth
-                onClick={() => {
-                  if (recordId) saveComplianceDraft(recordId)
-                  setIsDirty(false)
-                  navigate(pendingNav as any)
-                }}
-              >
-                Save draft
-              </Button>
-              <Button
-                size="md"
-                variant="secondary"
-                fullWidth
-                onClick={() => { setIsDirty(false); navigate(pendingNav as any) }}
-              >
-                Discard changes
-              </Button>
-            </div>
+      {/* Submit success */}
+      <Modal open={showSubmitSuccess} onClose={() => { setShowSubmitSuccess(false); navigate('/facility/compliance') }} size="md">
+        <div className="py-4 flex flex-col items-center text-center gap-5">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'var(--color-confirmed-surface)' }}
+          >
+            <i className="ri-shield-check-fill text-4xl" style={{ color: 'var(--color-confirmed)' }} />
           </div>
+          <div>
+            <p className="text-base font-semibold text-text-primary">Compliance Submitted</p>
+            <p className="text-sm text-text-secondary mt-1">{record.facilityName}</p>
+            <p className="text-xs text-text-tertiary mt-0.5">{period}</p>
+          </div>
+          <Button fullWidth onClick={() => { setShowSubmitSuccess(false); navigate('/facility/compliance') }}>Done</Button>
         </div>
-      )}
+      </Modal>
 
-      {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowClearConfirm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                <i className="ri-refresh-line text-brand text-lg" />
-              </div>
-              <div>
-                <p className="text-base font-semibold text-text-primary">Start over?</p>
-                <p className="text-sm text-text-secondary mt-1">All answers, photos, and comments will be cleared. This cannot be undone.</p>
-              </div>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <Button size="md" variant="secondary" fullWidth onClick={() => setShowClearConfirm(false)}>Cancel</Button>
-              <Button size="md" fullWidth onClick={handleClear}>Clear all</Button>
-            </div>
+      {/* Draft saved */}
+      <Modal open={showDraftSaved} onClose={() => setShowDraftSaved(false)} size="md">
+        <div className="py-4 flex flex-col items-center text-center gap-5">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center bg-surface-secondary">
+            <i className="ri-save-3-fill text-4xl text-text-secondary" />
           </div>
+          <div>
+            <p className="text-base font-semibold text-text-primary">Draft Saved</p>
+            <p className="text-sm text-text-secondary mt-1">{record.facilityName}</p>
+            <p className="text-xs text-text-tertiary mt-0.5">{period}</p>
+          </div>
+          <Button fullWidth onClick={() => setShowDraftSaved(false)}>Done</Button>
         </div>
-      )}
+      </Modal>
+
+      {/* Unsaved changes */}
+      <Modal
+        open={pendingNav !== null}
+        onClose={() => setPendingNav(null)}
+        title="Unsaved Changes"
+        footer={
+          <div className="flex flex-col gap-2">
+            <Button
+              size="md"
+              fullWidth
+              onClick={() => {
+                if (recordId) saveComplianceDraft(recordId)
+                setIsDirty(false)
+                navigate(pendingNav as any)
+              }}
+            >
+              Save draft
+            </Button>
+            <Button
+              size="md"
+              variant="secondary"
+              fullWidth
+              onClick={() => { setIsDirty(false); navigate(pendingNav as any) }}
+            >
+              Discard changes
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-text-secondary py-2">Save a draft to continue later, or discard your changes.</p>
+      </Modal>
+
+      {/* Clear all confirm */}
+      <Modal
+        open={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        title="Start Over?"
+        footer={
+          <div className="flex gap-2">
+            <Button size="md" variant="secondary" fullWidth onClick={() => setShowClearConfirm(false)}>Cancel</Button>
+            <Button size="md" fullWidth onClick={handleClear}>Clear all</Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-text-secondary py-2">All answers, photos, and comments will be cleared. This cannot be undone.</p>
+      </Modal>
     </div>
   )
 }
