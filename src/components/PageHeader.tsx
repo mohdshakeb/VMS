@@ -12,10 +12,12 @@ interface PageHeaderProps {
   titleNode?: ReactNode
   breadcrumb?: BreadcrumbItem[]
   onBack?: () => void
+  /** Icon-only controls (e.g. notification bell). Always rendered before `actions`. */
+  icon?: ReactNode
   actions?: ReactNode
 }
 
-export default function PageHeader({ title, titleNode, breadcrumb, onBack, actions }: PageHeaderProps) {
+export default function PageHeader({ title, titleNode, breadcrumb, onBack, icon, actions }: PageHeaderProps) {
   return (
     <header className="hidden md:flex shrink-0 items-center gap-2 px-6 py-3 bg-white border-b border-border">
       {onBack && (
@@ -47,8 +49,9 @@ export default function PageHeader({ title, titleNode, breadcrumb, onBack, actio
         ))}
         {titleNode ?? <h2 className="text-sm font-medium text-text-primary">{title}</h2>}
       </div>
-      {actions && (
+      {(icon || actions) && (
         <div className="flex items-center gap-1 ml-auto">
+          {icon}
           {actions}
         </div>
       )}

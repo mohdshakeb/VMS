@@ -20,6 +20,7 @@ const ROLE_ROUTES: Record<string, string> = {
   'front-desk':     '/front-desk/dashboard',
   'central-admin':  '/manager/dashboard',
   'location-admin': '/facility/dashboard',
+  'sbu-admin':      '/sbu/dashboard',
 }
 
 export default function LoginDesktop() {

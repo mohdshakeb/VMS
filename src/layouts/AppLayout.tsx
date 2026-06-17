@@ -18,6 +18,7 @@ const roleHomeRoutes: Record<Role, string> = {
   employee: '/employee/dashboard',
   'central-admin': '/manager/dashboard',
   'location-admin': '/facility/dashboard',
+  'sbu-admin': '/sbu/dashboard',
 }
 
 const roleLabels: Record<Role, string> = {
@@ -25,12 +26,13 @@ const roleLabels: Record<Role, string> = {
   employee: 'Employee',
   'central-admin': 'Central Admin',
   'location-admin': 'Location Admin',
+  'sbu-admin': 'SBU Admin',
 }
 
 // Routes that take over the full screen on ALL viewports (no sidebar on desktop, no nav bars on mobile)
 const FULL_SCREEN_ROUTES = ['/front-desk/walk-in', '/front-desk/qr-code', '/employee/create-visit', '/sbu/onboarding/new']
 // Route prefixes that suppress mobile chrome (top bar + bottom nav) but keep the desktop sidebar
-const MOBILE_INNER_PREFIXES = ['/front-desk/visit/', '/employee/visit/', '/facility/facilities/', '/facility/compliance/record/']
+const MOBILE_INNER_PREFIXES = ['/front-desk/visit/', '/employee/visit/', '/facility/facilities/', '/facility/compliance/record/', '/sbu/facilities/', '/sbu/locations/', '/sbu/compliance/record/']
 
 export default function AppLayout() {
   const { currentRole, currentEmployeeId, currentLocationId, setCurrentLocation, logout } = useAuthStore()
@@ -138,8 +140,8 @@ export default function AppLayout() {
               unreadCount={unreadCount}
               onLocationPress={openLocationSheet}
               onProfilePress={openProfileSheet}
-              hideLocationAndQr={currentRole === 'employee' || currentRole === 'location-admin'}
-              onNotificationPress={currentRole === 'location-admin' ? openNotificationsModal : undefined}
+              hideLocationAndQr={currentRole === 'employee' || currentRole === 'location-admin' || currentRole === 'sbu-admin'}
+              onNotificationPress={currentRole === 'location-admin' || currentRole === 'sbu-admin' ? openNotificationsModal : undefined}
             />
           )}
 
@@ -206,8 +208,8 @@ export default function AppLayout() {
         </div>
       </BottomSheet>
 
-      {/* Notifications modal — facility/location-admin only */}
-      {currentRole === 'location-admin' && <NotificationsModal />}
+      {/* Notifications modal — facility roles only */}
+      {(currentRole === 'location-admin' || currentRole === 'sbu-admin') && <NotificationsModal />}
 
       {/* Profile bottom sheet — mobile only */}
       <BottomSheet

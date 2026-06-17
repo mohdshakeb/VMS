@@ -25,22 +25,10 @@ interface NotificationState {
 
 const SEED_COMPLIANCE_NOTIFICATIONS: Notification[] = [
   {
-    id: 'cn-1',
-    type: 'compliance-missed',
-    title: 'Compliance missed',
-    message: 'Parts Warehouse — Ahmedabad missed the April 2026 cut-off. The record has been locked.',
-    facilityId: 'bld-4',
-    recordId: 'comp-7',
-    recipientRole: 'location-admin',
-    read: true,
-    createdAt: '2026-05-08T09:00:00.000Z',
-    actionRequired: false,
-  },
-  {
     id: 'cn-2',
     type: 'compliance-window-open',
     title: 'May compliance is now active',
-    message: 'The May 2026 compliance window is open for 4 facilities. Submit before 7 Jun 2026.',
+    message: 'The May 2026 compliance window is open for 9 facilities. Submit before 7 Jun 2026.',
     recipientRole: 'location-admin',
     read: true,
     createdAt: '2026-06-01T08:00:00.000Z',
@@ -74,7 +62,7 @@ const SEED_COMPLIANCE_NOTIFICATIONS: Notification[] = [
     id: 'cn-5',
     type: 'compliance-deadline-reminder',
     title: 'Deadline in 2 days',
-    message: '3 facilities are still unsubmitted — Branch Office (Chennai), Branch Office (Coimbatore), Parts Warehouse (Ahmedabad). Cut-off is 7 Jun 2026.',
+    message: '6 facilities are still unsubmitted across Anna Salai - Chennai, Coimbatore, and Madurai. Cut-off is 7 Jun 2026.',
     recipientRole: 'location-admin',
     read: false,
     createdAt: '2026-06-05T08:00:00.000Z',

@@ -31,7 +31,7 @@ const colorMap: Record<Color, { iconBg: string; iconBorder: string; iconColor: s
 interface KpiCardV2Props {
   label: string
   info: string
-  value: number
+  value: number | string
   icon: string
   color?: Color
   /** Show the info subtitle even on mobile (default: hidden below md breakpoint) */

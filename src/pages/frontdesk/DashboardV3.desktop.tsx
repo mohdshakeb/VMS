@@ -12,6 +12,7 @@ import Button from '@/components/Button'
 import KpiCardV2 from '@/components/KpiCardV2'
 import VisitCard from '@/components/VisitCard'
 import PageHeader from '@/components/PageHeader'
+import NotificationBell from '@/components/NotificationBell'
 import { visitors as seedVisitors } from '@/data/visitors'
 import { OVERDUE_VISIT_IDS, DELAYED_VISIT_IDS } from '@/data/visits'
 import { employees } from '@/data/employees'
@@ -145,7 +146,7 @@ export default function DashboardV3Desktop() {
             )}
           </div>
         }
-        actions={
+        icon={
           <>
             <NavLink
               to="/front-desk/qr-code"
@@ -154,21 +155,13 @@ export default function DashboardV3Desktop() {
             >
               <i className="ri-qr-code-line text-xl text-text-secondary" />
             </NavLink>
-            <NavLink
-              to="/notifications"
-              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
-            >
-              <i className="ri-notification-3-line text-xl text-text-secondary" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
-                  {unreadCount}
-                </span>
-              )}
-            </NavLink>
-            <Button size="md" icon="ri-user-add-line" onClick={() => navigate('/front-desk/walk-in')} className="ml-1">
-              Walk-in
-            </Button>
+            <NotificationBell unreadCount={unreadCount} to="/notifications" />
           </>
+        }
+        actions={
+          <Button size="md" icon="ri-user-add-line" onClick={() => navigate('/front-desk/walk-in')} className="ml-1">
+            Walk-in
+          </Button>
         }
       />
 

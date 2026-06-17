@@ -11,12 +11,12 @@ import MobileSearchInput from '@/components/Mobile/MobileSearchInput'
 import BottomSheet from '@/components/Mobile/BottomSheet'
 import type { FacilityComplianceStatus, FacilityStatus, ComplianceRecord } from '@/types/facility'
 import { getComplianceDueDate, CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
+import { scopeToLocationAdmin } from '@/utils/facilityHelpers'
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const { month: PERIOD_MONTH, year: PERIOD_YEAR } = CURRENT_COMPLIANCE_PERIOD
 
-const SBU_VALUES = ['North', 'South', 'East', 'West']
 const STATUS_VALUES: FacilityStatus[] = ['active', 'inactive']
 const COMPLIANCE_VALUES: FacilityComplianceStatus[] = ['pending', 'draft', 'submitted', 'updated', 'overdue', 'missed']
 
@@ -56,11 +56,11 @@ function getCurrentRecord(records: ComplianceRecord[], facilityId: string) {
 
 export default function MyFacilitiesMobile() {
   const navigate = useNavigate()
-  const facilities = useFacilityStore((s) => s.facilities)
+  const allFacilities = useFacilityStore((s) => s.facilities)
+  const facilities = useMemo(() => scopeToLocationAdmin(allFacilities), [allFacilities])
   const complianceRecords = useFacilityStore((s) => s.complianceRecords)
 
   const [search, setSearch] = useState('')
-  const [sbuFilter, setSbuFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<FacilityStatus | ''>('')
   const [complianceFilter, setComplianceFilter] = useState<FacilityComplianceStatus | ''>('')
 
@@ -77,17 +77,15 @@ export default function MyFacilitiesMobile() {
     setTimeout(() => setFilterSheetMounted(false), 260)
   }
 
-  const hasActiveFilters = sbuFilter !== '' || statusFilter !== '' || complianceFilter !== ''
+  const hasActiveFilters = statusFilter !== '' || complianceFilter !== ''
 
   function clearFilters() {
-    setSbuFilter('')
     setStatusFilter('')
     setComplianceFilter('')
   }
 
   const filtered = useMemo(() => {
     let result = [...facilities]
-    if (sbuFilter) result = result.filter((f) => f.sbu === sbuFilter)
     if (statusFilter) result = result.filter((f) => f.status === statusFilter)
     if (complianceFilter) result = result.filter((f) => f.complianceStatus === complianceFilter)
     if (search.trim()) {
@@ -96,7 +94,7 @@ export default function MyFacilitiesMobile() {
     }
     result.sort((a, b) => Number(isSubmitted(a.complianceStatus)) - Number(isSubmitted(b.complianceStatus)))
     return result
-  }, [facilities, sbuFilter, statusFilter, complianceFilter, search])
+  }, [facilities, statusFilter, complianceFilter, search])
 
   return (
     <div className="md:hidden h-full flex flex-col bg-surface-secondary">
@@ -119,7 +117,7 @@ export default function MyFacilitiesMobile() {
               <i className="ri-filter-3-line text-base" />
               {hasActiveFilters && (
                 <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-brand text-[9px] font-semibold text-white flex items-center justify-center">
-                  {[sbuFilter, statusFilter, complianceFilter].filter(Boolean).length}
+                  {[statusFilter, complianceFilter].filter(Boolean).length}
                 </span>
               )}
             </button>
@@ -153,7 +151,6 @@ export default function MyFacilitiesMobile() {
                   </div>
 
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <span className="text-xs text-text-secondary bg-surface-secondary px-2 py-0.5 rounded-full">{facility.sbu}</span>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${COMPLIANCE_STYLE[facility.complianceStatus]}`}>
                       {COMPLIANCE_LABEL[facility.complianceStatus]}
                     </span>
@@ -221,22 +218,6 @@ export default function MyFacilitiesMobile() {
           }
         >
           <div className="px-5 py-4 space-y-5">
-            {/* SBU */}
-            <div>
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">SBU</p>
-              <div className="flex flex-wrap gap-2">
-                {['', ...SBU_VALUES].map((val) => (
-                  <button
-                    key={val}
-                    onClick={() => setSbuFilter(val)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${sbuFilter === val ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
-                  >
-                    {val === '' ? 'All' : val}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Facility status */}
             <div>
               <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">Facility Status</p>

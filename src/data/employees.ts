@@ -77,6 +77,10 @@ export const employees: Employee[] = [
   // Facility — Building Admin (South SBU, Tamil Nadu)
   { id: 'emp-ra', name: 'Ravi Anand', email: 'facilityadmin@gmmco.com', department: 'Facilities', locationId: 'loc-1' },
 
+  // Facility — SBU Admin (South, West)
+  { id: 'emp-suresh',   name: 'Suresh Nair',  email: 'sbuadmin@gmmco.com',      department: 'Facilities', locationId: 'loc-1' },
+  { id: 'emp-sbu-west', name: 'Kavita Mehta', email: 'sbuadmin.west@gmmco.com', department: 'Facilities', locationId: 'loc-1' },
+
   // Branch — RS Puram, Coimbatore (3 employees)
   { id: 'emp-50', name: 'Murugan Selvam',    email: 'murugan.s@gmmco.com',         department: 'SUPPORT FUNCTIONS',  locationId: 'loc-13' },
   { id: 'emp-51', name: 'Geetha Ramasamy',   email: 'geetha.r@gmmco.com',          department: 'Service',            locationId: 'loc-13' },

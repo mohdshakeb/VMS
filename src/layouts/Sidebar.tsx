@@ -10,6 +10,9 @@ import logoUrl from '@/assets/Logo.svg'
 const childToParentNav: Record<string, string> = {
   '/facility/facilities/':  '/facility/facilities',
   '/facility/compliance/':  '/facility/compliance',
+  '/sbu/locations/':        '/sbu/locations',
+  '/sbu/facilities/':       '/sbu/locations',
+  '/sbu/compliance/':       '/sbu/compliance',
 }
 
 function getActiveNavPath(pathname: string): string {
@@ -44,6 +47,11 @@ const navByRole: Record<Role, NavItem[]> = {
     { label: 'Facilities',         path: '/facility/facilities',  icon: 'ri-building-2-line' },
     { label: 'Compliance History', path: '/facility/compliance',  icon: 'ri-camera-line' },
   ],
+  'sbu-admin': [
+    { label: 'Dashboard',  path: '/sbu/dashboard',   icon: 'ri-home-2-line' },
+    { label: 'Locations',  path: '/sbu/locations',   icon: 'ri-map-pin-2-line' },
+    { label: 'Compliance', path: '/sbu/compliance',  icon: 'ri-shield-check-line' },
+  ],
 }
 
 const roleLabels: Record<Role, string> = {
@@ -51,6 +59,7 @@ const roleLabels: Record<Role, string> = {
   employee: 'Employee',
   'central-admin': 'Central Admin',
   'location-admin': 'Location Admin',
+  'sbu-admin': 'SBU Admin',
 }
 
 export default function Sidebar() {
@@ -89,8 +98,8 @@ export default function Sidebar() {
         <img src={logoUrl} alt="GMMCO — CKA Birla Group" className="h-10 w-auto" />
       </div>
 
-      {/* Location card — hidden for employees and building-admin (facility role has no VMS location) */}
-      {currentRole !== 'employee' && currentRole !== 'location-admin' && <div ref={locationRef} className="shrink-0 px-3 pb-3 relative">
+      {/* Location card — hidden for employees and facility roles (no VMS location) */}
+      {currentRole !== 'employee' && currentRole !== 'location-admin' && currentRole !== 'sbu-admin' && <div ref={locationRef} className="shrink-0 px-3 pb-3 relative">
         <button
           onClick={() => setLocationOpen((o) => !o)}
           className="w-full flex items-center gap-2.5 bg-chrome-surface border border-chrome-border-subtle rounded-lg px-2 py-2 hover:border-chrome-border transition-colors text-left"

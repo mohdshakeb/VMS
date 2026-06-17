@@ -1,6 +1,7 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, type ReactNode } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
+import { useAuthStore } from '@/store/authStore'
 import PageHeader from '@/components/PageHeader'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
@@ -9,6 +10,7 @@ import SectionLabel from '@/components/common/SectionLabel'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import type { ChecklistAnswer, ComplianceChecklistEntry } from '@/types/facility'
 import FacilityIdentityCard from '@/components/facility/FacilityIdentityCard'
+import ComplianceReportCard from '@/components/facility/ComplianceReportCard'
 import { formatComplianceDueDate, getComplianceDueDate, isCurrentPeriod, PROTOTYPE_NOW } from '@/data/facilityData'
 
 const MONTH_NAMES = [
@@ -150,7 +152,11 @@ function ChecklistItemRow({
 
 // ─── Read-only item row ───────────────────────────────────────────────────────
 
-function ChecklistItemRowReadOnly({ entry }: { entry: ComplianceChecklistEntry }) {
+function ChecklistItemRowReadOnly({
+  entry,
+}: {
+  entry: ComplianceChecklistEntry
+}) {
   if (!entry.answer) return null
   const cfg = ANSWER_CONFIG[entry.answer]
 
@@ -178,6 +184,112 @@ function ChecklistItemRowReadOnly({ entry }: { entry: ComplianceChecklistEntry }
           ))}
         </div>
       )}
+
+      {entry.sbuComment && (
+        <div className="mt-3 flex items-start gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          <i className="ri-shield-check-line shrink-0 mt-0.5" />
+          <p><span className="font-semibold">SBU:</span> {entry.sbuComment}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── SBU Admin editable row (answers/photos editable, Location Admin remarks static) ──
+
+function ChecklistItemRowSbuEdit({
+  entry,
+  touched,
+  onAnswer,
+  onAddPhoto,
+  onRemovePhoto,
+  onSbuComment,
+}: {
+  entry: ComplianceChecklistEntry
+  touched: boolean
+  onAnswer: (answer: ChecklistAnswer) => void
+  onAddPhoto: () => void
+  onRemovePhoto: (index: number) => void
+  onSbuComment: (comment: string) => void
+}) {
+  const answers: ChecklistAnswer[] = entry.isMandatory
+    ? ['yes', 'partial', 'no']
+    : ['yes', 'partial', 'no', 'na']
+  const showExtras = entry.isMandatory || (entry.answer !== undefined && entry.answer !== 'na')
+  const showSbuComment = touched || Boolean(entry.sbuComment)
+
+  return (
+    <div className="py-4 border-b border-border-light last:border-0">
+      <div className="flex items-start gap-1.5 mb-3">
+        {renderLabel(entry.label, entry.isMandatory)}
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {answers.map((ans) => {
+          const cfg = ANSWER_CONFIG[ans]
+          const selected = entry.answer === ans
+          return (
+            <button
+              key={ans}
+              type="button"
+              onClick={() => onAnswer(ans)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs border transition-colors ${selected ? cfg.selected : cfg.unselected}`}
+            >
+              {cfg.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {showExtras && (
+        <div className="mt-3">
+          <p className="text-xs mb-2 text-text-tertiary">Photos ({entry.photos.length}/4)</p>
+          <div className="grid grid-cols-4 gap-2">
+            {entry.photos.map((url, i) => (
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-border-light">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => onRemovePhoto(i)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
+                >
+                  <i className="ri-close-line text-white text-[10px]" />
+                </button>
+              </div>
+            ))}
+            {entry.photos.length < 4 && (
+              <button
+                type="button"
+                onClick={onAddPhoto}
+                className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-brand/50 bg-surface-secondary/30 hover:bg-brand-red-50/20 flex items-center justify-center transition-colors"
+              >
+                <i className="ri-add-line text-xl text-text-tertiary" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {entry.remarks && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+          {entry.remarks}
+        </p>
+      )}
+
+      {showSbuComment && (
+        <div className="mt-3">
+          <p className="text-xs text-text-tertiary mb-1.5 flex items-center gap-1">
+            <i className="ri-chat-1-line" /> SBU comment
+          </p>
+          <textarea
+            value={entry.sbuComment ?? ''}
+            onChange={(e) => onSbuComment(e.target.value)}
+            placeholder="Add a comment for the Location Admin…"
+            rows={2}
+            className="w-full text-sm px-3 py-2 rounded-xl border border-blue-200 bg-blue-50/40 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder:text-text-tertiary resize-none"
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -190,16 +302,23 @@ export default function ComplianceDetail() {
   const records = useFacilityStore((s) => s.complianceRecords)
   const facilities = useFacilityStore((s) => s.facilities)
   const setChecklistAnswer = useFacilityStore((s) => s.setChecklistAnswer)
+  const setSbuChecklistAnswer = useFacilityStore((s) => s.setSbuChecklistAnswer)
   const setChecklistRemarks = useFacilityStore((s) => s.setChecklistRemarks)
   const addChecklistPhoto = useFacilityStore((s) => s.addChecklistPhoto)
   const removeChecklistPhoto = useFacilityStore((s) => s.removeChecklistPhoto)
   const clearCompliance = useFacilityStore((s) => s.clearCompliance)
   const saveComplianceDraft = useFacilityStore((s) => s.saveComplianceDraft)
   const submitCompliance = useFacilityStore((s) => s.submitCompliance)
+  const setSbuComment = useFacilityStore((s) => s.setSbuComment)
+  const sendComplianceFeedback = useFacilityStore((s) => s.sendComplianceFeedback)
+  const { currentRole } = useAuthStore()
+  const isSbuAdmin = currentRole === 'sbu-admin'
+  const basePath = isSbuAdmin ? '/sbu' : '/facility'
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingItemId, setPendingItemId] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
+  const [touchedItemIds, setTouchedItemIds] = useState<Set<string>>(new Set())
   const [pendingNav, setPendingNav] = useState<string | number | null>(null)
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -224,12 +343,20 @@ export default function ComplianceDetail() {
   }
 
   const isEditable = (record.status === 'pending' || record.status === 'draft' || record.status === 'submitted' || record.status === 'updated' || record.status === 'overdue') && isCurrentPeriod(record.month, record.year)
+  // SBU Admin can review/edit any record regardless of status or period — see ComplianceReportCard.
+  const canEditForRole = isSbuAdmin || isEditable
   const period = `${MONTH_NAMES[record.month - 1]} ${record.year}`
 
   const totalItems = record.checklist.length
   const answeredItems = record.checklist.filter((e) => e.answer !== undefined).length
   const mandatoryEntries = record.checklist.filter((e) => e.isMandatory)
   const canSubmit = mandatoryEntries.every(isEntryComplete) && mandatoryEntries.length > 0
+
+  function handleSbuSave() {
+    if (!recordId) return
+    sendComplianceFeedback(recordId)
+    setIsDirty(false)
+  }
 
   function handleAddPhoto(itemId: string) {
     setPendingItemId(itemId)
@@ -241,6 +368,7 @@ export default function ComplianceDetail() {
     if (!file || !pendingItemId || !recordId) return
     const url = URL.createObjectURL(file)
     setIsDirty(true)
+    if (isSbuAdmin) setTouchedItemIds((prev) => new Set(prev).add(pendingItemId))
     addChecklistPhoto(recordId, pendingItemId, url)
     setPendingItemId(null)
     e.target.value = ''
@@ -310,34 +438,66 @@ export default function ComplianceDetail() {
   const isPastDue = PROTOTYPE_NOW > dueDate
   const isOverdueRecord = record.status === 'overdue'
   const isMissedRecord = record.status === 'missed'
+  const isPostSubmission = record.status === 'submitted' || record.status === 'updated'
 
-  const complianceFields = [
-    { label: 'Period', value: period },
-    {
-      label: 'Due date',
-      value: (
-        <span className={`text-sm font-medium ${isOverdueRecord || isMissedRecord ? 'text-red-fg' : isPastDue && record.status !== 'submitted' && record.status !== 'updated' ? 'text-red-fg' : 'text-text-primary'}`}>
-          {formatComplianceDueDate(record.month, record.year)}
-          {isMissedRecord && <span className="ml-1.5 text-xs font-normal">— Missed</span>}
-          {isOverdueRecord && <span className="ml-1.5 text-xs font-normal">— Overdue</span>}
-        </span>
-      ),
-    },
-    { label: 'Progress', value: `${answeredItems} / ${totalItems} answered` },
-    ...(record.submittedBy || record.submittedAt ? [{
-      label: 'Last updated',
-      value: (
-        <div>
-          {record.submittedBy && <p className="text-sm font-medium text-text-primary">{record.submittedBy}</p>}
-          {record.submittedAt && <p className="text-xs text-text-tertiary mt-0.5">{formatDate(record.submittedAt)}</p>}
-        </div>
-      ),
-    }] : []),
-    {
-      label: 'Status',
-      value: <FacilityStatusBadge status={record.status} />,
-    },
-  ]
+  const nextMonth = record.month === 12 ? 1 : record.month + 1
+  const nextYear = record.month === 12 ? record.year + 1 : record.year
+  const nextDueFormatted = formatComplianceDueDate(nextMonth, nextYear)
+
+  let complianceFields: { label: string; value: ReactNode }[]
+
+  if (isMissedRecord) {
+    complianceFields = [
+      { label: 'Period', value: period },
+      { label: 'Status', value: <FacilityStatusBadge status={record.status} /> },
+      { label: 'Next due', value: nextDueFormatted },
+      isSbuAdmin
+        ? { label: 'Location Admin', value: building?.locationAdmin ?? '—' }
+        : { label: 'SBU Admin', value: 'Suresh Nair' },
+    ]
+  } else if (isPostSubmission) {
+    if (isSbuAdmin) {
+      complianceFields = [
+        { label: 'Period', value: period },
+        { label: 'Status', value: <FacilityStatusBadge status={record.status} /> },
+        { label: 'Submitted by', value: record.submittedBy ?? '—' },
+        record.status === 'updated'
+          ? { label: 'Updated on', value: formatDate(record.approvedAt) }
+          : { label: 'Submitted on', value: formatDate(record.submittedAt) },
+      ]
+    } else {
+      complianceFields = [
+        { label: 'Period', value: period },
+        { label: 'Status', value: <FacilityStatusBadge status={record.status} /> },
+        { label: 'Submitted on', value: formatDate(record.submittedAt) },
+        {
+          label: 'Updated by',
+          value: record.approvedBy ? (
+            <div>
+              <p className="text-sm font-medium text-text-primary">{record.approvedBy}</p>
+              <p className="text-xs text-text-tertiary mt-0.5">{formatDate(record.approvedAt)}</p>
+            </div>
+          ) : '—',
+        },
+      ]
+    }
+  } else {
+    // Pre-submission: pending / draft / overdue — same for both roles
+    complianceFields = [
+      { label: 'Period', value: period },
+      {
+        label: 'Due date',
+        value: (
+          <span className={`text-sm font-medium ${isOverdueRecord ? 'text-red-fg' : isPastDue ? 'text-red-fg' : 'text-text-primary'}`}>
+            {formatComplianceDueDate(record.month, record.year)}
+            {isOverdueRecord && <span className="ml-1.5 text-xs font-normal">— Overdue</span>}
+          </span>
+        ),
+      },
+      { label: 'Progress', value: `${answeredItems} / ${totalItems} answered` },
+      { label: 'Status', value: <FacilityStatusBadge status={record.status} /> },
+    ]
+  }
 
   const detailCard = (
     <FacilityIdentityCard
@@ -350,6 +510,8 @@ export default function ComplianceDetail() {
     />
   )
 
+  const reportCard = isSbuAdmin ? <ComplianceReportCard checklist={record.checklist} /> : null
+
   // ─── Section nav ──────────────────────────────────────────────────────────────
 
   const sectionNav = (
@@ -358,7 +520,7 @@ export default function ComplianceDetail() {
         <nav className="space-y-0.5">
           {sections.map((section) => {
             const entries = record.checklist.filter((e) => e.section === section)
-            const answered = isEditable
+            const answered = canEditForRole
               ? entries.filter((e) => e.answer !== undefined).length
               : entries.filter(isEntryComplete).length
             const isActive = activeSection === section
@@ -389,6 +551,43 @@ export default function ComplianceDetail() {
 
   const incompleteCount = mandatoryEntries.filter((e) => !isEntryComplete(e)).length
 
+  const renderEntry = (entry: ComplianceChecklistEntry) => {
+    if (isSbuAdmin) {
+      return (
+        <ChecklistItemRowSbuEdit
+          key={entry.itemId}
+          entry={entry}
+          touched={touchedItemIds.has(entry.itemId)}
+          onAnswer={(ans) => {
+            setIsDirty(true)
+            setTouchedItemIds((prev) => new Set(prev).add(entry.itemId))
+            setSbuChecklistAnswer(record.id, entry.itemId, ans)
+          }}
+          onAddPhoto={() => handleAddPhoto(entry.itemId)}
+          onRemovePhoto={(i) => {
+            setIsDirty(true)
+            setTouchedItemIds((prev) => new Set(prev).add(entry.itemId))
+            removeChecklistPhoto(record.id, entry.itemId, i)
+          }}
+          onSbuComment={(comment) => setSbuComment(record.id, entry.itemId, comment)}
+        />
+      )
+    }
+    return isEditable ? (
+      <ChecklistItemRow
+        key={entry.itemId}
+        entry={entry}
+        showValidation={submitAttempted}
+        onAnswer={(ans) => { setIsDirty(true); setChecklistAnswer(record.id, entry.itemId, ans) }}
+        onRemarks={(rem) => { setIsDirty(true); setChecklistRemarks(record.id, entry.itemId, rem) }}
+        onAddPhoto={() => handleAddPhoto(entry.itemId)}
+        onRemovePhoto={(i) => { setIsDirty(true); removeChecklistPhoto(record.id, entry.itemId, i) }}
+      />
+    ) : (
+      <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
+    )
+  }
+
   const checklistSections = (
     <div className="space-y-4">
       {isOverdueRecord && (
@@ -417,7 +616,7 @@ export default function ComplianceDetail() {
       )}
       {sections.map((section) => {
         const entries = record.checklist.filter((e) => e.section === section)
-        const answered = isEditable
+        const answered = canEditForRole
           ? entries.filter((e) => e.answer !== undefined).length
           : entries.filter(isEntryComplete).length
 
@@ -446,40 +645,11 @@ export default function ComplianceDetail() {
                               {sub}
                             </p>
                           )}
-                          {isEditable
-                            ? subEntries.map((entry) => (
-                                <ChecklistItemRow
-                                  key={entry.itemId}
-                                  entry={entry}
-                                  showValidation={submitAttempted}
-                                  onAnswer={(ans) => { setIsDirty(true); setChecklistAnswer(record.id, entry.itemId, ans) }}
-                                  onRemarks={(rem) => { setIsDirty(true); setChecklistRemarks(record.id, entry.itemId, rem) }}
-                                  onAddPhoto={() => handleAddPhoto(entry.itemId)}
-                                  onRemovePhoto={(i) => { setIsDirty(true); removeChecklistPhoto(record.id, entry.itemId, i) }}
-                                />
-                              ))
-                            : subEntries.map((entry) => (
-                                <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
-                              ))
-                          }
+                          {subEntries.map(renderEntry)}
                         </div>
                       )
                     })
-                  : isEditable
-                    ? entries.map((entry) => (
-                        <ChecklistItemRow
-                          key={entry.itemId}
-                          entry={entry}
-                          showValidation={submitAttempted}
-                          onAnswer={(ans) => { setIsDirty(true); setChecklistAnswer(record.id, entry.itemId, ans) }}
-                          onRemarks={(rem) => { setIsDirty(true); setChecklistRemarks(record.id, entry.itemId, rem) }}
-                          onAddPhoto={() => handleAddPhoto(entry.itemId)}
-                          onRemovePhoto={(i) => { setIsDirty(true); removeChecklistPhoto(record.id, entry.itemId, i) }}
-                        />
-                      ))
-                    : entries.map((entry) => (
-                        <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
-                      ))
+                  : entries.map(renderEntry)
                 }
               </div>
             </Card>
@@ -495,7 +665,18 @@ export default function ComplianceDetail() {
         title={record.facilityName}
         breadcrumb={[{ label: 'Compliance' }]}
         onBack={() => handleNavAway(-1)}
-        actions={isEditable ? (
+        actions={isSbuAdmin ? (
+          isDirty
+            ? <Button size="sm" onClick={handleSbuSave}>Save</Button>
+            : record.status === 'submitted'
+              ? (
+                <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors text-sm font-medium">
+                  <i className="ri-download-line text-sm" />
+                  Export
+                </button>
+              )
+              : undefined
+        ) : isEditable ? (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={handleSaveDraft}>Save draft</Button>
             <Button size="sm" onClick={handleSubmit}>Submit</Button>
@@ -544,8 +725,9 @@ export default function ComplianceDetail() {
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto" onScroll={handleScroll}>
         {/* Mobile: single column */}
-        <div className={`md:hidden px-4 py-5 space-y-4 max-w-lg mx-auto ${isEditable ? 'pb-24' : ''}`}>
+        <div className={`md:hidden px-4 py-5 space-y-4 max-w-lg mx-auto ${canEditForRole ? 'pb-24' : ''}`}>
           {detailCard}
+          {reportCard}
           {checklistSections}
         </div>
 
@@ -555,13 +737,20 @@ export default function ComplianceDetail() {
             {detailCard}
             {sectionNav}
           </div>
-          <div className={`flex-1 min-w-0 ${isEditable ? 'pb-5' : ''}`}>
+          <div className={`flex-1 min-w-0 space-y-4 ${canEditForRole ? 'pb-5' : ''}`}>
+            {reportCard}
             {checklistSections}
           </div>
         </div>
       </div>
 
-      {isEditable && (
+      {isSbuAdmin ? (
+        isDirty && (
+          <div className="md:hidden shrink-0 px-4 py-3 border-t border-border-light bg-white">
+            <Button size="md" fullWidth onClick={handleSbuSave}>Save</Button>
+          </div>
+        )
+      ) : isEditable && (
         <div className="md:hidden shrink-0 px-4 py-3 border-t border-border-light bg-white flex items-center gap-2">
           <Button size="md" variant="secondary" fullWidth onClick={handleSaveDraft}>Save draft</Button>
           <Button size="md" fullWidth onClick={handleSubmit}>Submit</Button>
@@ -592,7 +781,7 @@ export default function ComplianceDetail() {
         </div>
       )}
 
-      {isEditable && (
+      {canEditForRole && (
         <input
           ref={fileInputRef}
           type="file"
@@ -603,7 +792,7 @@ export default function ComplianceDetail() {
       )}
 
       {/* Submit success */}
-      <Modal open={showSubmitSuccess} onClose={() => { setShowSubmitSuccess(false); navigate('/facility/compliance') }} size="md">
+      <Modal open={showSubmitSuccess} onClose={() => { setShowSubmitSuccess(false); navigate(`${basePath}/compliance`) }} size="md">
         <div className="py-4 flex flex-col items-center text-center gap-5">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -616,7 +805,7 @@ export default function ComplianceDetail() {
             <p className="text-sm text-text-secondary mt-1">{record.facilityName}</p>
             <p className="text-xs text-text-tertiary mt-0.5">{period}</p>
           </div>
-          <Button fullWidth onClick={() => { setShowSubmitSuccess(false); navigate('/facility/compliance') }}>Done</Button>
+          <Button fullWidth onClick={() => { setShowSubmitSuccess(false); navigate(`${basePath}/compliance`) }}>Done</Button>
         </div>
       </Modal>
 
@@ -646,12 +835,15 @@ export default function ComplianceDetail() {
               size="md"
               fullWidth
               onClick={() => {
-                if (recordId) saveComplianceDraft(recordId)
+                if (recordId) {
+                  if (isSbuAdmin) sendComplianceFeedback(recordId)
+                  else saveComplianceDraft(recordId)
+                }
                 setIsDirty(false)
                 navigate(pendingNav as any)
               }}
             >
-              Save draft
+              {isSbuAdmin ? 'Save' : 'Save draft'}
             </Button>
             <Button
               size="md"

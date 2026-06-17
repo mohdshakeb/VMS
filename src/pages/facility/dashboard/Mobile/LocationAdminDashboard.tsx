@@ -3,6 +3,7 @@
 // No PageHeader — AppLayout's MobileTopBar provides the chrome.
 // No responsive prefixes — every class here describes the mobile layout as-is.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import { useAuthStore } from '@/store/authStore'
@@ -12,6 +13,7 @@ import ComplianceCard from '@/components/facility/ComplianceCard'
 import EmptyState from '@/components/common/EmptyState'
 import { formatRelativeTime } from '@/utils/helpers'
 import { PROTOTYPE_NOW } from '@/data/facilityData'
+import { scopeToLocationAdmin } from '@/utils/facilityHelpers'
 
 const TYPE_ICONS: Record<string, string> = {
   'walk-in-approval':              'ri-walk-line',
@@ -47,7 +49,8 @@ const MONTH_LABEL = PROTOTYPE_NOW.toLocaleString('default', { month: 'long', yea
 
 export default function LocationAdminDashboardMobile() {
   const navigate = useNavigate()
-  const facilities = useFacilityStore((s) => s.facilities)
+  const allFacilities = useFacilityStore((s) => s.facilities)
+  const facilities = useMemo(() => scopeToLocationAdmin(allFacilities), [allFacilities])
   const complianceRecords = useFacilityStore((s) => s.complianceRecords)
   const { currentRole } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)

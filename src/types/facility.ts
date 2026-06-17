@@ -21,6 +21,7 @@ export interface ComplianceChecklistEntry {
   answer?: ChecklistAnswer
   remarks?: string
   photos: string[]
+  sbuComment?: string
 }
 
 export interface Facility {
@@ -52,6 +53,12 @@ export interface Facility {
   complianceProgress: number
   complianceTotal: number
   complianceDraftAge?: number
+  pendingStatusRequest?: {
+    requestedStatus: FacilityStatus
+    requestedBy: string
+    requestedAt: string
+    reason?: string
+  }
 }
 
 export interface InfraCategory {

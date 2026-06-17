@@ -3,13 +3,14 @@
 // Scoped to selected location(s). Adds a Location column when "All Locations" is active.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect } from 'react'
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useVisitStore } from '@/store/visitStore'
 import { useAuthStore } from '@/store/authStore'
 import { visitors as seedVisitors } from '@/data/visitors'
 import { employees } from '@/data/employees'
 import { locations } from '@/data/locations'
 import PageHeader from '@/components/PageHeader'
+import NotificationBell from '@/components/NotificationBell'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import Button from '@/components/Button'
 import { formatDate, formatTime, getStatusColor, getStatusLabel, getVisitTypeLabel, getLocalDateString } from '@/utils/helpers'
@@ -143,19 +144,9 @@ export default function ManagerVisitHistoryDesktop() {
     <div className="hidden md:flex flex-col h-full bg-surface-secondary">
       <PageHeader
         title="Visit History"
+        icon={<NotificationBell unreadCount={unreadCount} to="/notifications" />}
         actions={
           <>
-            <NavLink
-              to="/notifications"
-              className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors"
-            >
-              <i className="ri-notification-3-line text-xl text-text-secondary" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
-                  {unreadCount}
-                </span>
-              )}
-            </NavLink>
             <Button size="md" icon="ri-add-large-fill" onClick={() => navigate('/employee/create-visit')} className="ml-1">
               Create Visit
             </Button>

@@ -10,12 +10,7 @@ import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import EmptyState from '@/components/common/EmptyState'
 import type { FacilityComplianceStatus, ComplianceRecord } from '@/types/facility'
 import { formatComplianceDueDate, getComplianceDueDate, PROTOTYPE_NOW } from '@/data/facilityData'
-import { scopeToLocationAdmin } from '@/utils/facilityHelpers'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+import { MONTH_NAMES } from '@/utils/facilityHelpers'
 
 const STATUS_OPTIONS: { label: string; value: FacilityComplianceStatus | '' }[] = [
   { label: 'All statuses', value: '' },
@@ -48,27 +43,30 @@ function totalCount(record: ComplianceRecord) {
   return record.checklist.length
 }
 
-export default function ComplianceHomeDesktop() {
+export default function SbuComplianceHistoryDesktop() {
   const navigate = useNavigate()
-  const { currentRole, currentEmployeeId } = useAuthStore()
+  const { currentRole, currentEmployeeId, currentSbu } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
   const openNotificationsModal = useNotificationStore((s) => s.openNotificationsModal)
-  const allFacilities = useFacilityStore((s) => s.facilities)
-  const facilities = useMemo(() => scopeToLocationAdmin(allFacilities), [allFacilities])
+  const facilities = useFacilityStore((s) => s.facilities)
   const allRecords = useFacilityStore((s) => s.complianceRecords)
 
-  const baseRecords = useMemo(() => {
-    const facilityIds = new Set(facilities.map((f) => f.id))
-    return allRecords
-      .filter((r) => facilityIds.has(r.facilityId))
-      .sort((a, b) => {
-        const aOpen = ['pending', 'draft', 'overdue', 'submitted', 'updated'].includes(a.status) ? 0 : 1
-        const bOpen = ['pending', 'draft', 'overdue', 'submitted', 'updated'].includes(b.status) ? 0 : 1
-        if (aOpen !== bOpen) return aOpen - bOpen
-        return b.year - a.year || b.month - a.month
-      })
-  }, [allRecords, facilities])
+  const sbuFacilities = useMemo(() => facilities.filter((f) => f.sbu === currentSbu), [facilities, currentSbu])
+  const sbuFacilityIds = useMemo(() => new Set(sbuFacilities.map((f) => f.id)), [sbuFacilities])
+
+  const baseRecords = useMemo(
+    () =>
+      [...allRecords]
+        .filter((r) => sbuFacilityIds.has(r.facilityId))
+        .sort((a, b) => {
+          const aOpen = ['pending', 'draft', 'overdue', 'submitted', 'updated'].includes(a.status) ? 0 : 1
+          const bOpen = ['pending', 'draft', 'overdue', 'submitted', 'updated'].includes(b.status) ? 0 : 1
+          if (aOpen !== bOpen) return aOpen - bOpen
+          return b.year - a.year || b.month - a.month
+        }),
+    [allRecords, sbuFacilityIds],
+  )
 
   const years = useMemo(
     () => [...new Set(baseRecords.map((r) => r.year))].sort((a, b) => b - a),
@@ -84,12 +82,19 @@ export default function ComplianceHomeDesktop() {
       .filter((l): l is string => Boolean(l))
     return [...new Set(locs)].sort()
   }, [baseRecords, facilities])
+  const admins = useMemo(() => {
+    const names = baseRecords
+      .map((r) => facilities.find((f) => f.id === r.facilityId)?.locationAdmin)
+      .filter((n): n is string => Boolean(n))
+    return [...new Set(names)].sort()
+  }, [baseRecords, facilities])
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<FacilityComplianceStatus | ''>('')
   const [yearFilter, setYearFilter] = useState<number | ''>('')
   const [facilityFilter, setFacilityFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
+  const [adminFilter, setAdminFilter] = useState('')
 
   const filtered = useMemo(() => {
     let result = [...baseRecords]
@@ -100,20 +105,25 @@ export default function ComplianceHomeDesktop() {
       const f = facilities.find((fac) => fac.id === r.facilityId)
       return f?.location === locationFilter
     })
+    if (adminFilter) result = result.filter((r) => {
+      const f = facilities.find((fac) => fac.id === r.facilityId)
+      return f?.locationAdmin === adminFilter
+    })
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter((r) => r.facilityName.toLowerCase().includes(q))
     }
     return result
-  }, [baseRecords, statusFilter, yearFilter, facilityFilter, locationFilter, search, facilities])
+  }, [baseRecords, statusFilter, yearFilter, facilityFilter, locationFilter, adminFilter, search, facilities])
 
-  const hasActiveFilters = statusFilter !== '' || yearFilter !== '' || facilityFilter !== '' || locationFilter !== ''
+  const hasActiveFilters = statusFilter !== '' || yearFilter !== '' || facilityFilter !== '' || locationFilter !== '' || adminFilter !== ''
 
   function clearFilters() {
     setStatusFilter('')
     setYearFilter('')
     setFacilityFilter('')
     setLocationFilter('')
+    setAdminFilter('')
   }
 
   function getFacilityDetails(facilityId: string) {
@@ -154,6 +164,19 @@ export default function ComplianceHomeDesktop() {
                 {locations.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
               <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${locationFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+            </div>
+
+            {/* Location Admin */}
+            <div className="relative">
+              <select
+                value={adminFilter}
+                onChange={(e) => setAdminFilter(e.target.value)}
+                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${adminFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+              >
+                <option value="">Location Admin</option>
+                {admins.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${adminFilter ? 'text-brand' : 'text-text-tertiary'}`} />
             </div>
 
             {/* Year */}
@@ -231,21 +254,21 @@ export default function ComplianceHomeDesktop() {
                   </tr>
                 ) : (
                   filtered.map((record, idx) => {
-                    const building = getFacilityDetails(record.facilityId)
+                    const facility = getFacilityDetails(record.facilityId)
                     return (
                       <tr
                         key={record.id}
                         className="border-b border-border-light last:border-0 cursor-pointer hover:bg-surface-secondary/60 transition-colors"
-                        onClick={() => navigate(`/facility/compliance/record/${record.id}`)}
+                        onClick={() => navigate(`/sbu/compliance/record/${record.id}`)}
                       >
                         <td className="px-4 py-3.5 text-sm text-text-tertiary tabular-nums">
                           {String(idx + 1).padStart(2, '0')}
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            {building?.photoUrl ? (
+                            {facility?.photoUrl ? (
                               <img
-                                src={building.photoUrl}
+                                src={facility.photoUrl}
                                 alt={record.facilityName}
                                 className="h-10 w-10 rounded-lg object-cover shrink-0 border border-border-light"
                                 loading="lazy"
@@ -257,8 +280,8 @@ export default function ComplianceHomeDesktop() {
                             )}
                             <div>
                               <p className="text-sm font-medium text-text-primary leading-tight whitespace-nowrap">{record.facilityName}</p>
-                              {building && (
-                                <p className="text-xs text-text-tertiary leading-tight mt-0.5 whitespace-nowrap">{building.city} · {building.sbu} · {building.state}</p>
+                              {facility && (
+                                <p className="text-xs text-text-tertiary leading-tight mt-0.5 whitespace-nowrap">{facility.city} · {facility.locationAdmin ?? 'Unassigned'} · {facility.state}</p>
                               )}
                             </div>
                           </div>

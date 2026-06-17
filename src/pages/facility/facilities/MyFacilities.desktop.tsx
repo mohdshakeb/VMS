@@ -4,10 +4,12 @@ import { useFacilityStore } from '@/store/facilityStore'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
 import PageHeader from '@/components/PageHeader'
+import NotificationBell from '@/components/NotificationBell'
 import EmptyState from '@/components/common/EmptyState'
 import SearchBar from '@/components/SearchBar'
 import type { ComplianceRecord, FacilityComplianceStatus, FacilityStatus } from '@/types/facility'
 import { getComplianceDueDate, CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
+import { scopeToLocationAdmin } from '@/utils/facilityHelpers'
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -30,14 +32,6 @@ const COMPLIANCE_STYLE: Record<FacilityComplianceStatus, string> = {
 }
 
 const { month: PERIOD_MONTH, year: PERIOD_YEAR } = CURRENT_COMPLIANCE_PERIOD
-
-const SBU_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'SBU' },
-  { value: 'North', label: 'North' },
-  { value: 'South', label: 'South' },
-  { value: 'East',  label: 'East' },
-  { value: 'West',  label: 'West' },
-]
 
 const STATUS_OPTIONS: { value: FacilityStatus | ''; label: string }[] = [
   { value: '', label: 'Status' },
@@ -76,12 +70,12 @@ export default function MyFacilitiesDesktop() {
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
   const openNotificationsModal = useNotificationStore((s) => s.openNotificationsModal)
-  const facilities = useFacilityStore((s) => s.facilities)
+  const allFacilities = useFacilityStore((s) => s.facilities)
+  const facilities = useMemo(() => scopeToLocationAdmin(allFacilities), [allFacilities])
   const complianceRecords = useFacilityStore((s) => s.complianceRecords)
 
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
-  const [sbuFilter, setSbuFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<FacilityStatus | ''>('')
   const [complianceFilter, setComplianceFilter] = useState<FacilityComplianceStatus | ''>('')
 
@@ -93,7 +87,6 @@ export default function MyFacilitiesDesktop() {
   const filtered = useMemo(() => {
     let result = [...facilities]
     if (locationFilter) result = result.filter((f) => f.location === locationFilter)
-    if (sbuFilter) result = result.filter((f) => f.sbu === sbuFilter)
     if (statusFilter) result = result.filter((f) => f.status === statusFilter)
     if (complianceFilter) result = result.filter((f) => f.complianceStatus === complianceFilter)
     if (search.trim()) {
@@ -102,13 +95,12 @@ export default function MyFacilitiesDesktop() {
     }
     result.sort((a, b) => Number(isSubmitted(a.complianceStatus)) - Number(isSubmitted(b.complianceStatus)))
     return result
-  }, [facilities, locationFilter, sbuFilter, statusFilter, complianceFilter, search])
+  }, [facilities, locationFilter, statusFilter, complianceFilter, search])
 
-  const hasActiveFilters = locationFilter !== '' || sbuFilter !== '' || statusFilter !== '' || complianceFilter !== ''
+  const hasActiveFilters = locationFilter !== '' || statusFilter !== '' || complianceFilter !== ''
 
   function clearFilters() {
     setLocationFilter('')
-    setSbuFilter('')
     setStatusFilter('')
     setComplianceFilter('')
   }
@@ -117,16 +109,7 @@ export default function MyFacilitiesDesktop() {
     <div className="hidden md:flex md:flex-col h-full bg-surface-secondary">
       <PageHeader
         title="Facilities"
-        actions={
-          <button onClick={openNotificationsModal} className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-secondary transition-colors">
-            <i className="ri-notification-3-line text-xl text-text-secondary" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-white leading-none">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-        }
+        icon={<NotificationBell unreadCount={unreadCount} onClick={openNotificationsModal} />}
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
@@ -143,18 +126,6 @@ export default function MyFacilitiesDesktop() {
                 {locationOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${locationFilter ? 'text-brand' : 'text-text-tertiary'}`} />
-            </div>
-
-            {/* SBU */}
-            <div className="relative">
-              <select
-                value={sbuFilter}
-                onChange={(e) => setSbuFilter(e.target.value)}
-                className={`text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors ${sbuFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
-              >
-                {SBU_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${sbuFilter ? 'text-brand' : 'text-text-tertiary'}`} />
             </div>
 
             {/* Status */}
@@ -210,7 +181,7 @@ export default function MyFacilitiesDesktop() {
               <thead>
                 <tr className="border-b border-border-light bg-surface/60">
                   <th className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 w-10">#</th>
-                  {['Facility', 'Location', 'State', 'SBU', 'Last Compliance', 'Next Due', 'Compliance'].map((h) => (
+                  {['Facility', 'Location', 'State', 'Last Compliance', 'Next Due', 'Compliance'].map((h) => (
                     <th key={h} className="text-left text-[11px] font-semibold text-text-tertiary uppercase tracking-wider px-4 py-3 whitespace-nowrap">
                       {h}
                     </th>
@@ -220,7 +191,7 @@ export default function MyFacilitiesDesktop() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8}>
+                    <td colSpan={7}>
                       <EmptyState
                         icon={hasActiveFilters || search ? 'ri-filter-off-line' : 'ri-building-2-line'}
                         title={hasActiveFilters || search ? 'No facilities match your filters' : 'No facilities found'}
@@ -270,9 +241,6 @@ export default function MyFacilitiesDesktop() {
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <p className="text-sm text-text-secondary">{facility.state}</p>
-                        </td>
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <p className="text-sm text-text-secondary">{facility.sbu}</p>
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           {last ? (

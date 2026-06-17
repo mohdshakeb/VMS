@@ -37,6 +37,40 @@ export function isComplianceOverdue(month: number, year: number): boolean {
   return PROTOTYPE_NOW > getComplianceDueDate(month, year)
 }
 
+// ─── Facility ID generation (used by onboarding) ──────────────────────────────
+
+const FACILITY_TYPE_CODES: Record<string, string> = {
+  'Branch Office':    'BO',
+  'Parts Warehouse':  'PW',
+  'CRC':              'CRC',
+  'MRC':              'MRC',
+  'Repair Center':    'RC',
+  'Executive Office': 'EO',
+  'HQ':               'HQ',
+}
+
+const STATE_CODES: Record<string, string> = {
+  'Tamil Nadu':    'TN',
+  'Kerala':        'KL',
+  'Karnataka':     'KA',
+  'Delhi NCR':     'DL',
+  'Uttar Pradesh': 'UP',
+  'Rajasthan':     'RJ',
+  'Maharashtra':   'MH',
+  'Gujarat':       'GJ',
+  'West Bengal':   'WB',
+  'Odisha':        'OD',
+}
+
+/** Generates the human-readable facility code, e.g. BO_TN_CHN_ANNASALAI_600002 */
+export function facilityCodeFrom(type: string, state: string, city: string, location: string, pinCode: string) {
+  const typeCode = FACILITY_TYPE_CODES[type] ?? type.slice(0, 3).toUpperCase()
+  const stateCode = STATE_CODES[state] ?? state.slice(0, 2).toUpperCase()
+  const cityCode = city.slice(0, 3).toUpperCase()
+  const locCode = location.replace(/\s+/g, '').toUpperCase().slice(0, 12)
+  return [typeCode, stateCode, cityCode, locCode, pinCode].filter(Boolean).join('_')
+}
+
 // ─── Buildings ───────────────────────────────────────────────────────────────
 
 export const facilities: Facility[] = [
@@ -123,32 +157,6 @@ export const facilities: Facility[] = [
     complianceDocName: 'Safety_Compliance_Madurai.pdf',
     complianceStatus: 'submitted',
     complianceProgress: 70,
-    complianceTotal: 70,
-  },
-  {
-    id: 'bld-4',
-    facilityId: 'PW_GJ_AMD_SGROAD_380054',
-    name: 'Parts Warehouse',
-    type: 'Parts Warehouse',
-    sbu: 'West',
-    state: 'Gujarat',
-    city: 'Ahmedabad',
-    location: 'SG Road - Ahmedabad',
-    address1: '22 SG Road Industrial Zone',
-    address2: '',
-    pinCode: '380054',
-    floors: 1,
-    area: 18000,
-    yearOfConstruction: 2010,
-    latitude: 23.0225,
-    longitude: 72.5714,
-    storeCode: 'AMD-004',
-    description: 'Parts storage and distribution warehouse for West SBU.',
-    status: 'active',
-    locationAdmin: 'Priya Shah',
-    remarks: '',
-    complianceStatus: 'pending',
-    complianceProgress: 0,
     complianceTotal: 70,
   },
 ]
@@ -326,7 +334,7 @@ type AnswerMap = Record<string, { answer: ChecklistAnswer; remarks?: string; pho
 
 const P = 'https://placehold.co/400x300/e2e8f0/64748b?text=Photo'
 
-function buildChecklist(buildingType: FacilityType, answers: AnswerMap = {}): ComplianceChecklistEntry[] {
+export function buildChecklist(buildingType: FacilityType, answers: AnswerMap = {}): ComplianceChecklistEntry[] {
   return CHECKLIST_ITEMS.map((item) => {
     const isMandatory = item.mandatoryFor.includes(buildingType)
     const a = answers[item.id]
@@ -478,26 +486,6 @@ export const complianceRecords: ComplianceRecord[] = [
     submittedAt: '2026-06-03T11:15:00',
     submittedBy: 'Ravi Anand',
   },
-  // May 2026 — pending (bld-4: current period, not yet started)
-  {
-    id: 'comp-8',
-    facilityId: 'bld-4',
-    facilityName: 'Parts Warehouse',
-    month: 5,
-    year: 2026,
-    status: 'pending',
-    checklist: buildChecklist('Parts Warehouse'),
-  },
-  // April 2026 — missed (bld-4: past period, never submitted, locked)
-  {
-    id: 'comp-7',
-    facilityId: 'bld-4',
-    facilityName: 'Parts Warehouse',
-    month: 4,
-    year: 2026,
-    status: 'missed',
-    checklist: buildChecklist('Parts Warehouse'),
-  },
   // April 2026 — approved history
   {
     id: 'comp-4',
@@ -546,54 +534,24 @@ export const complianceRecords: ComplianceRecord[] = [
 export const sbuCascade: Record<string, Record<string, Record<string, string[]>>> = {
   South: {
     'Tamil Nadu': {
-      Chennai:    ['Anna Salai', 'Nungambakkam', 'T Nagar', 'Adyar', 'Porur'],
-      Coimbatore: ['Gandhipuram', 'RS Puram', 'Peelamedu', 'Saravanampatti'],
-      Madurai:    ['Mattuthavani', 'Anna Nagar', 'Bypass Road'],
-      Trichy:     ['Thillai Nagar', 'Woraiyur', 'Srirangam'],
+      Chennai:     ['Anna Salai', 'Nungambakkam', 'T Nagar', 'Adyar', 'Porur'],
+      Coimbatore:  ['Gandhipuram', 'RS Puram', 'Peelamedu', 'Saravanampatti'],
+      Madurai:     ['Mattuthavani', 'Anna Nagar', 'Bypass Road'],
+      Trichy:      ['Thillai Nagar', 'Woraiyur', 'Srirangam'],
+      Salem:       ['Salem'],
+      Tiruppur:    ['Tiruppur'],
+      Vellore:     ['Vellore'],
+      Tirunelveli: ['Tirunelveli'],
     },
     Kerala: {
       Kochi:      ['MG Road', 'Edapally', 'Kakkanad', 'Aluva'],
       Trivandrum: ['Pattom', 'Kazhakuttam', 'Technopark'],
+      Kozhikode:  ['Kozhikode'],
+      Thrissur:   ['Thrissur'],
     },
     Karnataka: {
       Bengaluru:  ['Koramangala', 'Whitefield', 'Electronic City', 'Hebbal'],
       Mysuru:     ['Vijayanagar', 'Nazarbad', 'Gokulam'],
-    },
-  },
-  North: {
-    'Delhi NCR': {
-      'New Delhi':  ['Connaught Place', 'Karol Bagh', 'Nehru Place'],
-      Gurugram:     ['Sector 21', 'Udyog Vihar', 'DLF Phase 3'],
-      Noida:        ['Sector 62', 'Sector 18', 'Greater Noida'],
-    },
-    'Uttar Pradesh': {
-      Lucknow:  ['Hazratganj', 'Gomti Nagar', 'Alambagh'],
-      Kanpur:   ['Civil Lines', 'Panki Industrial Area'],
-    },
-    Rajasthan: {
-      Jaipur: ['C-Scheme', 'Bani Park', 'Tonk Road'],
-      Jodhpur: ['Ratanada', 'Paota'],
-    },
-  },
-  West: {
-    Maharashtra: {
-      Mumbai:   ['Bandra Kurla', 'Andheri', 'Lower Parel', 'Powai'],
-      Pune:     ['Shivaji Nagar', 'Hinjewadi', 'Kharadi'],
-      Nagpur:   ['Civil Lines', 'Dharampeth'],
-    },
-    Gujarat: {
-      Ahmedabad: ['Navrangpura', 'SG Highway', 'Prahlad Nagar'],
-      Surat:     ['Ring Road', 'Athwa Lines'],
-    },
-  },
-  East: {
-    'West Bengal': {
-      Kolkata:   ['Salt Lake', 'Park Street', 'Rajarhat'],
-      Durgapur:  ['City Centre', 'Benachity'],
-    },
-    Odisha: {
-      Bhubaneswar: ['Saheed Nagar', 'Patia', 'Chandrasekharpur'],
-      Rourkela:    ['Civil Township', 'Sector 7'],
     },
   },
 }

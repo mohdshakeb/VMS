@@ -2,12 +2,13 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Role } from '@/types/user'
 
-// Dummy credential map for prototype — email → role and employeeId
-const CREDENTIAL_MAP: Record<string, { role: Role; employeeId: string }> = {
+// Dummy credential map for prototype — email → role, employeeId, and (for SBU Admin) the SBU they manage
+const CREDENTIAL_MAP: Record<string, { role: Role; employeeId: string; sbu?: string }> = {
   'employee@gmmco.com': { role: 'employee', employeeId: 'emp-1' },
   'frontdesk@gmmco.com': { role: 'front-desk', employeeId: 'emp-7' },
   'manager@gmmco.com': { role: 'central-admin', employeeId: 'emp-5' },
   'facilityadmin@gmmco.com': { role: 'location-admin', employeeId: 'emp-ra' },
+  'sbuadmin@gmmco.com': { role: 'sbu-admin', employeeId: 'emp-suresh', sbu: 'South' },
 }
 
 interface AuthState {
@@ -15,6 +16,7 @@ interface AuthState {
   currentRole: Role
   currentEmployeeId: string
   currentLocationId: string
+  currentSbu: string
   setCurrentEmployee: (id: string) => void
   setCurrentLocation: (id: string) => void
   login: (email: string, password: string) => boolean
@@ -28,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
       currentRole: 'front-desk',
       currentEmployeeId: 'emp-1',
       currentLocationId: 'loc-1',
+      currentSbu: 'South',
 
       setCurrentEmployee: (id) => set({ currentEmployeeId: id }),
       setCurrentLocation: (id) => set({ currentLocationId: id }),
@@ -41,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
             currentRole: creds.role,
             currentEmployeeId: creds.employeeId,
             currentLocationId: creds.role === 'central-admin' ? 'all' : 'loc-1',
+            ...(creds.sbu ? { currentSbu: creds.sbu } : {}),
           })
         } else {
           // Allow any non-empty email+password for easy demo access (defaults to front-desk)
@@ -53,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'vms-auth',
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown) => {
         const s = persisted as Record<string, unknown>
         if (s.currentRole === 'branch-admin') {
@@ -63,6 +67,9 @@ export const useAuthStore = create<AuthState>()(
         if (s.currentRole === 'building-admin') {
           s.currentRole = 'location-admin'
         }
+        if (s.currentSbu === undefined) {
+          s.currentSbu = 'South'
+        }
         return s
       },
       partialize: (state) => ({
@@ -70,6 +77,7 @@ export const useAuthStore = create<AuthState>()(
         currentRole: state.currentRole,
         currentEmployeeId: state.currentEmployeeId,
         currentLocationId: state.currentLocationId,
+        currentSbu: state.currentSbu,
       }),
     }
   )

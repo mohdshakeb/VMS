@@ -34,6 +34,11 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'Facilities', path: '/facility/facilities',  icon: 'ri-building-2-line', activeIcon: 'ri-building-2-fill' },
     { label: 'History',    path: '/facility/compliance',  icon: 'ri-camera-line',     activeIcon: 'ri-camera-fill' },
   ],
+  'sbu-admin': [
+    { label: 'Home',       path: '/sbu/dashboard',   icon: 'ri-home-2-line',       activeIcon: 'ri-home-2-fill' },
+    { label: 'Locations',  path: '/sbu/locations',   icon: 'ri-map-pin-2-line',    activeIcon: 'ri-map-pin-2-fill' },
+    { label: 'Compliance', path: '/sbu/compliance',  icon: 'ri-shield-check-line', activeIcon: 'ri-shield-check-fill' },
+  ],
 }
 
 interface BottomNavProps {

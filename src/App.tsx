@@ -21,6 +21,10 @@ import FacilityDetail from '@/pages/facility/facilities/FacilityDetail'
 import OnboardingFormSBU from '@/pages/facility/onboarding/OnboardingFormSBU'
 import ComplianceHome from '@/pages/facility/compliance/ComplianceHome'
 import ComplianceDetail from '@/pages/facility/compliance/ComplianceDetail'
+import SbuAdminDashboard from '@/pages/sbu/dashboard/SbuAdminDashboard'
+import Locations from '@/pages/sbu/locations/Locations'
+import LocationDetail from '@/pages/sbu/locations/LocationDetail'
+import SbuComplianceHistory from '@/pages/sbu/compliance/SbuComplianceHistory'
 import { useAuthStore } from '@/store/authStore'
 import type { Role } from '@/types/user'
 
@@ -29,6 +33,7 @@ const roleHomeRoutes: Record<Role, string> = {
   employee: '/employee/dashboard',
   'central-admin': '/manager/dashboard',
   'location-admin': '/facility/dashboard',
+  'sbu-admin': '/sbu/dashboard',
 }
 
 function PrivateLayout() {
@@ -84,6 +89,12 @@ export default function App() {
         <Route path="/facility/compliance"                  element={<ComplianceHome />} />
 
         {/* Facility — SBU Admin */}
+        <Route path="/sbu/dashboard"                    element={<SbuAdminDashboard />} />
+        <Route path="/sbu/locations"                     element={<Locations />} />
+        <Route path="/sbu/locations/:location"            element={<LocationDetail />} />
+        <Route path="/sbu/facilities/:facilityId"         element={<FacilityDetail />} />
+        <Route path="/sbu/compliance/record/:recordId"    element={<ComplianceDetail />} />
+        <Route path="/sbu/compliance"                     element={<SbuComplianceHistory />} />
         <Route path="/sbu/onboarding/new" element={<OnboardingFormSBU />} />
       </Route>
     </Routes>

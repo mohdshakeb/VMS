@@ -13,6 +13,9 @@ export type NotificationType =
   | 'compliance-overdue'
   | 'compliance-missed'
   | 'sbu-edited'
+  | 'facility-status-requested'
+  | 'facility-status-approved'
+  | 'facility-status-rejected'
 
 export interface Notification {
   id: string
