@@ -555,3 +555,14 @@ export const sbuCascade: Record<string, Record<string, Record<string, string[]>>
     },
   },
 }
+
+export const locationAdminPool = [
+  { id: 'la-1', name: 'Arjun Nair',     email: 'arjun.nair@gmmco.com'     },
+  { id: 'la-2', name: 'Meena Suresh',   email: 'meena.suresh@gmmco.com'   },
+  { id: 'la-3', name: 'Ravi Kumar',     email: 'ravi.kumar@gmmco.com'     },
+  { id: 'la-4', name: 'Mohan Das',      email: 'mohan.das@gmmco.com'      },
+  { id: 'la-5', name: 'Sunita Reddy',   email: 'sunita.reddy@gmmco.com'   },
+  { id: 'la-6', name: 'Meera Joshi',    email: 'meera.joshi@gmmco.com'    },
+  { id: 'la-7', name: 'Bhavana Murthy', email: 'bhavana.m@gmmco.com'      },
+  { id: 'la-8', name: 'Karthik Menon',  email: 'karthik.menon@gmmco.com'  },
+]

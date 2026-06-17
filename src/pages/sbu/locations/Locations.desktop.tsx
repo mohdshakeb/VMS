@@ -90,6 +90,15 @@ export default function LocationsDesktop() {
       <PageHeader
         title="Locations"
         icon={<NotificationBell unreadCount={unreadCount} onClick={openNotificationsModal} />}
+        actions={
+          <button
+            onClick={() => navigate('/sbu/onboarding/new')}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand text-white text-xs font-medium hover:bg-brand/90 transition-colors"
+          >
+            <i className="ri-add-line text-sm" />
+            New Location
+          </button>
+        }
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">

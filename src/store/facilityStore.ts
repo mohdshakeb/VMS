@@ -28,6 +28,17 @@ interface FacilityState {
   resetOnboardingForm: () => void
   submitOnboarding: (request: OnboardingRequest) => void
 
+  addLocationWithFacilities: (data: {
+    locationName: string
+    sbu: string
+    state: string
+    city: string
+    address: string
+    pinCode: string
+    adminNames: string[]
+    facilities: Array<{ type: string; name: string; assignedAdmin: string }>
+  }) => void
+
   toggleFacilityStatus: (facilityId: string) => void
   requestStatusChange: (facilityId: string, requestedStatus: FacilityStatus, requestedBy: string, reason?: string) => void
   resolveStatusChange: (facilityId: string, decision: 'approved' | 'rejected') => void
@@ -135,6 +146,44 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
       onboardingFormData: defaultFormData,
       facilities: [...s.facilities, newFacility],
       complianceRecords: [...s.complianceRecords, newRecord],
+    }))
+  },
+
+  addLocationWithFacilities: (data) => {
+    const newFacilities: Facility[] = data.facilities.map((f, i) => {
+      const id = `bld-new-${Date.now()}-${i}`
+      const checklist = buildChecklist(f.type as Facility['type'])
+      return {
+        id,
+        facilityId: facilityCodeFrom(f.type, data.state, data.city, data.locationName, data.pinCode),
+        name: f.name,
+        type: f.type as Facility['type'],
+        sbu: data.sbu,
+        state: data.state,
+        city: data.city,
+        location: data.locationName,
+        address1: data.address,
+        pinCode: data.pinCode,
+        floors: 0,
+        status: 'active' as const,
+        locationAdmin: f.assignedAdmin,
+        complianceStatus: 'pending' as const,
+        complianceProgress: 0,
+        complianceTotal: checklist.length,
+      }
+    })
+    const newRecords: ComplianceRecord[] = newFacilities.map((f) => ({
+      id: `comp-new-${Date.now()}-${f.id}`,
+      facilityId: f.id,
+      facilityName: f.name,
+      month: CURRENT_COMPLIANCE_PERIOD.month,
+      year: CURRENT_COMPLIANCE_PERIOD.year,
+      status: 'pending' as const,
+      checklist: buildChecklist(f.type),
+    }))
+    set((s) => ({
+      facilities: [...s.facilities, ...newFacilities],
+      complianceRecords: [...s.complianceRecords, ...newRecords],
     }))
   },
 
