@@ -50,7 +50,7 @@ export default function KpiCardV2({
   label, info, value, icon, color = 'blue',
   showInfo = false, trend, alertCount, alertLabel = '', alertColor = 'red', onClick, active,
 }: KpiCardV2Props) {
-  const display = value < 10 ? String(value).padStart(2, '0') : String(value)
+  const display = Number(value) < 10 ? String(value).padStart(2, '0') : String(value)
   const c = colorMap[color]
 
   const bottomEl = (() => {
