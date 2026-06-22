@@ -16,6 +16,9 @@ export type NotificationType =
   | 'facility-status-requested'
   | 'facility-status-approved'
   | 'facility-status-rejected'
+  | 'facility-change-requested'
+  | 'facility-change-approved'
+  | 'facility-change-rejected'
 
 export interface Notification {
   id: string
@@ -24,6 +27,7 @@ export interface Notification {
   message: string
   visitId?: string
   facilityId?: string
+  changeRequestId?: string
   recordId?: string
   recipientRole: Role
   recipientId?: string

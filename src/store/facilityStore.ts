@@ -10,7 +10,7 @@ import { southSeedFacilities, southSeedComplianceRecords } from '@/data/sbuSouth
 
 const initialFacilities = [...baseFacilities, ...southSeedFacilities]
 const initialRecords = [...baseRecords, ...southSeedComplianceRecords]
-import type { Facility, FacilityStatus, ComplianceRecord, OnboardingFormData, OnboardingRequest, ChecklistAnswer } from '@/types/facility'
+import type { Facility, FacilityStatus, FacilityType, ComplianceRecord, OnboardingFormData, OnboardingRequest, ChecklistAnswer, FacilityChangeRequest } from '@/types/facility'
 import { useNotificationStore } from '@/store/notificationStore'
 
 interface FacilityState {
@@ -39,9 +39,13 @@ interface FacilityState {
     facilities: Array<{ type: string; name: string; assignedAdmin: string }>
   }) => void
 
+  facilityChangeRequests: FacilityChangeRequest[]
+  submitFacilityChangeRequest: (locationName: string, toAdd: { name: string; type: FacilityType }[], toRemove: string[], requestedBy: string) => void
+  resolveFacilityChangeRequest: (requestId: string, decision: 'approved' | 'rejected', resolvedBy: string) => void
+
   toggleFacilityStatus: (facilityId: string) => void
   toggleLocationStatus: (locationName: string) => void
-  addFacilityToLocation: (locationName: string, type: import('@/types/facility').FacilityType, name: string) => void
+  addFacilityToLocation: (locationName: string, type: FacilityType, name: string) => void
   removeFacilityFromLocation: (facilityId: string) => void
   requestStatusChange: (facilityId: string, requestedStatus: FacilityStatus, requestedBy: string, reason?: string) => void
   resolveStatusChange: (facilityId: string, decision: 'approved' | 'rejected') => void
@@ -98,6 +102,7 @@ function updateRecord(
 export const useFacilityStore = create<FacilityState>((set, get) => ({
   facilities: initialFacilities,
   complianceRecords: initialRecords,
+  facilityChangeRequests: [],
 
   onboardingFormData: defaultFormData,
   onboardingCurrentStep: 1,
@@ -190,6 +195,59 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
       facilities: [...s.facilities, ...newFacilities],
       complianceRecords: [...s.complianceRecords, ...newRecords],
     }))
+  },
+
+  submitFacilityChangeRequest: (locationName, toAdd, toRemove, requestedBy) => {
+    const requestId = `fcr-${Date.now()}`
+    const request: FacilityChangeRequest = {
+      id: requestId,
+      locationName,
+      requestedBy,
+      requestedAt: new Date().toISOString(),
+      toAdd,
+      toRemove,
+      status: 'pending',
+    }
+    set((s) => ({ facilityChangeRequests: [...s.facilityChangeRequests, request] }))
+    const removedNames = toRemove.map((id) => get().facilities.find((f) => f.id === id)?.name ?? id)
+    const summary = [
+      toAdd.length ? `Add: ${toAdd.map((f) => f.name).join(', ')}` : '',
+      toRemove.length ? `Remove: ${removedNames.join(', ')}` : '',
+    ].filter(Boolean).join(' · ')
+    useNotificationStore.getState().addNotification({
+      type: 'facility-change-requested',
+      title: 'Facility change requested',
+      message: `${requestedBy} submitted a facility change request for ${locationName}. ${summary}`,
+      changeRequestId: requestId,
+      recipientRole: 'sbu-admin',
+      actionRequired: true,
+    })
+    get().showToast('Facility change request sent for SBU approval')
+  },
+
+  resolveFacilityChangeRequest: (requestId, decision, resolvedBy) => {
+    const request = get().facilityChangeRequests.find((r) => r.id === requestId)
+    if (!request || request.status !== 'pending') return
+    set((s) => ({
+      facilityChangeRequests: s.facilityChangeRequests.map((r) =>
+        r.id === requestId
+          ? { ...r, status: decision, resolvedAt: new Date().toISOString(), resolvedBy }
+          : r
+      ),
+    }))
+    if (decision === 'approved') {
+      request.toAdd.forEach((f) => get().addFacilityToLocation(request.locationName, f.type, f.name))
+      request.toRemove.forEach((id) => get().removeFacilityFromLocation(id))
+    }
+    useNotificationStore.getState().addNotification({
+      type: decision === 'approved' ? 'facility-change-approved' : 'facility-change-rejected',
+      title: decision === 'approved' ? 'Facility changes approved' : 'Facility changes rejected',
+      message: `Your facility change request for ${request.locationName} was ${decision} by ${resolvedBy}.`,
+      changeRequestId: requestId,
+      recipientRole: 'location-admin',
+      actionRequired: false,
+    })
+    get().showToast(`Facility change request ${decision}`)
   },
 
   toggleFacilityStatus: (facilityId) =>

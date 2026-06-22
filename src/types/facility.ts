@@ -84,6 +84,18 @@ export interface ComplianceRecord {
   savedAt?: string
 }
 
+export interface FacilityChangeRequest {
+  id: string
+  locationName: string
+  requestedBy: string
+  requestedAt: string
+  toAdd: { name: string; type: FacilityType }[]
+  toRemove: string[]
+  status: 'pending' | 'approved' | 'rejected'
+  resolvedAt?: string
+  resolvedBy?: string
+}
+
 export type OnboardingRequestStatus = 'submitted' | 'sbu-review' | 'activated' | 'rejected'
 
 export interface OnboardingTimelineEvent {

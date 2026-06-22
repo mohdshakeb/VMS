@@ -10,9 +10,15 @@ import { CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
 import type { FacilityStatus, FacilityType } from '@/types/facility'
 import buildingPlaceholder from '@/assets/building.png'
 
-const FACILITY_TYPES: FacilityType[] = [
+const PREDEFINED_FACILITY_NAMES = [
   'Branch Office', 'Parts Warehouse', 'CRC', 'MRC', 'Repair Center', 'Executive Office', 'HQ',
 ]
+
+const KNOWN_TYPES = new Set<string>(PREDEFINED_FACILITY_NAMES)
+
+function nameToType(name: string): FacilityType {
+  return KNOWN_TYPES.has(name) ? (name as FacilityType) : 'Branch Office'
+}
 
 const SBU_ADMIN_MAP: Record<string, { name: string; email: string }> = {
   South: { name: 'Suresh Nair', email: 'sbuadmin@gmmco.com' },
@@ -26,10 +32,11 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
   const { currentRole } = useAuthStore()
   const facilities = useFacilityStore((s) => s.facilities)
   const allRecords = useFacilityStore((s) => s.complianceRecords)
+  const facilityChangeRequests = useFacilityStore((s) => s.facilityChangeRequests)
   const toggleLocationStatus = useFacilityStore((s) => s.toggleLocationStatus)
   const requestStatusChange = useFacilityStore((s) => s.requestStatusChange)
-  const addFacilityToLocation = useFacilityStore((s) => s.addFacilityToLocation)
-  const removeFacilityFromLocation = useFacilityStore((s) => s.removeFacilityFromLocation)
+  const submitFacilityChangeRequest = useFacilityStore((s) => s.submitFacilityChangeRequest)
+  const resolveFacilityChangeRequest = useFacilityStore((s) => s.resolveFacilityChangeRequest)
 
   const locationName = location ? decodeURIComponent(location) : ''
   const { month: PERIOD_MONTH, year: PERIOD_YEAR } = CURRENT_COMPLIANCE_PERIOD
@@ -40,12 +47,17 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
     (r) => r.locationName === locationName && r.month === PERIOD_MONTH && r.year === PERIOD_YEAR,
   )
 
+  const pendingChangeRequest = facilityChangeRequests.find(
+    (r) => r.locationName === locationName && r.status === 'pending',
+  )
+
   // Manage facilities modal
   const [facilityModalOpen, setFacilityModalOpen] = useState(false)
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
-  const [pendingNew, setPendingNew] = useState<Array<{ type: FacilityType; name: string }>>([])
-  const [newType, setNewType] = useState<FacilityType>('Branch Office')
-  const [newName, setNewName] = useState('')
+  const [requestDetailsOpen, setRequestDetailsOpen] = useState(false)
+  const [stagedRemovals, setStagedRemovals] = useState<Set<string>>(new Set())
+  const [pendingNew, setPendingNew] = useState<Array<{ name: string; type: FacilityType }>>([])
+  const [selectedName, setSelectedName] = useState<string>(PREDEFINED_FACILITY_NAMES[0])
+  const [customName, setCustomName] = useState('')
 
   // Status change request modal (Location Admin only)
   const [statusModalOpen, setStatusModalOpen] = useState(false)
@@ -65,32 +77,38 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
     ...new Set(locationFacilities.map((f) => f.locationAdmin).filter((n): n is string => Boolean(n))),
   ]
   const isActive = locationFacilities.every((f) => f.status === 'active')
-  const hasPendingRequest = locationFacilities.some((f) => f.pendingStatusRequest)
+  const hasPendingStatusRequest = locationFacilities.some((f) => f.pendingStatusRequest)
   const sbuAdmin = SBU_ADMIN_MAP[firstFacility.sbu]
 
   // ── Manage facilities handlers ────────────────────────────────────────────
 
-  const visibleFacilities = locationFacilities.filter((f) => !removedIds.has(f.id))
+  const hasChanges = stagedRemovals.size > 0 || pendingNew.length > 0
 
   const handleAddPending = () => {
-    if (!newName.trim()) return
-    setPendingNew((prev) => [...prev, { type: newType, name: newName.trim() }])
-    setNewName('')
+    const name = selectedName === 'Other' ? customName.trim() : selectedName
+    if (!name) return
+    if (pendingNew.some((f) => f.name === name)) return
+    setPendingNew((prev) => [...prev, { name, type: nameToType(name) }])
+    setCustomName('')
+    setSelectedName(PREDEFINED_FACILITY_NAMES[0])
   }
 
-  const handleFacilitySave = () => {
-    removedIds.forEach((id) => removeFacilityFromLocation(id))
-    pendingNew.forEach((f) => addFacilityToLocation(locationName, f.type, f.name))
-    setRemovedIds(new Set())
+  const handleSubmitRequest = () => {
+    const toAdd = pendingNew
+    const toRemove = Array.from(stagedRemovals)
+    submitFacilityChangeRequest(locationName, toAdd, toRemove, admins[0] ?? 'Location Admin')
+    setStagedRemovals(new Set())
     setPendingNew([])
-    setNewName('')
+    setCustomName('')
+    setSelectedName(PREDEFINED_FACILITY_NAMES[0])
     setFacilityModalOpen(false)
   }
 
   const handleFacilityCancel = () => {
-    setRemovedIds(new Set())
+    setStagedRemovals(new Set())
     setPendingNew([])
-    setNewName('')
+    setCustomName('')
+    setSelectedName(PREDEFINED_FACILITY_NAMES[0])
     setFacilityModalOpen(false)
   }
 
@@ -161,17 +179,29 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
           )}
         </div>
 
-        {/* Facilities pills */}
+        {/* Facilities section */}
         <div className="mt-4 pt-3 border-t border-border-light">
           <div className="flex items-center justify-between mb-2.5">
             <p className="text-xs text-text-tertiary">Facilities ({locationFacilities.length})</p>
-            <button
-              onClick={() => setFacilityModalOpen(true)}
-              className="flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
-            >
-              <i className="ri-edit-line text-sm" />
-              Edit
-            </button>
+            {isLocationAdmin && (
+              pendingChangeRequest ? (
+                <button
+                  onClick={() => setRequestDetailsOpen(true)}
+                  className="flex items-center gap-1 text-xs font-medium text-yellow-fg hover:underline transition-colors"
+                >
+                  <i className="ri-time-line text-sm" />
+                  Requested
+                </button>
+              ) : (
+                <button
+                  onClick={() => setFacilityModalOpen(true)}
+                  className="flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
+                >
+                  <i className="ri-edit-line text-sm" />
+                  Edit
+                </button>
+              )
+            )}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {locationFacilities.map((facility) => (
@@ -189,9 +219,74 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
           </div>
         </div>
 
+        {/* Pending facility change request — shown to SBU Admin */}
+        {!isLocationAdmin && pendingChangeRequest && (
+          <div className="mt-4 pt-3 border-t border-border-light">
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 shrink-0 h-5 w-5 rounded-full bg-yellow-surface flex items-center justify-center">
+                  <i className="ri-git-pull-request-line text-[11px] text-yellow-fg" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary">Facility Change Request</p>
+                  <p className="text-xs text-text-tertiary mt-0.5">
+                    {pendingChangeRequest.requestedBy} · {new Date(pendingChangeRequest.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+
+              {pendingChangeRequest.toAdd.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-text-secondary mb-1">To add</p>
+                  <ul className="space-y-0.5">
+                    {pendingChangeRequest.toAdd.map((f, i) => (
+                      <li key={i} className="flex items-center gap-1.5 text-xs text-text-primary">
+                        <i className="ri-add-circle-line text-green-600 text-sm" />
+                        {f.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pendingChangeRequest.toRemove.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-text-secondary mb-1">To remove</p>
+                  <ul className="space-y-0.5">
+                    {pendingChangeRequest.toRemove.map((id) => {
+                      const f = locationFacilities.find((x) => x.id === id)
+                      return (
+                        <li key={id} className="flex items-center gap-1.5 text-xs text-text-primary">
+                          <i className="ri-close-circle-line text-red-fg text-sm" />
+                          {f?.name ?? id}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  onClick={() => resolveFacilityChangeRequest(pendingChangeRequest.id, 'rejected', sbuAdmin?.name ?? 'SBU Admin')}
+                  className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg text-text-secondary hover:bg-surface-secondary transition-colors"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => resolveFacilityChangeRequest(pendingChangeRequest.id, 'approved', sbuAdmin?.name ?? 'SBU Admin')}
+                  className="px-3 py-1.5 text-xs font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Location status toggle */}
         <div className="mt-4 pt-3 border-t border-border-light">
-          {hasPendingRequest ? (
+          {hasPendingStatusRequest ? (
             <div className="flex items-start gap-2.5">
               <div className="mt-0.5 shrink-0 h-5 w-5 rounded-full bg-yellow-surface flex items-center justify-center">
                 <i className="ri-time-line text-[11px] text-yellow-fg" />
@@ -258,7 +353,6 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
         </div>
       }
     >
-      {/* Scope options */}
       <div className="space-y-2 mb-5">
         {(['all', 'specific'] as const).map((scope) => (
           <label
@@ -288,7 +382,6 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
         ))}
       </div>
 
-      {/* Per-facility dropdowns (specific mode only) */}
       {statusScope === 'specific' && (
         <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
           {locationFacilities.map((facility) => (
@@ -335,72 +428,111 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
           <button onClick={handleFacilityCancel} className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
             Cancel
           </button>
-          <button onClick={handleFacilitySave} className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors">
-            Save
+          <button
+            onClick={handleSubmitRequest}
+            disabled={!hasChanges}
+            className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Submit Request
           </button>
         </div>
       }
     >
-      <div className="divide-y divide-border-light">
-        {visibleFacilities.map((facility) => (
-          <div key={facility.id} className="py-3 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">{facility.name}</p>
-              <p className="text-xs text-text-tertiary mt-0.5">{facility.type}</p>
-            </div>
-            <button
-              onClick={() => setRemovedIds((prev) => new Set([...prev, facility.id]))}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-red-fg hover:bg-red-surface transition-colors shrink-0"
-            >
-              <i className="ri-close-line text-base" />
-            </button>
-          </div>
-        ))}
-        {pendingNew.map((f, i) => (
-          <div key={`pending-${i}`} className="py-3 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">{f.name}</p>
-              <p className="text-xs text-text-tertiary mt-0.5">{f.type}</p>
-            </div>
-            <button
-              onClick={() => setPendingNew((prev) => prev.filter((_, idx) => idx !== i))}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-red-fg hover:bg-red-surface transition-colors shrink-0"
-            >
-              <i className="ri-close-line text-base" />
-            </button>
-          </div>
-        ))}
+      {/* Current facilities */}
+      <div>
+        <p className="text-xs text-text-tertiary mb-2">Current Facilities</p>
+        <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
+          {locationFacilities.map((facility) => {
+            const isStaged = stagedRemovals.has(facility.id)
+            return (
+              <div
+                key={facility.id}
+                className={`flex items-center justify-between gap-2 px-3 py-2.5 transition-colors ${isStaged ? 'bg-surface-secondary' : ''}`}
+              >
+                <p className={`text-sm font-medium truncate ${isStaged ? 'line-through text-text-tertiary' : 'text-text-primary'}`}>
+                  {facility.name}
+                </p>
+                {isStaged ? (
+                  <button
+                    onClick={() => setStagedRemovals((prev) => { const next = new Set(prev); next.delete(facility.id); return next })}
+                    className="text-xs text-brand hover:text-brand-hover shrink-0 transition-colors"
+                  >
+                    Undo
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setStagedRemovals((prev) => new Set([...prev, facility.id]))}
+                    className="flex items-center justify-center w-7 h-7 rounded-lg text-red-fg hover:bg-red-surface transition-colors shrink-0"
+                  >
+                    <i className="ri-close-line text-base" />
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="mt-2 pt-4 border-t border-border">
+      {/* Staged additions */}
+      {pendingNew.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs text-text-tertiary mb-2">To be added</p>
+          <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
+            {pendingNew.map((f, i) => (
+              <div key={`pending-${i}`} className="flex items-center justify-between gap-2 px-3 py-2.5 bg-brand-light">
+                <p className="text-sm font-medium text-text-primary truncate">{f.name}</p>
+                <button
+                  onClick={() => setPendingNew((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg text-red-fg hover:bg-red-surface transition-colors shrink-0"
+                >
+                  <i className="ri-close-line text-base" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add facility */}
+      <div className="mt-4 pt-4 border-t border-border">
         <p className="text-xs text-text-tertiary mb-2">Add Facility</p>
         <div className="space-y-2">
           <select
-            value={newType}
-            onChange={(e) => setNewType(e.target.value as FacilityType)}
+            value={selectedName}
+            onChange={(e) => { setSelectedName(e.target.value); setCustomName('') }}
             className="w-full text-sm border border-border rounded-lg px-3 py-2 text-text-primary bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
-            {FACILITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            {PREDEFINED_FACILITY_NAMES.map((n) => {
+              const alreadyExists = locationFacilities.some((f) => f.name === n) || pendingNew.some((f) => f.name === n)
+              return <option key={n} value={n} disabled={alreadyExists}>{n}{alreadyExists ? ' (already added)' : ''}</option>
+            })}
+            <option value="Other">Other</option>
           </select>
-          <div className="flex gap-2">
+
+          {selectedName === 'Other' && (
             <input
               type="text"
-              placeholder="Facility name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Enter facility name"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddPending()}
-              className="flex-1 text-sm border border-border rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
-            <button
-              onClick={handleAddPending}
-              disabled={!newName.trim()}
-              className="px-3 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Add
-            </button>
-          </div>
+          )}
+
+          <button
+            onClick={handleAddPending}
+            disabled={selectedName === 'Other' ? !customName.trim() : false}
+            className="w-full py-2 text-sm font-medium border border-brand text-brand rounded-lg hover:bg-brand-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            + Add to request
+          </button>
         </div>
       </div>
+
+      <p className="text-xs text-text-tertiary mt-4">
+        Changes will be submitted as a request to SBU Admin for approval before taking effect.
+      </p>
     </Modal>
   )
 
@@ -441,6 +573,69 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
 
       {statusChangeModal}
       {manageFacilitiesModal}
+
+      {/* Request details modal (Location Admin — view pending request) */}
+      {pendingChangeRequest && (
+        <Modal
+          open={requestDetailsOpen}
+          onClose={() => setRequestDetailsOpen(false)}
+          title="Facility Change Request"
+          footer={
+            <div className="flex justify-end">
+              <button
+                onClick={() => setRequestDetailsOpen(false)}
+                className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs text-text-tertiary">
+              <i className="ri-user-line" />
+              <span>Submitted to <span className="font-medium text-text-primary">{sbuAdmin?.name ?? 'SBU Admin'}</span></span>
+              <span>·</span>
+              <span>{new Date(pendingChangeRequest.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-surface text-yellow-fg">Awaiting SBU approval</span>
+            </div>
+
+            {pendingChangeRequest.toAdd.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-text-secondary mb-2">To be added</p>
+                <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
+                  {pendingChangeRequest.toAdd.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2.5 bg-brand-light">
+                      <i className="ri-add-circle-line text-brand text-sm shrink-0" />
+                      <p className="text-sm font-medium text-text-primary">{f.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pendingChangeRequest.toRemove.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-text-secondary mb-2">To be removed</p>
+                <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
+                  {pendingChangeRequest.toRemove.map((id) => {
+                    const f = locationFacilities.find((x) => x.id === id)
+                    return (
+                      <div key={id} className="flex items-center gap-2 px-3 py-2.5 bg-surface-secondary">
+                        <i className="ri-close-circle-line text-text-tertiary text-sm shrink-0" />
+                        <p className="text-sm font-medium line-through text-text-tertiary">{f?.name ?? id}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
