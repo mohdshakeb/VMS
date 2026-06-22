@@ -13,6 +13,7 @@ interface NotificationState {
     visitId?: string
     facilityId?: string
     recordId?: string
+    changeRequestId?: string
     recipientRole: Role
     recipientId?: string
     actionRequired?: boolean
@@ -84,6 +85,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
           visitId: undefined,
           facilityId: undefined,
           recordId: undefined,
+          changeRequestId: undefined,
           ...data,
           actionRequired: data.actionRequired ?? false,
           read: false,
