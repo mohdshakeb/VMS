@@ -24,7 +24,7 @@ type Props = {
 
 export default function FacilityComplianceCard({ facility, records, basePath, onNavigate, onTitleClick, hideTitle }: Props) {
   const facilityRecords = records
-    .filter((r) => r.facilityId === facility.id)
+    .filter((r) => r.locationName === facility.location)
     .sort((a, b) => b.year - a.year || b.month - a.month)
 
   return (

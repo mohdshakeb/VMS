@@ -40,6 +40,9 @@ interface FacilityState {
   }) => void
 
   toggleFacilityStatus: (facilityId: string) => void
+  toggleLocationStatus: (locationName: string) => void
+  addFacilityToLocation: (locationName: string, type: import('@/types/facility').FacilityType, name: string) => void
+  removeFacilityFromLocation: (facilityId: string) => void
   requestStatusChange: (facilityId: string, requestedStatus: FacilityStatus, requestedBy: string, reason?: string) => void
   resolveStatusChange: (facilityId: string, decision: 'approved' | 'rejected') => void
 
@@ -133,8 +136,9 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
     }
     const newRecord: ComplianceRecord = {
       id: `comp-${Date.now()}`,
-      facilityId,
-      facilityName: request.facilityName,
+      locationName: request.location,
+      facilityTypes: [request.facilityType as import('@/types/facility').FacilityType],
+      sbu: request.sbu,
       month: CURRENT_COMPLIANCE_PERIOD.month,
       year: CURRENT_COMPLIANCE_PERIOD.year,
       status: 'pending',
@@ -174,8 +178,9 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
     })
     const newRecords: ComplianceRecord[] = newFacilities.map((f) => ({
       id: `comp-new-${Date.now()}-${f.id}`,
-      facilityId: f.id,
-      facilityName: f.name,
+      locationName: f.location,
+      facilityTypes: [f.type],
+      sbu: f.sbu,
       month: CURRENT_COMPLIANCE_PERIOD.month,
       year: CURRENT_COMPLIANCE_PERIOD.year,
       status: 'pending' as const,
@@ -195,6 +200,63 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
           : f
       ),
     })),
+
+  toggleLocationStatus: (locationName) =>
+    set((s) => {
+      const locationFacilities = s.facilities.filter((f) => f.location === locationName)
+      const allActive = locationFacilities.every((f) => f.status === 'active')
+      const nextStatus: FacilityStatus = allActive ? 'inactive' : 'active'
+      return {
+        facilities: s.facilities.map((f) =>
+          f.location === locationName ? { ...f, status: nextStatus } : f
+        ),
+      }
+    }),
+
+  addFacilityToLocation: (locationName, type, name) =>
+    set((s) => {
+      const existing = s.facilities.find((f) => f.location === locationName)
+      if (!existing) return {}
+      const id = `bld-loc-${Date.now()}`
+      const checklist = buildChecklist(type)
+      const newFacility: Facility = {
+        id,
+        facilityId: facilityCodeFrom(type, existing.state, existing.city, locationName, existing.pinCode),
+        name,
+        type,
+        sbu: existing.sbu,
+        state: existing.state,
+        city: existing.city,
+        location: locationName,
+        address1: existing.address1,
+        pinCode: existing.pinCode,
+        floors: 0,
+        locationAdmin: existing.locationAdmin,
+        status: 'active',
+        complianceStatus: 'pending',
+        complianceProgress: 0,
+        complianceTotal: checklist.length,
+      }
+      const updatedRecords = s.complianceRecords.map((r) => {
+        if (r.locationName !== locationName || r.month !== CURRENT_COMPLIANCE_PERIOD.month || r.year !== CURRENT_COMPLIANCE_PERIOD.year) return r
+        if (r.facilityTypes.includes(type)) return r
+        return { ...r, facilityTypes: [...r.facilityTypes, type] }
+      })
+      return { facilities: [...s.facilities, newFacility], complianceRecords: updatedRecords }
+    }),
+
+  removeFacilityFromLocation: (facilityId) =>
+    set((s) => {
+      const target = s.facilities.find((f) => f.id === facilityId)
+      if (!target) return {}
+      const remaining = s.facilities.filter((f) => f.id !== facilityId)
+      const stillHasType = remaining.some((f) => f.location === target.location && f.type === target.type)
+      const updatedRecords = stillHasType ? s.complianceRecords : s.complianceRecords.map((r) => {
+        if (r.locationName !== target.location) return r
+        return { ...r, facilityTypes: r.facilityTypes.filter((t) => t !== target.type) }
+      })
+      return { facilities: remaining, complianceRecords: updatedRecords }
+    }),
 
   requestStatusChange: (facilityId, requestedStatus, requestedBy, reason) => {
     const facility = get().facilities.find((f) => f.id === facilityId)
@@ -327,8 +389,6 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
     set((s) => {
       const record = s.complianceRecords.find((r) => r.id === recordId)
       if (!record || record.status === 'missed') return {}
-      const answered = record.checklist.filter((e) => e.answer !== undefined).length
-      const total = record.checklist.length
       const wasSubmitted = record.status === 'submitted' || record.status === 'updated'
       const isOverdue = record.status === 'overdue'
       // Overdue records keep their status when saved — urgency should stay visible
@@ -339,11 +399,6 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
           status: nextStatus,
           savedAt: new Date().toISOString(),
         })),
-        facilities: s.facilities.map((f) =>
-          f.id === record.facilityId
-            ? { ...f, complianceStatus: nextStatus, complianceProgress: answered, complianceTotal: total, complianceDraftAge: 0 }
-            : f
-        ),
       }
     })
     get().showToast('Draft saved successfully')
@@ -355,14 +410,11 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
       if (!record || record.status === 'missed') return {}
       const wasSubmitted = record.status === 'submitted' || record.status === 'updated'
       const nextStatus: typeof record.status = wasSubmitted ? 'updated' : 'submitted'
-      const facility = s.facilities.find((f) => f.id === record.facilityId)
-      const facilityLabel = facility ? `${facility.name} — ${facility.city}` : record.facilityName
       const monthName = new Date(record.year, record.month - 1).toLocaleString('default', { month: 'long' })
       useNotificationStore.getState().addNotification({
         type: 'compliance-submitted',
         title: 'Compliance submitted',
-        message: `${facilityLabel} compliance for ${monthName} ${record.year} was submitted successfully.`,
-        facilityId: record.facilityId,
+        message: `${record.locationName} compliance for ${monthName} ${record.year} was submitted successfully.`,
         recordId,
         recipientRole: 'location-admin',
         actionRequired: false,
@@ -370,8 +422,7 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
       useNotificationStore.getState().addNotification({
         type: 'compliance-submitted',
         title: 'Compliance submitted',
-        message: `${facilityLabel} compliance for ${monthName} ${record.year} was submitted by ${facility?.locationAdmin ?? 'the Location Admin'}.`,
-        facilityId: record.facilityId,
+        message: `${record.locationName} compliance for ${monthName} ${record.year} was submitted by the Location Admin.`,
         recordId,
         recipientRole: 'sbu-admin',
         actionRequired: false,
@@ -383,11 +434,6 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
           submittedAt: new Date().toISOString(),
           submittedBy: 'Ravi Anand',
         })),
-        facilities: s.facilities.map((f) =>
-          f.id === record.facilityId
-            ? { ...f, complianceStatus: nextStatus }
-            : f
-        ),
       }
     })
     get().showToast('Compliance submitted successfully')
@@ -396,8 +442,6 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
   sendComplianceFeedback: (recordId) => {
     const record = get().complianceRecords.find((r) => r.id === recordId)
     if (!record) return
-    const facility = get().facilities.find((f) => f.id === record.facilityId)
-    const facilityLabel = facility ? `${facility.name} — ${facility.city}` : record.facilityName
     const monthName = new Date(record.year, record.month - 1).toLocaleString('default', { month: 'long' })
     set((s) => ({
       complianceRecords: s.complianceRecords.map((r) =>
@@ -409,8 +453,7 @@ export const useFacilityStore = create<FacilityState>((set, get) => ({
     useNotificationStore.getState().addNotification({
       type: 'sbu-edited',
       title: 'SBU made edits',
-      message: `SBU Admin added feedback on the ${facilityLabel} submission for ${monthName} ${record.year}. Review the changes.`,
-      facilityId: record.facilityId,
+      message: `SBU Admin added feedback on the ${record.locationName} submission for ${monthName} ${record.year}. Review the changes.`,
       recordId,
       recipientRole: 'location-admin',
       actionRequired: false,

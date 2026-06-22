@@ -58,9 +58,9 @@ function isSubmitted(status: FacilityComplianceStatus) {
   return status === 'submitted' || status === 'updated'
 }
 
-function getLastCompliance(records: ComplianceRecord[], facilityId: string) {
+function getLastCompliance(records: ComplianceRecord[], locationName: string) {
   return [...records]
-    .filter((r) => r.facilityId === facilityId && SUBMITTED_STATUSES.includes(r.status))
+    .filter((r) => r.locationName === locationName && SUBMITTED_STATUSES.includes(r.status))
     .sort((a, b) => b.year - a.year || b.month - a.month)[0] ?? null
 }
 
@@ -202,7 +202,7 @@ export default function MyFacilitiesDesktop() {
                   </tr>
                 ) : (
                   filtered.map((facility, idx) => {
-                    const last = getLastCompliance(complianceRecords, facility.id)
+                    const last = getLastCompliance(complianceRecords, facility.location)
                     const submitted = isSubmitted(facility.complianceStatus)
 
                     return (

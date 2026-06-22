@@ -44,14 +44,14 @@ function isSubmitted(status: FacilityComplianceStatus) {
   return status === 'submitted' || status === 'updated'
 }
 
-function getLastCompliance(records: ComplianceRecord[], facilityId: string) {
+function getLastCompliance(records: ComplianceRecord[], locationName: string) {
   return [...records]
-    .filter((r) => r.facilityId === facilityId && SUBMITTED_STATUSES.includes(r.status))
+    .filter((r) => r.locationName === locationName && SUBMITTED_STATUSES.includes(r.status))
     .sort((a, b) => b.year - a.year || b.month - a.month)[0] ?? null
 }
 
-function getCurrentRecord(records: ComplianceRecord[], facilityId: string) {
-  return records.find((r) => r.facilityId === facilityId && r.month === PERIOD_MONTH && r.year === PERIOD_YEAR) ?? null
+function getCurrentRecord(records: ComplianceRecord[], locationName: string) {
+  return records.find((r) => r.locationName === locationName && r.month === PERIOD_MONTH && r.year === PERIOD_YEAR) ?? null
 }
 
 export default function MyFacilitiesMobile() {
@@ -128,11 +128,11 @@ export default function MyFacilitiesMobile() {
             <EmptyState icon="ri-building-2-line" title="No facilities match your search" className="py-12" titleClassName="text-sm" />
           ) : (
             filtered.map((facility) => {
-              const last = getLastCompliance(complianceRecords, facility.id)
+              const last = getLastCompliance(complianceRecords, facility.location)
               const submitted = isSubmitted(facility.complianceStatus)
               const isPending = facility.complianceStatus === 'pending'
               const isDraft = facility.complianceStatus === 'draft'
-              const currentRecord = getCurrentRecord(complianceRecords, facility.id)
+              const currentRecord = getCurrentRecord(complianceRecords, facility.location)
 
               return (
                 <div

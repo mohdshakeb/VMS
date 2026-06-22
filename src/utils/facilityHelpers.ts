@@ -34,14 +34,14 @@ export function isSubmitted(status: FacilityComplianceStatus) {
   return status === 'submitted' || status === 'updated'
 }
 
-export function getLastCompliance(records: ComplianceRecord[], facilityId: string) {
+export function getLastCompliance(records: ComplianceRecord[], locationName: string) {
   return [...records]
-    .filter((r) => r.facilityId === facilityId && SUBMITTED_STATUSES.includes(r.status))
+    .filter((r) => r.locationName === locationName && SUBMITTED_STATUSES.includes(r.status))
     .sort((a, b) => b.year - a.year || b.month - a.month)[0] ?? null
 }
 
-export function getCurrentRecord(records: ComplianceRecord[], facilityId: string) {
-  return records.find((r) => r.facilityId === facilityId && r.month === PERIOD_MONTH && r.year === PERIOD_YEAR) ?? null
+export function getCurrentRecord(records: ComplianceRecord[], locationName: string) {
+  return records.find((r) => r.locationName === locationName && r.month === PERIOD_MONTH && r.year === PERIOD_YEAR) ?? null
 }
 
 // ─── Location Admin scope ─────────────────────────────────────────────────

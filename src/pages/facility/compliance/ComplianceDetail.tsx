@@ -300,7 +300,6 @@ export default function ComplianceDetail() {
   const { recordId } = useParams<{ recordId: string }>()
   const navigate = useNavigate()
   const records = useFacilityStore((s) => s.complianceRecords)
-  const facilities = useFacilityStore((s) => s.facilities)
   const setChecklistAnswer = useFacilityStore((s) => s.setChecklistAnswer)
   const setSbuChecklistAnswer = useFacilityStore((s) => s.setSbuChecklistAnswer)
   const setChecklistRemarks = useFacilityStore((s) => s.setChecklistRemarks)
@@ -329,7 +328,6 @@ export default function ComplianceDetail() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const record = records.find((r) => r.id === recordId)
-  const building = record ? facilities.find((f) => f.id === record.facilityId) : undefined
 
   const sections = record ? [...new Set(record.checklist.map((e) => e.section))] : []
   const [activeSection, setActiveSection] = useState<string>(sections[0] ?? '')
@@ -342,7 +340,7 @@ export default function ComplianceDetail() {
     )
   }
 
-  const isEditable = (record.status === 'pending' || record.status === 'draft' || record.status === 'submitted' || record.status === 'updated' || record.status === 'overdue') && isCurrentPeriod(record.month, record.year)
+  const isEditable = (record.status === 'pending' || record.status === 'draft' || record.status === 'overdue') && isCurrentPeriod(record.month, record.year)
   // SBU Admin can review/edit any record regardless of status or period — see ComplianceReportCard.
   const canEditForRole = isSbuAdmin || isEditable
   const period = `${MONTH_NAMES[record.month - 1]} ${record.year}`
@@ -452,7 +450,7 @@ export default function ComplianceDetail() {
       { label: 'Status', value: <FacilityStatusBadge status={record.status} /> },
       { label: 'Next due', value: nextDueFormatted },
       isSbuAdmin
-        ? { label: 'Location Admin', value: building?.locationAdmin ?? '—' }
+        ? { label: 'SBU', value: record.sbu }
         : { label: 'SBU Admin', value: 'Suresh Nair' },
     ]
   } else if (isPostSubmission) {
@@ -499,14 +497,25 @@ export default function ComplianceDetail() {
     ]
   }
 
+  const locationPath = `${basePath}/locations/${encodeURIComponent(record.locationName)}`
+
   const detailCard = (
     <FacilityIdentityCard
-      photoUrl={building?.photoUrl}
-      name={record.facilityName}
-      location={building?.location}
+      name={record.locationName}
+      location={record.facilityTypes.join(' · ')}
       fields={complianceFields}
       hidePhoto
       showAvatar
+      footer={
+        <button
+          type="button"
+          onClick={() => handleNavAway(locationPath)}
+          className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg border border-border text-sm text-text-secondary hover:text-text-primary hover:bg-surface-secondary/50 transition-colors font-medium"
+        >
+          <i className="ri-map-pin-2-line text-sm" />
+          View Location
+        </button>
+      }
     />
   )
 
@@ -662,7 +671,7 @@ export default function ComplianceDetail() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title={record.facilityName}
+        title={record.locationName}
         breadcrumb={[{ label: 'Compliance' }]}
         onBack={() => handleNavAway(-1)}
         actions={isSbuAdmin ? (
@@ -676,7 +685,7 @@ export default function ComplianceDetail() {
                 </button>
               )
               : undefined
-        ) : isEditable ? (
+        ) : isEditable && !isPostSubmission ? (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={handleSaveDraft}>Save draft</Button>
             <Button size="sm" onClick={handleSubmit}>Submit</Button>
@@ -718,7 +727,7 @@ export default function ComplianceDetail() {
         <div className="flex-1 min-w-0 flex items-center gap-1 text-sm">
           <span className="text-text-tertiary truncate">Compliance</span>
           <span className="text-text-tertiary shrink-0">·</span>
-          <span className="font-medium text-text-primary shrink-0 truncate">{record.facilityName}</span>
+          <span className="font-medium text-text-primary shrink-0 truncate">{record.locationName}</span>
         </div>
         <FacilityStatusBadge status={record.status} />
       </header>
@@ -750,7 +759,7 @@ export default function ComplianceDetail() {
             <Button size="md" fullWidth onClick={handleSbuSave}>Save</Button>
           </div>
         )
-      ) : isEditable && (
+      ) : isEditable && !isPostSubmission && (
         <div className="md:hidden shrink-0 px-4 py-3 border-t border-border-light bg-white flex items-center gap-2">
           <Button size="md" variant="secondary" fullWidth onClick={handleSaveDraft}>Save draft</Button>
           <Button size="md" fullWidth onClick={handleSubmit}>Submit</Button>
@@ -802,7 +811,7 @@ export default function ComplianceDetail() {
           </div>
           <div>
             <p className="text-base font-semibold text-text-primary">Compliance Submitted</p>
-            <p className="text-sm text-text-secondary mt-1">{record.facilityName}</p>
+            <p className="text-sm text-text-secondary mt-1">{record.locationName}</p>
             <p className="text-xs text-text-tertiary mt-0.5">{period}</p>
           </div>
           <Button fullWidth onClick={() => { setShowSubmitSuccess(false); navigate(`${basePath}/compliance`) }}>Done</Button>
@@ -817,7 +826,7 @@ export default function ComplianceDetail() {
           </div>
           <div>
             <p className="text-base font-semibold text-text-primary">Draft Saved</p>
-            <p className="text-sm text-text-secondary mt-1">{record.facilityName}</p>
+            <p className="text-sm text-text-secondary mt-1">{record.locationName}</p>
             <p className="text-xs text-text-tertiary mt-0.5">{period}</p>
           </div>
           <Button fullWidth onClick={() => setShowDraftSaved(false)}>Done</Button>

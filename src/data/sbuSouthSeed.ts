@@ -79,6 +79,7 @@ function makeFacility(opts: {
   admin: string
   status: FacilityComplianceStatus
   template: Template
+  facilityStatus?: 'active' | 'inactive'
 }): Facility {
   const id = `bld-${seq++}`
   return {
@@ -93,7 +94,7 @@ function makeFacility(opts: {
     address1: `${opts.location.split(' - ')[0]} Main Road`,
     pinCode: opts.pinCode,
     floors: opts.type === 'Parts Warehouse' ? 1 : 2,
-    status: 'active',
+    status: opts.facilityStatus ?? 'active',
     locationAdmin: opts.admin,
     complianceStatus: opts.status,
     complianceProgress: TEMPLATE_PROGRESS[opts.template],
@@ -102,42 +103,60 @@ function makeFacility(opts: {
   }
 }
 
-function makeCurrentRecord(facility: Facility, template: Template): ComplianceRecord {
-  const isSubmittedTemplate = template === 'FULL_HIGH' || template === 'FULL_MEDIOCRE'
+function makeLocationRecord(opts: {
+  locationName: string
+  facilityTypes: FacilityType[]
+  admin: string
+  status: FacilityComplianceStatus
+  template: Template
+  month: number
+  year: number
+  idSuffix: string
+}): ComplianceRecord {
+  const isSubmittedTemplate = opts.template === 'FULL_HIGH' || opts.template === 'FULL_MEDIOCRE'
   return {
-    id: `comp-${facility.id}-cur`,
-    facilityId: facility.id,
-    facilityName: facility.name,
-    month: CURRENT_MONTH,
-    year: CURRENT_YEAR,
-    status: facility.complianceStatus,
-    checklist: buildChecklist(facility.type, TEMPLATE_MAP[template]),
-    ...(isSubmittedTemplate ? { submittedAt: '2026-06-04T10:00:00', submittedBy: facility.locationAdmin } : {}),
+    id: `comp-${opts.idSuffix}`,
+    locationName: opts.locationName,
+    facilityTypes: opts.facilityTypes,
+    sbu: 'South',
+    month: opts.month,
+    year: opts.year,
+    status: opts.status,
+    checklist: buildChecklist('Branch Office', TEMPLATE_MAP[opts.template]),
+    ...(isSubmittedTemplate ? { submittedAt: '2026-06-04T10:00:00', submittedBy: opts.admin } : {}),
   }
 }
 
-function makeAprilHistory(facility: Facility, kind: 'submitted' | 'missed'): ComplianceRecord {
-  if (kind === 'missed') {
+function makeAprilLocationRecord(opts: {
+  locationName: string
+  facilityTypes: FacilityType[]
+  admin: string
+  kind: 'submitted' | 'missed'
+  idSuffix: string
+}): ComplianceRecord {
+  if (opts.kind === 'missed') {
     return {
-      id: `comp-${facility.id}-apr`,
-      facilityId: facility.id,
-      facilityName: facility.name,
+      id: `comp-${opts.idSuffix}`,
+      locationName: opts.locationName,
+      facilityTypes: opts.facilityTypes,
+      sbu: 'South',
       month: PREV_MONTH,
       year: PREV_YEAR,
       status: 'missed',
-      checklist: buildChecklist(facility.type),
+      checklist: buildChecklist('Branch Office'),
     }
   }
   return {
-    id: `comp-${facility.id}-apr`,
-    facilityId: facility.id,
-    facilityName: facility.name,
+    id: `comp-${opts.idSuffix}`,
+    locationName: opts.locationName,
+    facilityTypes: opts.facilityTypes,
+    sbu: 'South',
     month: PREV_MONTH,
     year: PREV_YEAR,
     status: 'submitted',
-    checklist: buildChecklist(facility.type, FULL_HIGH),
+    checklist: buildChecklist('Branch Office', FULL_HIGH),
     submittedAt: '2026-05-04T09:30:00',
-    submittedBy: facility.locationAdmin,
+    submittedBy: opts.admin,
     approvedAt: '2026-05-07T12:00:00',
     approvedBy: 'Suresh Nair',
   }
@@ -152,6 +171,7 @@ interface LocationSeedFacility {
   status: FacilityComplianceStatus
   template: Template
   aprilHistory: 'submitted' | 'missed'
+  facilityStatus?: 'active' | 'inactive'
 }
 
 interface LocationSeed {
@@ -170,6 +190,7 @@ const LOCATION_SEEDS: LocationSeed[] = [
     facilities: [
       { type: 'HQ', status: 'submitted', template: 'FULL_HIGH', aprilHistory: 'submitted' },
       { type: 'Executive Office', status: 'draft', template: 'PARTIAL_LATE', aprilHistory: 'submitted' },
+      { type: 'MRC', status: 'pending', template: 'NONE', aprilHistory: 'missed', facilityStatus: 'inactive' },
     ],
   },
   {
@@ -293,10 +314,15 @@ const LOCATION_SEEDS: LocationSeed[] = [
   },
 ]
 
+// Records for the 3 base locations are defined in facilityData.ts.
+// This seed creates records only for new locations.
+const BASE_LOCATIONS = new Set(['Anna Salai - Chennai', 'Coimbatore', 'Madurai'])
+
 export const southSeedFacilities: Facility[] = []
 export const southSeedComplianceRecords: ComplianceRecord[] = []
 
 for (const loc of LOCATION_SEEDS) {
+  const locFacilities: Facility[] = []
   for (const f of loc.facilities) {
     const facility = makeFacility({
       type: f.type,
@@ -307,9 +333,37 @@ for (const loc of LOCATION_SEEDS) {
       admin: loc.admin,
       status: f.status,
       template: f.template,
+      facilityStatus: f.facilityStatus,
     })
     southSeedFacilities.push(facility)
-    southSeedComplianceRecords.push(makeCurrentRecord(facility, f.template))
-    southSeedComplianceRecords.push(makeAprilHistory(facility, f.aprilHistory))
+    locFacilities.push(facility)
+  }
+
+  if (!BASE_LOCATIONS.has(loc.location)) {
+    const facilityTypes = [...new Set(locFacilities.map((f) => f.type))] as FacilityType[]
+    const representative = loc.facilities[0]
+    const idSlug = loc.location.replace(/[\s-]+/g, '_').toLowerCase()
+    const someAprilMissed = loc.facilities.some((f) => f.aprilHistory === 'missed')
+    southSeedComplianceRecords.push(
+      makeLocationRecord({
+        locationName: loc.location,
+        facilityTypes,
+        admin: loc.admin,
+        status: representative.status,
+        template: representative.template,
+        month: CURRENT_MONTH,
+        year: CURRENT_YEAR,
+        idSuffix: `${idSlug}-cur`,
+      })
+    )
+    southSeedComplianceRecords.push(
+      makeAprilLocationRecord({
+        locationName: loc.location,
+        facilityTypes,
+        admin: loc.admin,
+        kind: someAprilMissed ? 'missed' : 'submitted',
+        idSuffix: `${idSlug}-apr`,
+      })
+    )
   }
 }

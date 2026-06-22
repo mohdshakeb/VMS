@@ -8,8 +8,8 @@ import logoUrl from '@/assets/Logo.svg'
 
 // Maps child route prefixes to their parent nav path so the correct item stays highlighted
 const childToParentNav: Record<string, string> = {
-  '/facility/facilities/':  '/facility/facilities',
   '/facility/compliance/':  '/facility/compliance',
+  '/facility/locations/':   '/facility/dashboard',
   '/sbu/locations/':        '/sbu/locations',
   '/sbu/facilities/':       '/sbu/locations',
   '/sbu/compliance/':       '/sbu/compliance',
@@ -43,9 +43,8 @@ const navByRole: Record<Role, NavItem[]> = {
     { label: 'Visit History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line' },
   ],
   'location-admin': [
-    { label: 'Dashboard',          path: '/facility/dashboard',   icon: 'ri-home-2-line' },
-    { label: 'Facilities',         path: '/facility/facilities',  icon: 'ri-building-2-line' },
-    { label: 'Compliance History', path: '/facility/compliance',  icon: 'ri-camera-line' },
+    { label: 'Dashboard',          path: '/facility/dashboard',  icon: 'ri-home-2-line' },
+    { label: 'Compliance History', path: '/facility/compliance', icon: 'ri-camera-line' },
   ],
   'sbu-admin': [
     { label: 'Dashboard',  path: '/sbu/dashboard',   icon: 'ri-home-2-line' },

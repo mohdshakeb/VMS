@@ -70,8 +70,9 @@ export interface InfraCategory {
 
 export interface ComplianceRecord {
   id: string
-  facilityId: string
-  facilityName: string
+  locationName: string
+  facilityTypes: FacilityType[]
+  sbu: string
   month: number
   year: number
   status: FacilityComplianceStatus

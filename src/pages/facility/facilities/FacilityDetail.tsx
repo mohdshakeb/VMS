@@ -61,7 +61,7 @@ export default function FacilityDetail() {
   const isActive = facility.status === 'active'
 
   const currentRecord = allRecords.find(
-    (r) => r.facilityId === facility.id && r.month === PROTOTYPE_NOW.getMonth() + 1 && r.year === PROTOTYPE_NOW.getFullYear()
+    (r) => r.locationName === facility.location && r.month === PROTOTYPE_NOW.getMonth() + 1 && r.year === PROTOTYPE_NOW.getFullYear()
   )
 
   const COMPLIANCE_LABEL: Record<string, string> = {

@@ -30,9 +30,8 @@ const navByRole: Record<Role, MobileNavItem[]> = {
     { label: 'History', path: '/manager/visit-history', icon: 'ri-calendar-schedule-line', activeIcon: 'ri-calendar-schedule-fill' },
   ],
   'location-admin': [
-    { label: 'Home',       path: '/facility/dashboard',   icon: 'ri-home-2-line',     activeIcon: 'ri-home-2-fill' },
-    { label: 'Facilities', path: '/facility/facilities',  icon: 'ri-building-2-line', activeIcon: 'ri-building-2-fill' },
-    { label: 'History',    path: '/facility/compliance',  icon: 'ri-camera-line',     activeIcon: 'ri-camera-fill' },
+    { label: 'Home',    path: '/facility/dashboard',  icon: 'ri-home-2-line', activeIcon: 'ri-home-2-fill' },
+    { label: 'History', path: '/facility/compliance', icon: 'ri-camera-line', activeIcon: 'ri-camera-fill' },
   ],
   'sbu-admin': [
     { label: 'Home',       path: '/sbu/dashboard',   icon: 'ri-home-2-line',       activeIcon: 'ri-home-2-fill' },

@@ -452,14 +452,15 @@ const REPAIR_SUBMITTED: AnswerMap = {
   'chk-9-2': { answer: 'partial', remarks: 'Some showroom areas need reorganisation', photos: [P] },
 }
 
-// ─── Compliance records ───────────────────────────────────────────────────────
+// ─── Compliance records (one per location per month) ─────────────────────────
 
 export const complianceRecords: ComplianceRecord[] = [
   // May 2026 — current cycle
   {
     id: 'comp-1',
-    facilityId: 'bld-1',
-    facilityName: 'Branch Office',
+    locationName: 'Anna Salai - Chennai',
+    facilityTypes: ['Branch Office', 'HQ', 'Executive Office'],
+    sbu: 'South',
     month: 5,
     year: 2026,
     status: 'draft',
@@ -468,8 +469,9 @@ export const complianceRecords: ComplianceRecord[] = [
   },
   {
     id: 'comp-2',
-    facilityId: 'bld-2',
-    facilityName: 'Branch Office',
+    locationName: 'Coimbatore',
+    facilityTypes: ['Branch Office', 'Parts Warehouse', 'Repair Center'],
+    sbu: 'South',
     month: 5,
     year: 2026,
     status: 'pending',
@@ -477,8 +479,9 @@ export const complianceRecords: ComplianceRecord[] = [
   },
   {
     id: 'comp-3',
-    facilityId: 'bld-3',
-    facilityName: 'Repair Center',
+    locationName: 'Madurai',
+    facilityTypes: ['Repair Center', 'Branch Office', 'Parts Warehouse'],
+    sbu: 'South',
     month: 5,
     year: 2026,
     status: 'submitted',
@@ -486,11 +489,12 @@ export const complianceRecords: ComplianceRecord[] = [
     submittedAt: '2026-06-03T11:15:00',
     submittedBy: 'Ravi Anand',
   },
-  // April 2026 — approved history
+  // April 2026 — history
   {
     id: 'comp-4',
-    facilityId: 'bld-1',
-    facilityName: 'Branch Office',
+    locationName: 'Anna Salai - Chennai',
+    facilityTypes: ['Branch Office', 'HQ', 'Executive Office'],
+    sbu: 'South',
     month: 4,
     year: 2026,
     status: 'submitted',
@@ -502,8 +506,9 @@ export const complianceRecords: ComplianceRecord[] = [
   },
   {
     id: 'comp-5',
-    facilityId: 'bld-2',
-    facilityName: 'Branch Office',
+    locationName: 'Coimbatore',
+    facilityTypes: ['Branch Office', 'Parts Warehouse', 'Repair Center'],
+    sbu: 'South',
     month: 4,
     year: 2026,
     status: 'submitted',
@@ -515,8 +520,9 @@ export const complianceRecords: ComplianceRecord[] = [
   },
   {
     id: 'comp-6',
-    facilityId: 'bld-3',
-    facilityName: 'Repair Center',
+    locationName: 'Madurai',
+    facilityTypes: ['Repair Center', 'Branch Office', 'Parts Warehouse'],
+    sbu: 'South',
     month: 4,
     year: 2026,
     status: 'submitted',

@@ -77,7 +77,7 @@ export default function SbuAdminDashboardDesktop() {
     const map = new Map<string, number>()
     sbuFacilities.forEach((f) => {
       if (f.complianceProgress > 0) {
-        const record = getCurrentRecord(complianceRecords, f.id)
+        const record = getCurrentRecord(complianceRecords, f.location)
         if (record) map.set(f.id, scoreChecklist(record.checklist).percentage)
       }
     })
@@ -221,7 +221,7 @@ export default function SbuAdminDashboardDesktop() {
                     />
                   ) : (
                     filteredFacilities.map((facility) => {
-                      const record = getCurrentRecord(complianceRecords, facility.id)
+                      const record = getCurrentRecord(complianceRecords, facility.location)
                       return (
                         <SbuComplianceCard
                           key={facility.id}

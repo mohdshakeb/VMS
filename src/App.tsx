@@ -16,9 +16,9 @@ import ManagerDashboard from '@/pages/manager/Dashboard'
 import ManagerVisitHistory from '@/pages/manager/VisitHistory'
 import ManagerMyVisits from '@/pages/manager/MyVisits'
 import LocationAdminDashboard from '@/pages/facility/dashboard/LocationAdminDashboard'
-import MyFacilities from '@/pages/facility/facilities/MyFacilities'
-import FacilityDetail from '@/pages/facility/facilities/FacilityDetail'
+import FacilityLocationDetail from '@/pages/facility/locations/LocationDetail'
 import OnboardingFormSBU from '@/pages/facility/onboarding/OnboardingFormSBU'
+import FacilityDetail from '@/pages/facility/facilities/FacilityDetail'
 import ComplianceHome from '@/pages/facility/compliance/ComplianceHome'
 import ComplianceDetail from '@/pages/facility/compliance/ComplianceDetail'
 import SbuAdminDashboard from '@/pages/sbu/dashboard/SbuAdminDashboard'
@@ -82,9 +82,8 @@ export default function App() {
         <Route path="/manager/my-visits"     element={<ManagerMyVisits />} />
 
         {/* Facility — Location Admin */}
-        <Route path="/facility/dashboard"               element={<LocationAdminDashboard />} />
-        <Route path="/facility/facilities"              element={<MyFacilities />} />
-        <Route path="/facility/facilities/:facilityId"  element={<FacilityDetail />} />
+        <Route path="/facility/dashboard"                   element={<LocationAdminDashboard />} />
+        <Route path="/facility/locations/:location"         element={<FacilityLocationDetail />} />
         <Route path="/facility/compliance/record/:recordId" element={<ComplianceDetail />} />
         <Route path="/facility/compliance"                  element={<ComplianceHome />} />
 
