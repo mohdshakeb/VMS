@@ -49,6 +49,9 @@ export interface Facility {
   layoutPlanName?: string
   complianceDocName?: string
   locationAdmin?: string
+  locationAdminEmpId?: string
+  locationAdminEmail?: string
+  locationAdminPhone?: string
   complianceStatus: FacilityComplianceStatus
   complianceProgress: number
   complianceTotal: number

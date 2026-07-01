@@ -34,9 +34,12 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
   const allRecords = useFacilityStore((s) => s.complianceRecords)
   const facilityChangeRequests = useFacilityStore((s) => s.facilityChangeRequests)
   const toggleLocationStatus = useFacilityStore((s) => s.toggleLocationStatus)
+  const toggleFacilityStatus = useFacilityStore((s) => s.toggleFacilityStatus)
   const requestStatusChange = useFacilityStore((s) => s.requestStatusChange)
   const submitFacilityChangeRequest = useFacilityStore((s) => s.submitFacilityChangeRequest)
   const resolveFacilityChangeRequest = useFacilityStore((s) => s.resolveFacilityChangeRequest)
+  const addFacilityToLocation = useFacilityStore((s) => s.addFacilityToLocation)
+  const removeFacilityFromLocation = useFacilityStore((s) => s.removeFacilityFromLocation)
 
   const locationName = location ? decodeURIComponent(location) : ''
   const { month: PERIOD_MONTH, year: PERIOD_YEAR } = CURRENT_COMPLIANCE_PERIOD
@@ -59,10 +62,13 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
   const [selectedName, setSelectedName] = useState<string>(PREDEFINED_FACILITY_NAMES[0])
   const [customName, setCustomName] = useState('')
 
-  // Status change request modal (Location Admin only)
+  // Status change modal (both roles — Location Admin submits request, SBU Admin applies directly)
   const [statusModalOpen, setStatusModalOpen] = useState(false)
   const [statusScope, setStatusScope] = useState<'all' | 'specific'>('all')
   const [facilityTargets, setFacilityTargets] = useState<Record<string, FacilityStatus>>({})
+
+  // Facility changes confirmation modal (SBU Admin only)
+  const [facilityConfirmOpen, setFacilityConfirmOpen] = useState(false)
 
   if (locationFacilities.length === 0) {
     return (
@@ -112,6 +118,16 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
     setFacilityModalOpen(false)
   }
 
+  const handleSbuDirectApply = () => {
+    stagedRemovals.forEach((id) => removeFacilityFromLocation(id))
+    pendingNew.forEach((f) => addFacilityToLocation(locationName, f.type, f.name))
+    setStagedRemovals(new Set())
+    setPendingNew([])
+    setCustomName('')
+    setSelectedName(PREDEFINED_FACILITY_NAMES[0])
+    setFacilityModalOpen(false)
+  }
+
   // ── Status change request handlers ────────────────────────────────────────
 
   const openStatusModal = () => {
@@ -130,6 +146,18 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
       locationFacilities.forEach((f) =>
         requestStatusChange(f.id, facilityTargets[f.id] ?? f.status, admins[0] ?? 'Location Admin')
       )
+    }
+    setStatusModalOpen(false)
+  }
+
+  const handleSbuStatusApply = () => {
+    if (statusScope === 'all') {
+      toggleLocationStatus(locationName)
+    } else {
+      locationFacilities.forEach((f) => {
+        const target = facilityTargets[f.id] ?? f.status
+        if (target !== f.status) toggleFacilityStatus(f.id)
+      })
     }
     setStatusModalOpen(false)
   }
@@ -183,7 +211,7 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
         <div className="mt-4 pt-3 border-t border-border-light">
           <div className="flex items-center justify-between mb-2.5">
             <p className="text-xs text-text-tertiary">Facilities ({locationFacilities.length})</p>
-            {isLocationAdmin && (
+            {isLocationAdmin ? (
               pendingChangeRequest ? (
                 <button
                   onClick={() => setRequestDetailsOpen(true)}
@@ -201,6 +229,14 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
                   Edit
                 </button>
               )
+            ) : (
+              <button
+                onClick={() => setFacilityModalOpen(true)}
+                className="flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
+              >
+                <i className="ri-edit-line text-sm" />
+                Edit
+              </button>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -305,7 +341,7 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
                 <p className="text-sm font-medium text-text-primary mt-0.5">{isActive ? 'Active' : 'Inactive'}</p>
               </div>
               <button
-                onClick={isLocationAdmin ? openStatusModal : () => toggleLocationStatus(locationName)}
+                onClick={openStatusModal}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-brand' : 'bg-surface-tertiary'}`}
                 aria-label={isActive ? 'Set location inactive' : 'Set location active'}
               >
@@ -335,7 +371,11 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
     <Modal
       open={statusModalOpen}
       onClose={() => setStatusModalOpen(false)}
-      title={isActive ? 'Request to Deactivate' : 'Request to Activate'}
+      title={
+        isLocationAdmin
+          ? (isActive ? 'Request to Deactivate' : 'Request to Activate')
+          : (isActive ? 'Deactivate Location' : 'Activate Location')
+      }
       footer={
         <div className="flex justify-end gap-2">
           <button
@@ -345,10 +385,12 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
             Cancel
           </button>
           <button
-            onClick={handleStatusSend}
-            className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
+            onClick={isLocationAdmin ? handleStatusSend : handleSbuStatusApply}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+              !isLocationAdmin && isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-brand hover:bg-brand-hover'
+            }`}
           >
-            Send Request
+            {isLocationAdmin ? 'Send Request' : (isActive ? 'Deactivate' : 'Activate')}
           </button>
         </div>
       }
@@ -410,9 +452,11 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
         </div>
       )}
 
-      <p className="text-xs text-text-tertiary mt-4">
-        This request will be sent to SBU Admin for approval before taking effect.
-      </p>
+      {isLocationAdmin && (
+        <p className="text-xs text-text-tertiary mt-4">
+          This request will be sent to SBU Admin for approval before taking effect.
+        </p>
+      )}
     </Modal>
   )
 
@@ -429,11 +473,11 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
             Cancel
           </button>
           <button
-            onClick={handleSubmitRequest}
+            onClick={isLocationAdmin ? handleSubmitRequest : () => setFacilityConfirmOpen(true)}
             disabled={!hasChanges}
             className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Submit Request
+            {isLocationAdmin ? 'Submit Request' : 'Apply Changes'}
           </button>
         </div>
       }
@@ -525,14 +569,16 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
             disabled={selectedName === 'Other' ? !customName.trim() : false}
             className="w-full py-2 text-sm font-medium border border-brand text-brand rounded-lg hover:bg-brand-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            + Add to request
+            {isLocationAdmin ? '+ Add to request' : '+ Add'}
           </button>
         </div>
       </div>
 
-      <p className="text-xs text-text-tertiary mt-4">
-        Changes will be submitted as a request to SBU Admin for approval before taking effect.
-      </p>
+      {isLocationAdmin && (
+        <p className="text-xs text-text-tertiary mt-4">
+          Changes will be submitted as a request to SBU Admin for approval before taking effect.
+        </p>
+      )}
     </Modal>
   )
 
@@ -573,6 +619,62 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
 
       {statusChangeModal}
       {manageFacilitiesModal}
+
+      {/* SBU Admin — facility changes confirmation */}
+      <Modal
+        open={facilityConfirmOpen}
+        onClose={() => setFacilityConfirmOpen(false)}
+        title="Confirm Changes"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setFacilityConfirmOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setFacilityConfirmOpen(false); handleSbuDirectApply() }}
+              className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors"
+            >
+              Confirm
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {stagedRemovals.size > 0 && (
+            <div>
+              <p className="text-xs font-medium text-text-secondary mb-1.5">Removing</p>
+              <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
+                {Array.from(stagedRemovals).map((id) => {
+                  const f = locationFacilities.find((x) => x.id === id)
+                  return (
+                    <div key={id} className="flex items-center gap-2 px-3 py-2.5 bg-surface-secondary">
+                      <i className="ri-close-circle-line text-red-fg text-sm shrink-0" />
+                      <p className="text-sm font-medium line-through text-text-tertiary">{f?.name ?? id}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {pendingNew.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-text-secondary mb-1.5">Adding</p>
+              <div className="border border-border rounded-xl overflow-hidden divide-y divide-border-light">
+                {pendingNew.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2.5 bg-brand-light">
+                    <i className="ri-add-circle-line text-brand text-sm shrink-0" />
+                    <p className="text-sm font-medium text-text-primary">{f.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-text-tertiary pt-1">These changes will take effect immediately.</p>
+        </div>
+      </Modal>
 
       {/* Request details modal (Location Admin — view pending request) */}
       {pendingChangeRequest && (

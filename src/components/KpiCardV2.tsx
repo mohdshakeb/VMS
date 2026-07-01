@@ -38,17 +38,24 @@ interface KpiCardV2Props {
   showInfo?: boolean
   /** Trend vs yesterday — positive/negative/zero. Shown with graph-direction icons. */
   trend?: number
+  /** Replaces "vs yesterday" in the trend label. Default: "vs yesterday" */
+  trendLabel?: string
+  /** When true, positive trend = red, negative trend = green (for metrics where increase = worse) */
+  trendInverted?: boolean
   /** Alert count (e.g. overdue, delayed). If 0, renders nothing. */
   alertCount?: number
   alertLabel?: string
   alertColor?: 'red' | 'orange'
+  /** Plain additional-info text (used when no trend arrow is needed) */
+  detail?: string
   onClick?: () => void
   active?: boolean
 }
 
 export default function KpiCardV2({
   label, info, value, icon, color = 'blue',
-  showInfo = false, trend, alertCount, alertLabel = '', alertColor = 'red', onClick, active,
+  showInfo = false, trend, trendLabel = 'vs yesterday', trendInverted = false,
+  alertCount, alertLabel = '', alertColor = 'red', detail, onClick, active,
 }: KpiCardV2Props) {
   const display = Number(value) < 10 ? String(value).padStart(2, '0') : String(value)
   const c = colorMap[color]
@@ -67,16 +74,20 @@ export default function KpiCardV2({
       )
     }
 
-    // Trend mode (vs yesterday)
-    if (trend === undefined) return null
+    // Trend mode
+    if (trend === undefined) {
+      if (detail) return <span className="text-xs text-text-tertiary font-medium leading-none">{detail}</span>
+      return null
+    }
     if (trend === 0) return (
       <span className="text-xs text-text-tertiary font-medium leading-none whitespace-nowrap">— No change</span>
     )
     const up = trend > 0
+    const isGood = trendInverted ? !up : up
     return (
-      <span className={`flex items-baseline gap-1 text-xs font-medium leading-none whitespace-nowrap ${up ? 'text-green-600' : 'text-red-500'}`}>
+      <span className={`flex items-baseline gap-1 text-xs font-medium leading-none whitespace-nowrap ${isGood ? 'text-green-600' : 'text-red-500'}`}>
         <i className={`${up ? 'ri-arrow-right-up-line' : 'ri-arrow-right-down-line'} text-[14px]`} />
-        {up ? '+' : ''}{trend} vs yesterday
+        {up ? '+' : ''}{trend} {trendLabel}
       </span>
     )
   })()

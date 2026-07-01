@@ -1,4 +1,4 @@
-import type { ComplianceChecklistEntry, ComplianceRecord, Facility, FacilityComplianceStatus } from '@/types/facility'
+import type { ComplianceChecklistEntry, ComplianceRecord, Facility, FacilityComplianceStatus, FacilityType } from '@/types/facility'
 import { getComplianceDueDate, CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
 
 export const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -57,12 +57,25 @@ export function scopeToLocationAdmin(facilities: Facility[]): Facility[] {
 // There's no separate Location entity — a Location is derived by grouping
 // facilities on the existing `location` string field.
 
+const COMPLIANCE_PRIORITY: FacilityComplianceStatus[] = ['overdue', 'missed', 'pending', 'draft', 'updated', 'submitted']
+
+export interface AdminDetail {
+  name: string
+  empId: string
+  email: string
+  phone: string
+}
+
 export interface LocationGroup {
   location: string
   state: string
+  status: 'active' | 'inactive'
   admins: string[]
+  adminDetails: AdminDetail[]
   facilities: Facility[]
+  types: FacilityType[]
   statusCounts: Partial<Record<FacilityComplianceStatus, number>>
+  complianceStatus: FacilityComplianceStatus
 }
 
 export function groupFacilitiesByLocation(facilities: Facility[]): LocationGroup[] {
@@ -74,7 +87,29 @@ export function groupFacilitiesByLocation(facilities: Facility[]): LocationGroup
       acc[f.complianceStatus] = (acc[f.complianceStatus] ?? 0) + 1
       return acc
     }, {})
-    return { location, state: facs[0]?.state ?? '', admins, facilities: facs, statusCounts }
+    const locationStatus: 'active' | 'inactive' = facs.some((f) => f.status === 'active') ? 'active' : 'inactive'
+    const seenAdmins = new Set<string>()
+    const adminDetails: AdminDetail[] = facs
+      .filter((f) => f.locationAdmin && !seenAdmins.has(f.locationAdmin) && Boolean(seenAdmins.add(f.locationAdmin)))
+      .map((f) => ({
+        name: f.locationAdmin!,
+        empId: f.locationAdminEmpId ?? '—',
+        email: f.locationAdminEmail ?? '—',
+        phone: f.locationAdminPhone ?? '—',
+      }))
+    const types = [...new Set(facs.map((f) => f.type))] as FacilityType[]
+    const complianceStatus = COMPLIANCE_PRIORITY.find((s) => (statusCounts[s] ?? 0) > 0) ?? 'submitted'
+    return {
+      location,
+      state: facs[0]?.state ?? '',
+      status: locationStatus,
+      admins,
+      adminDetails,
+      facilities: facs,
+      types,
+      statusCounts,
+      complianceStatus,
+    }
   })
 }
 
@@ -97,7 +132,7 @@ export interface ComplianceScore {
   stars: number
 }
 
-function starsFromPct(pct: number): number {
+export function starsFromPct(pct: number): number {
   if (pct >= 90) return 5
   if (pct >= 75) return 4
   if (pct >= 60) return 3
