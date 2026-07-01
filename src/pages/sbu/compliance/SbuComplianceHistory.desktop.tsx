@@ -9,7 +9,6 @@ import SearchBar from '@/components/SearchBar'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import EmptyState from '@/components/common/EmptyState'
 import type { FacilityComplianceStatus, ComplianceRecord } from '@/types/facility'
-import { PROTOTYPE_NOW } from '@/data/facilityData'
 import { MONTH_NAMES, scoreChecklist } from '@/utils/facilityHelpers'
 
 const STATUS_OPTIONS: { label: string; value: FacilityComplianceStatus | '' }[] = [

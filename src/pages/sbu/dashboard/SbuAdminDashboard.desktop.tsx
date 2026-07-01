@@ -427,7 +427,7 @@ export default function SbuAdminDashboardDesktop() {
                           <div className="max-h-60 overflow-y-auto py-1">
                             {locationTrendScores
                               .sort((a, b) => a.location.localeCompare(b.location))
-                              .map((loc, i) => {
+                              .map((loc) => {
                                 const checked = activeLocations.includes(loc.location)
                                 const colorIdx = activeLocations.indexOf(loc.location)
                                 const disabled = !checked && activeLocations.length >= MAX_SELECTED

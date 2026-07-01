@@ -76,9 +76,7 @@ function buildAnswerMapTargeted(targetPct: number): AnswerMap {
 }
 
 const FULL_HIGH     = buildAnswerMap(CHECKLIST_ITEMS.length, 'high')      // ~94% — 5 stars
-const FULL_GOOD     = buildAnswerMap(CHECKLIST_ITEMS.length, 'good')      // ~82% — 4 stars
 const FULL_MEDIOCRE = buildAnswerMap(CHECKLIST_ITEMS.length, 'mediocre')  // ~62% — 3 stars
-const FULL_LOW      = buildAnswerMap(CHECKLIST_ITEMS.length, 'low')       // ~51% — 2 stars
 const PARTIAL_EARLY = buildAnswerMap(14, 'high')                          // draft, just started
 const PARTIAL_LATE = buildAnswerMap(45, 'mediocre')                       // draft, most of the way through
 
