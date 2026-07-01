@@ -378,6 +378,7 @@ export default function SbuAdminDashboardMobile() {
                   trend={overdueVsLastMonth}
                   trendLabel="vs last month"
                   trendInverted
+                  onClick={() => navigate('/sbu/compliance?status=overdue')}
                 />
               </div>
               <div className="w-[40vw] shrink-0">
@@ -391,6 +392,7 @@ export default function SbuAdminDashboardMobile() {
                   trend={lowPerformingVsLastMonth}
                   trendLabel="vs last month"
                   trendInverted
+                  onClick={() => navigate('/sbu/locations?rating=below3')}
                 />
               </div>
               <div className="w-4 shrink-0" />

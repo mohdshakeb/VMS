@@ -1,6 +1,7 @@
 import type { ComplianceChecklistEntry } from '@/types/facility'
 import Card from '@/components/Card'
 import SectionLabel from '@/components/common/SectionLabel'
+import InfoTooltip from '@/components/common/InfoTooltip'
 import { scoreChecklist } from '@/utils/facilityHelpers'
 
 type Props = {
@@ -15,19 +16,34 @@ export default function ComplianceReportCard({ checklist }: Props) {
       <SectionLabel icon="ri-bar-chart-2-line" title="Report Card" />
 
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <div className="rounded-xl bg-surface-secondary/50 border border-border-light px-3 py-3">
-          <p className="text-xs text-text-tertiary">Maximum Score</p>
+        <div className="relative rounded-xl bg-surface-secondary/50 border border-border-light px-3 py-3">
+          <InfoTooltip
+            position="corner"
+            align="right"
+            content="Each applicable checklist question is worth 10 points. N/A questions are excluded. This is the sum of points across all applicable questions."
+          />
+          <p className="text-xs text-text-tertiary pr-6">Maximum Score</p>
           <p className="text-xl font-semibold text-text-primary mt-1 tabular-nums">{maxScore}</p>
         </div>
-        <div className="rounded-xl bg-surface-secondary/50 border border-border-light px-3 py-3">
-          <p className="text-xs text-text-tertiary">Facility Score</p>
+        <div className="relative rounded-xl bg-surface-secondary/50 border border-border-light px-3 py-3">
+          <InfoTooltip
+            position="corner"
+            align="right"
+            content="Points earned per question: Yes = 10/10, Partial = 5/10, No = 0/10. Summed across all applicable questions, then shown as a percentage of the maximum score."
+          />
+          <p className="text-xs text-text-tertiary pr-6">Facility Score</p>
           <p className="text-xl font-semibold text-text-primary mt-1 tabular-nums">
             {facilityScore}
             <span className="text-xs font-normal text-text-tertiary ml-1">({percentage}%)</span>
           </p>
         </div>
-        <div className="rounded-xl bg-surface-secondary/50 border border-border-light px-3 py-3">
-          <p className="text-xs text-text-tertiary">Facility Rating</p>
+        <div className="relative rounded-xl bg-surface-secondary/50 border border-border-light px-3 py-3">
+          <InfoTooltip
+            position="corner"
+            align="right"
+            content="Star rating from the facility score percentage: 5★ ≥90%, 4★ 75–89%, 3★ 60–74%, 2★ 40–59%, 1★ <40%."
+          />
+          <p className="text-xs text-text-tertiary pr-6">Facility Rating</p>
           <div className="flex items-center gap-0.5 mt-1.5">
             {Array.from({ length: 5 }, (_, i) => (
               <i

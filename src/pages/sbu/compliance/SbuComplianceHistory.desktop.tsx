@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationStore, getUnreadCount } from '@/store/notificationStore'
@@ -8,6 +8,7 @@ import NotificationBell from '@/components/NotificationBell'
 import SearchBar from '@/components/SearchBar'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import EmptyState from '@/components/common/EmptyState'
+import FilterSelect from '@/components/common/FilterSelect'
 import type { FacilityComplianceStatus, ComplianceRecord } from '@/types/facility'
 import { MONTH_NAMES, scoreChecklist } from '@/utils/facilityHelpers'
 
@@ -43,36 +44,9 @@ function totalCount(record: ComplianceRecord) {
   return record.checklist.length
 }
 
-function FilterSelect<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T
-  onChange: (v: T) => void
-  options: { value: T; label: string }[]
-}) {
-  const active = value !== ''
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className={`w-36 text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors truncate ${
-          active ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'
-        }`}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-      <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${active ? 'text-brand' : 'text-text-tertiary'}`} />
-    </div>
-  )
-}
-
 export default function SbuComplianceHistoryDesktop() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { currentRole, currentEmployeeId, currentSbu } = useAuthStore()
   const notifications = useNotificationStore((s) => s.notifications)
   const unreadCount = getUnreadCount(notifications, currentRole, currentRole === 'employee' ? currentEmployeeId : undefined)
@@ -138,7 +112,9 @@ export default function SbuComplianceHistoryDesktop() {
   }, [baseRecords])
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<FacilityComplianceStatus | ''>('')
+  const [statusFilter, setStatusFilter] = useState<FacilityComplianceStatus | ''>(
+    () => (searchParams.get('status') as FacilityComplianceStatus | null) ?? '',
+  )
   const [locationStateFilter, setLocationStateFilter] = useState('') // 's:State' | 'l:Location' | ''
   const [ratingFilter, setRatingFilter] = useState('')
   const [periodFilter, setPeriodFilter] = useState('')
@@ -223,26 +199,17 @@ export default function SbuComplianceHistoryDesktop() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             {/* Combined Location / State filter */}
-            <div className="relative">
-              <select
-                value={locationStateFilter}
-                onChange={(e) => setLocationStateFilter(e.target.value)}
-                className={`w-36 text-xs border rounded-lg pl-3 pr-8 py-2 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-light transition-colors truncate ${
-                  locationStateFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'
-                }`}
-              >
-                <option value="">Location / State</option>
-                {locationsByState.map(([state, locs]) => (
-                  <optgroup key={state} label={state}>
-                    <option value={`s:${state}`}>All {state}</option>
-                    {locs.map((l) => (
-                      <option key={l} value={`l:${l}`}>{l}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm ${locationStateFilter ? 'text-brand' : 'text-text-tertiary'}`} />
-            </div>
+            <FilterSelect value={locationStateFilter} onChange={setLocationStateFilter}>
+              <option value="">Location / State</option>
+              {locationsByState.map(([state, locs]) => (
+                <optgroup key={state} label={state}>
+                  <option value={`s:${state}`}>All {state}</option>
+                  {locs.map((l) => (
+                    <option key={l} value={`l:${l}`}>{l}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </FilterSelect>
             <FilterSelect
               value={ratingFilter}
               onChange={setRatingFilter}
@@ -276,14 +243,16 @@ export default function SbuComplianceHistoryDesktop() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="w-60">
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                placeholder="Search location..."
-                inputClassName="bg-white border border-border focus:border-brand-light"
-              />
-            </div>
+            {selectedRecords.size === 0 && (
+              <div className="w-60">
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Search location..."
+                  inputClassName="bg-white border border-border focus:border-brand-light"
+                />
+              </div>
+            )}
             <button
               className={`flex items-center gap-1.5 h-8 rounded-lg bg-brand/[0.08] text-brand hover:bg-brand/[0.14] transition-colors text-sm font-medium ${selectedRecords.size > 0 ? 'px-3' : 'w-8 justify-center'}`}
               title="Export"
@@ -340,7 +309,7 @@ export default function SbuComplianceHistoryDesktop() {
                         {/* Checkbox */}
                         <td
                           className="px-4 py-3.5"
-                          onClick={(e) => { e.stopPropagation(); toggleRecord(record.id) }}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <input
                             type="checkbox"

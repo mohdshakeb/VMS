@@ -33,6 +33,7 @@ const ANSWER_CONFIG: Record<ChecklistAnswer, { label: string; selected: string; 
 
 function isEntryComplete(entry: ComplianceChecklistEntry) {
   if (entry.answer === undefined) return false
+  if (entry.answer === 'na') return true
   if (entry.isMandatory) return entry.photos.length >= 1
   return true
 }
@@ -73,12 +74,10 @@ function ChecklistItemRow({
   onRemovePhoto: (index: number) => void
   showValidation?: boolean
 }) {
-  const answers: ChecklistAnswer[] = entry.isMandatory
-    ? ['yes', 'partial', 'no']
-    : ['yes', 'partial', 'no', 'na']
+  const answers: ChecklistAnswer[] = ['yes', 'partial', 'no', 'na']
 
-  // For mandatory items, always show extras; for optional items, only after a non-NA selection
-  const showExtras = entry.isMandatory || (entry.answer !== undefined && entry.answer !== 'na')
+  // For mandatory items, always show extras (unless answered N/A); for optional items, only after a non-NA selection
+  const showExtras = entry.answer !== 'na' && (entry.isMandatory || entry.answer !== undefined)
   const isIncomplete = showValidation && !isEntryComplete(entry)
 
   return (
@@ -199,24 +198,19 @@ function ChecklistItemRowReadOnly({
 
 function ChecklistItemRowSbuEdit({
   entry,
-  touched,
   onAnswer,
   onAddPhoto,
   onRemovePhoto,
   onSbuComment,
 }: {
   entry: ComplianceChecklistEntry
-  touched: boolean
   onAnswer: (answer: ChecklistAnswer) => void
   onAddPhoto: () => void
   onRemovePhoto: (index: number) => void
   onSbuComment: (comment: string) => void
 }) {
-  const answers: ChecklistAnswer[] = entry.isMandatory
-    ? ['yes', 'partial', 'no']
-    : ['yes', 'partial', 'no', 'na']
-  const showExtras = entry.isMandatory || (entry.answer !== undefined && entry.answer !== 'na')
-  const showSbuComment = touched || Boolean(entry.sbuComment)
+  const answers: ChecklistAnswer[] = ['yes', 'partial', 'no', 'na']
+  const showExtras = entry.answer !== 'na' && (entry.isMandatory || entry.answer !== undefined)
 
   return (
     <div className="py-4 border-b border-border-light last:border-0">
@@ -276,20 +270,18 @@ function ChecklistItemRowSbuEdit({
         </p>
       )}
 
-      {showSbuComment && (
-        <div className="mt-3">
-          <p className="text-xs text-text-tertiary mb-1.5 flex items-center gap-1">
-            <i className="ri-chat-1-line" /> SBU comment
-          </p>
-          <textarea
-            value={entry.sbuComment ?? ''}
-            onChange={(e) => onSbuComment(e.target.value)}
-            placeholder="Add a comment for the Location Admin…"
-            rows={2}
-            className="w-full text-sm px-3 py-2 rounded-xl border border-blue-200 bg-blue-50/40 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder:text-text-tertiary resize-none"
-          />
-        </div>
-      )}
+      <div className="mt-3">
+        <p className="text-xs text-text-tertiary mb-1.5 flex items-center gap-1">
+          <i className="ri-chat-1-line" /> SBU comment
+        </p>
+        <textarea
+          value={entry.sbuComment ?? ''}
+          onChange={(e) => onSbuComment(e.target.value)}
+          placeholder="Add a comment for the Location Admin…"
+          rows={2}
+          className="w-full text-sm px-3 py-2 rounded-xl border border-blue-200 bg-blue-50/40 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder:text-text-tertiary resize-none"
+        />
+      </div>
     </div>
   )
 }
@@ -317,10 +309,10 @@ export default function ComplianceDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingItemId, setPendingItemId] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
-  const [touchedItemIds, setTouchedItemIds] = useState<Set<string>>(new Set())
   const [pendingNav, setPendingNav] = useState<string | number | null>(null)
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [pendingPhotoRemoval, setPendingPhotoRemoval] = useState<{ itemId: string; index: number } | null>(null)
   const [showSubmitSuccess, setShowSubmitSuccess] = useState(false)
   const [showDraftSaved, setShowDraftSaved] = useState(false)
   const [showOverflow, setShowOverflow] = useState(false)
@@ -366,7 +358,6 @@ export default function ComplianceDetail() {
     if (!file || !pendingItemId || !recordId) return
     const url = URL.createObjectURL(file)
     setIsDirty(true)
-    if (isSbuAdmin) setTouchedItemIds((prev) => new Set(prev).add(pendingItemId))
     addChecklistPhoto(recordId, pendingItemId, url)
     setPendingItemId(null)
     e.target.value = ''
@@ -378,6 +369,13 @@ export default function ComplianceDetail() {
     setSubmitAttempted(false)
     setIsDirty(false)
     setShowClearConfirm(false)
+  }
+
+  function confirmPhotoRemoval() {
+    if (!recordId || !pendingPhotoRemoval) return
+    setIsDirty(true)
+    removeChecklistPhoto(recordId, pendingPhotoRemoval.itemId, pendingPhotoRemoval.index)
+    setPendingPhotoRemoval(null)
   }
 
   function handleSaveDraft() {
@@ -566,18 +564,12 @@ export default function ComplianceDetail() {
         <ChecklistItemRowSbuEdit
           key={entry.itemId}
           entry={entry}
-          touched={touchedItemIds.has(entry.itemId)}
           onAnswer={(ans) => {
             setIsDirty(true)
-            setTouchedItemIds((prev) => new Set(prev).add(entry.itemId))
             setSbuChecklistAnswer(record.id, entry.itemId, ans)
           }}
           onAddPhoto={() => handleAddPhoto(entry.itemId)}
-          onRemovePhoto={(i) => {
-            setIsDirty(true)
-            setTouchedItemIds((prev) => new Set(prev).add(entry.itemId))
-            removeChecklistPhoto(record.id, entry.itemId, i)
-          }}
+          onRemovePhoto={(i) => setPendingPhotoRemoval({ itemId: entry.itemId, index: i })}
           onSbuComment={(comment) => setSbuComment(record.id, entry.itemId, comment)}
         />
       )
@@ -590,7 +582,7 @@ export default function ComplianceDetail() {
         onAnswer={(ans) => { setIsDirty(true); setChecklistAnswer(record.id, entry.itemId, ans) }}
         onRemarks={(rem) => { setIsDirty(true); setChecklistRemarks(record.id, entry.itemId, rem) }}
         onAddPhoto={() => handleAddPhoto(entry.itemId)}
-        onRemovePhoto={(i) => { setIsDirty(true); removeChecklistPhoto(record.id, entry.itemId, i) }}
+        onRemovePhoto={(i) => setPendingPhotoRemoval({ itemId: entry.itemId, index: i })}
       />
     ) : (
       <ChecklistItemRowReadOnly key={entry.itemId} entry={entry} />
@@ -881,6 +873,21 @@ export default function ComplianceDetail() {
         }
       >
         <p className="text-sm text-text-secondary py-2">All answers, photos, and comments will be cleared. This cannot be undone.</p>
+      </Modal>
+
+      {/* Remove photo confirm */}
+      <Modal
+        open={pendingPhotoRemoval !== null}
+        onClose={() => setPendingPhotoRemoval(null)}
+        title="Remove Photo?"
+        footer={
+          <div className="flex gap-2">
+            <Button size="md" variant="secondary" fullWidth onClick={() => setPendingPhotoRemoval(null)}>Cancel</Button>
+            <Button size="md" fullWidth onClick={confirmPhotoRemoval}>Remove</Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-text-secondary py-2">This photo will be permanently removed. This cannot be undone.</p>
       </Modal>
     </div>
   )

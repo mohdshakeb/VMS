@@ -345,6 +345,7 @@ export default function SbuAdminDashboardDesktop() {
               trend={overdueVsLastMonth}
               trendLabel="vs last month"
               trendInverted
+              onClick={() => navigate('/sbu/compliance?status=overdue')}
             />
             <KpiCardV2
               label="Low Performing"
@@ -355,6 +356,7 @@ export default function SbuAdminDashboardDesktop() {
               trend={lowPerformingVsLastMonth}
               trendLabel="vs last month"
               trendInverted
+              onClick={() => navigate('/sbu/locations?rating=below3')}
             />
           </div>
 

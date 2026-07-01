@@ -30,7 +30,7 @@ export default function SearchBar({ placeholder = 'Search...', value: controlled
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         placeholder={placeholder}
-        className={`w-full rounded-lg py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand/20 transition-shadow duration-150 ${inputClassName ?? 'bg-surface-secondary'}`}
+        className={`w-full rounded-lg py-1.5 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand/20 transition-shadow duration-150 ${inputClassName ?? 'bg-surface-secondary'}`}
       />
     </div>
   )

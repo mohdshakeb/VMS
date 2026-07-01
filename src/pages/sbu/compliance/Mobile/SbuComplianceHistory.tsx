@@ -3,7 +3,7 @@
 // No PageHeader — AppLayout's MobileTopBar provides the chrome.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useFacilityStore } from '@/store/facilityStore'
 import { useAuthStore } from '@/store/authStore'
 import MobileSearchInput from '@/components/Mobile/MobileSearchInput'
@@ -11,7 +11,7 @@ import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import EmptyState from '@/components/common/EmptyState'
 import type { FacilityComplianceStatus } from '@/types/facility'
 import { formatComplianceDueDate } from '@/data/facilityData'
-import { MONTH_NAMES } from '@/utils/facilityHelpers'
+import { MONTH_NAMES, scoreChecklist } from '@/utils/facilityHelpers'
 
 const STATUS_OPTIONS: { label: string; value: FacilityComplianceStatus | '' }[] = [
   { label: 'All statuses', value: '' },
@@ -20,6 +20,15 @@ const STATUS_OPTIONS: { label: string; value: FacilityComplianceStatus | '' }[] 
   { label: 'Overdue',      value: 'overdue' },
   { label: 'Submitted',    value: 'submitted' },
   { label: 'Missed',       value: 'missed' },
+]
+
+const RATING_OPTIONS = [
+  { label: 'All ratings', value: '' },
+  { label: '5 Stars', value: '5' },
+  { label: '4 Stars', value: '4' },
+  { label: '3 Stars', value: '3' },
+  { label: '2 Stars', value: '2' },
+  { label: '1 Star', value: '1' },
 ]
 
 function formatDate(ts?: string) {
@@ -37,6 +46,7 @@ function totalCount(record: { checklist: unknown[] }) {
 
 export default function SbuComplianceHistoryMobile() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { currentSbu } = useAuthStore()
   const allRecords = useFacilityStore((s) => s.complianceRecords)
 
@@ -59,19 +69,29 @@ export default function SbuComplianceHistoryMobile() {
   )
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<FacilityComplianceStatus | ''>('')
+  const [statusFilter, setStatusFilter] = useState<FacilityComplianceStatus | ''>(
+    () => (searchParams.get('status') as FacilityComplianceStatus | null) ?? '',
+  )
   const [locationFilter, setLocationFilter] = useState('')
+  const [ratingFilter, setRatingFilter] = useState('')
 
   const filtered = useMemo(() => {
     let result = [...baseRecords]
     if (statusFilter) result = result.filter((r) => r.status === statusFilter)
     if (locationFilter) result = result.filter((r) => r.locationName === locationFilter)
+    if (ratingFilter) {
+      const targetStars = Number(ratingFilter)
+      result = result.filter((r) => {
+        const s = scoreChecklist(r.checklist)
+        return s.maxScore > 0 && s.stars === targetStars
+      })
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter((r) => r.locationName.toLowerCase().includes(q))
     }
     return result
-  }, [baseRecords, statusFilter, locationFilter, search])
+  }, [baseRecords, statusFilter, locationFilter, ratingFilter, search])
 
   return (
     <div className="md:hidden h-full flex flex-col bg-surface-secondary">
@@ -93,7 +113,13 @@ export default function SbuComplianceHistoryMobile() {
               >
                 {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-sm ${statusFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+              {statusFilter ? (
+                <button type="button" aria-label="Clear status filter" onClick={(e) => { e.stopPropagation(); setStatusFilter('') }} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand">
+                  <i className="ri-close-circle-fill text-sm" />
+                </button>
+              ) : (
+                <i className="ri-arrow-down-s-line pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-sm text-text-tertiary" />
+              )}
             </div>
 
             <div className="relative shrink-0">
@@ -105,12 +131,35 @@ export default function SbuComplianceHistoryMobile() {
                 <option value="">Location</option>
                 {locationNames.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
-              <i className={`ri-arrow-down-s-line pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-sm ${locationFilter ? 'text-brand' : 'text-text-tertiary'}`} />
+              {locationFilter ? (
+                <button type="button" aria-label="Clear location filter" onClick={(e) => { e.stopPropagation(); setLocationFilter('') }} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand">
+                  <i className="ri-close-circle-fill text-sm" />
+                </button>
+              ) : (
+                <i className="ri-arrow-down-s-line pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-sm text-text-tertiary" />
+              )}
             </div>
 
-            {(statusFilter || locationFilter) && (
+            <div className="relative shrink-0">
+              <select
+                value={ratingFilter}
+                onChange={(e) => setRatingFilter(e.target.value)}
+                className={`text-xs border rounded-lg pl-3 pr-7 py-2 appearance-none cursor-pointer focus:outline-none transition-colors ${ratingFilter ? 'bg-brand-light text-brand border-brand' : 'bg-white border-border text-text-secondary'}`}
+              >
+                {RATING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              {ratingFilter ? (
+                <button type="button" aria-label="Clear rating filter" onClick={(e) => { e.stopPropagation(); setRatingFilter('') }} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand">
+                  <i className="ri-close-circle-fill text-sm" />
+                </button>
+              ) : (
+                <i className="ri-arrow-down-s-line pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-sm text-text-tertiary" />
+              )}
+            </div>
+
+            {(statusFilter || locationFilter || ratingFilter) && (
               <button
-                onClick={() => { setStatusFilter(''); setLocationFilter('') }}
+                onClick={() => { setStatusFilter(''); setLocationFilter(''); setRatingFilter('') }}
                 className="shrink-0 flex items-center gap-1 text-xs text-text-secondary px-2 py-1.5 rounded-lg border border-border bg-white"
               >
                 <i className="ri-close-circle-line text-sm" />

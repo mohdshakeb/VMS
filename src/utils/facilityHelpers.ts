@@ -115,7 +115,8 @@ export function groupFacilitiesByLocation(facilities: Facility[]): LocationGroup
 
 // ─── Compliance scoring (SBU Admin report card) ──────────────────────────────
 
-const ANSWER_POINTS: Record<string, number> = { yes: 1, partial: 0.5, no: 0 }
+const POINTS_PER_QUESTION = 10
+const ANSWER_POINTS: Record<string, number> = { yes: POINTS_PER_QUESTION, partial: POINTS_PER_QUESTION / 2, no: 0 }
 
 export interface SectionScore {
   section: string
@@ -140,13 +141,13 @@ export function starsFromPct(pct: number): number {
   return 1
 }
 
-/** Yes = 1pt, Partial = 0.5pt, No = 0pt. N/A items are excluded from both max and score. Unanswered items count toward the max with 0 points. */
+/** Each question is worth 10 points: Yes = 10/10, Partial = 5/10, No = 0/10. N/A items are excluded from both max and score. Unanswered items count toward the max with 0 points. */
 export function scoreChecklist(checklist: ComplianceChecklistEntry[]): ComplianceScore {
   const sectionNames = [...new Set(checklist.map((e) => e.section))]
 
   const sections = sectionNames.map((section) => {
     const applicable = checklist.filter((e) => e.section === section && e.answer !== 'na')
-    const max = applicable.length
+    const max = applicable.length * POINTS_PER_QUESTION
     const score = applicable.reduce((sum, e) => sum + (e.answer ? ANSWER_POINTS[e.answer] ?? 0 : 0), 0)
     const pct = max > 0 ? Math.round((score / max) * 100) : 0
     return { section, max, score, pct }
@@ -157,4 +158,18 @@ export function scoreChecklist(checklist: ComplianceChecklistEntry[]): Complianc
   const percentage = maxScore > 0 ? Math.round((facilityScore / maxScore) * 100) : 0
 
   return { sections, maxScore, facilityScore, percentage, stars: starsFromPct(percentage) }
+}
+
+/** Average rating for a location across every submitted/updated compliance record to date (not just the current period). */
+export function getLocationAverageRating(records: ComplianceRecord[], locationName: string): {
+  avgPct: number | null
+  stars: number | null
+  count: number
+} {
+  const scored = records
+    .filter((r) => r.locationName === locationName && (r.status === 'submitted' || r.status === 'updated'))
+    .map((r) => scoreChecklist(r.checklist).percentage)
+  if (scored.length === 0) return { avgPct: null, stars: null, count: 0 }
+  const avgPct = Math.round(scored.reduce((a, b) => a + b, 0) / scored.length)
+  return { avgPct, stars: starsFromPct(avgPct), count: scored.length }
 }

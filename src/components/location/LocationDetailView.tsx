@@ -6,7 +6,10 @@ import PageHeader from '@/components/PageHeader'
 import FacilityStatusBadge from '@/components/facility/FacilityStatusBadge'
 import FacilityComplianceCard from '@/components/facility/FacilityComplianceCard'
 import Modal from '@/components/Modal'
+import StarRating from '@/components/common/StarRating'
+import InfoTooltip from '@/components/common/InfoTooltip'
 import { CURRENT_COMPLIANCE_PERIOD } from '@/data/facilityData'
+import { getLocationAverageRating } from '@/utils/facilityHelpers'
 import type { FacilityStatus, FacilityType } from '@/types/facility'
 import buildingPlaceholder from '@/assets/building.png'
 
@@ -82,6 +85,7 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
   const admins = [
     ...new Set(locationFacilities.map((f) => f.locationAdmin).filter((n): n is string => Boolean(n))),
   ]
+  const locationRating = getLocationAverageRating(allRecords, locationName)
   const isActive = locationFacilities.every((f) => f.status === 'active')
   const hasPendingStatusRequest = locationFacilities.some((f) => f.pendingStatusRequest)
   const sbuAdmin = SBU_ADMIN_MAP[firstFacility.sbu]
@@ -185,6 +189,24 @@ export default function LocationDetailView({ backPath, backLabel, basePath }: Pr
           <div>
             <p className="text-xs text-text-tertiary">SBU</p>
             <p className="text-sm font-medium text-text-primary mt-0.5">{firstFacility.sbu}</p>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1">
+              <p className="text-xs text-text-tertiary">Avg. Rating</p>
+              <InfoTooltip
+                align="left"
+                content="Average of star ratings across all submitted compliance records for this location, to date. 5★ ≥90%, 4★ 75–89%, 3★ 60–74%, 2★ 40–59%, 1★ <40%."
+              />
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <StarRating stars={locationRating.stars} size="sm" />
+              {locationRating.stars !== null && (
+                <span className="text-xs text-text-tertiary tabular-nums">
+                  {locationRating.avgPct}% · {locationRating.count} record{locationRating.count !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Location Admin — shown to SBU Admin */}
